@@ -55,7 +55,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     },
     async signUp(email, password) {
       const { data, error } = await supabase!.auth.signUp({ email, password });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // 가입만 하고 프로필을 안 만든 채 나간 경우: 같은 비밀번호면 로그인해서 프로필 만들기로 이어 간다
+        if (/already registered|already exists/i.test(error.message)) {
+          const r = await supabase!.auth.signInWithPassword({ email, password });
+          if (!r.error) return;
+          throw new Error("이미 가입된 이메일이에요. ‘이미 계정이 있어요 · 로그인’으로 로그인해 주세요. 프로필을 아직 안 만들었다면 로그인 후 이어서 만들 수 있어요.");
+        }
+        throw new Error(error.message);
+      }
       if (!data.session) throw new Error("가입 확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.");
     },
     async signOut() { await supabase?.auth.signOut(); },

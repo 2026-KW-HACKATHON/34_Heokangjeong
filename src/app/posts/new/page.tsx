@@ -32,6 +32,8 @@ export default function NewPost() {
     await act.run(async () => {
       if (!f.title.trim()) throw new Error("제목을 입력해 주세요");
       if (!l.problem.trim()) throw new Error("어떤 문제를 해결하고 싶은지 적어 주세요");
+      if (!(f.durationDays >= 1)) throw new Error("예상 기간은 1일 이상으로 적어 주세요");
+      if (f.isTeam && slots.some((s) => !(s.count >= 1))) throw new Error("팀 역할 인원은 1명 이상으로 적어 주세요");
       const paid = l.compensationType === "PAID" ? Number(l.paidAmount.replace(/,/g, "")) : undefined;
       if (l.compensationType === "PAID" && (!paid || paid <= 0)) throw new Error("유료 의뢰는 금액을 적어 주세요");
       const p = await repo.createPost({
@@ -98,7 +100,7 @@ export default function NewPost() {
             <select className={inputCls} value={domain} onChange={(e) => setL({ ...l, domain: e.target.value as DomainKey })}>{DOMAIN_KEYS.map((k) => <option key={k} value={k}>{DOMAINS[k].label}</option>)}</select>
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="예상 기간(일)"><input type="number" min={1} className={inputCls} value={f.durationDays} onChange={(e) => setF({ ...f, durationDays: +e.target.value })} /></Field>
+            <Field label="예상 기간(일)"><input type="number" min={1} className={inputCls} value={f.durationDays || ""} onChange={(e) => setF({ ...f, durationDays: +e.target.value })} /></Field>
             <Field label="난이도"><select className={inputCls} value={f.difficulty} onChange={(e) => setF({ ...f, difficulty: +e.target.value as 1 | 2 | 3 })}><option value={1}>★ 쉬움</option><option value={2}>★★ 보통</option><option value={3}>★★★ 어려움</option></select></Field>
           </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.isTeam} onChange={(e) => setF({ ...f, isTeam: e.target.checked })} /> 여러 명이 필요한 팀 프로젝트예요</label>
@@ -107,7 +109,7 @@ export default function NewPost() {
               {slots.map((s, i) => (
                 <div key={i} className="mb-2 flex gap-2">
                   <select aria-label="역할" className="flex-1 rounded-lg bg-white p-2" value={s.category} onChange={(e) => setSlots(slots.map((x, j) => j === i ? { ...x, category: e.target.value as Category } : x))}>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
-                  <input aria-label="인원" type="number" min={1} className="w-16 rounded-lg bg-white p-2" value={s.count} onChange={(e) => setSlots(slots.map((x, j) => j === i ? { ...x, count: +e.target.value } : x))} />
+                  <input aria-label="인원" type="number" min={1} className="w-16 rounded-lg bg-white p-2" value={s.count || ""} onChange={(e) => setSlots(slots.map((x, j) => j === i ? { ...x, count: +e.target.value } : x))} />
                 </div>
               ))}
               <button onClick={() => setSlots([...slots, { category: "영상", count: 1, filled: [] }])} className="text-[var(--primary)]">+ 역할 추가</button>

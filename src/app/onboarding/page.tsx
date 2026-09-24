@@ -16,6 +16,7 @@ export default function Onboarding() {
 
   async function submit() {
     if (!f.name.trim()) return setErr(role === "student" ? "이름을 입력해 주세요" : "상호 또는 이름을 입력해 주세요");
+    if (role === "student" && !(f.maxDistanceM >= 100)) return setErr("활동 가능 거리는 100m 이상으로 적어 주세요");
     setBusy(true); setErr("");
     try {
       await saveProfile(role === "student"
@@ -42,7 +43,7 @@ export default function Onboarding() {
               <button key={c} onClick={() => setF({ ...f, interests: f.interests.includes(c) ? f.interests.filter((x) => x !== c) : [...f.interests, c] })} className={`chip ${f.interests.includes(c) ? "chip-on" : ""}`}>{c}</button>
             ))}</div></div>
             <input className={field} placeholder="활동 가능 시간 (예: 평일 저녁, 주말)" value={f.availableHours} onChange={(e) => setF({ ...f, availableHours: e.target.value })} />
-            <label className="text-sm"><span className="sub block text-xs">활동 가능 거리(m)</span><input type="number" min={100} step={100} className={field} value={f.maxDistanceM} onChange={(e) => setF({ ...f, maxDistanceM: +e.target.value })} /></label>
+            <label className="text-sm"><span className="sub block text-xs">활동 가능 거리(m)</span><input type="number" min={100} step={100} className={field} value={f.maxDistanceM || ""} onChange={(e) => setF({ ...f, maxDistanceM: +e.target.value })} /></label>
           </>
         ) : (
           <>
