@@ -1,7 +1,7 @@
 # Supabase 연결 (로그인·DB·채팅·AI·검증형 포트폴리오)
 
-> ⚠️ **검증형 포트폴리오 파이프라인은 `0002_verified_portfolio.sql` 이 DB 에 적용돼 있어야 동작한다.**
-> 적용 전에 이 버전을 팀 DB(.env)에 붙여 쓰면 공고 등록부터 실패한다 (새 컬럼 없음). 적용 전에는 `.env.local` 로 mock 모드를 쓴다.
+> 팀 프로젝트(`wolgye-hackathon`)에는 `0002` 적용과 `portfolio-ai`·`notion` 배포가 끝났다 (2026-09-24). Notion secret 은 아직 없다.
+> 새 프로젝트에 붙일 때 `0002` 를 빠뜨리면 공고 등록부터 실패한다 (새 컬럼 없음).
 
 저장소의 `.env` 에 팀 Supabase 프로젝트(wolgye-hackathon) 연결 정보가 들어 있어서, 받아서 `npm run dev` 만 하면 실제 DB 에 붙는다.
 아래는 프로젝트를 새로 만들 때의 절차다.

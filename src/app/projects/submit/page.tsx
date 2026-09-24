@@ -21,10 +21,11 @@ function Submit() {
   const id = useSearchParams().get("id") ?? "";
   const router = useRouter();
   const { user } = useSession();
-  const { bundle: b } = useBundle(id);
+  const { bundle: b, error: loadError } = useBundle(id);
   const [picked, setPicked] = useState<string[] | null>(null);
   const [note, setNote] = useState("");
   const act = useAction();
+  if (loadError) return <><TopBar title="결과물 제출" back /><div className="px-4"><ErrorText text={loadError} /></div></>;
   if (!b || !user) return <><TopBar title="결과물 제출" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const status = b.project.status;
   const latest = b.versions.at(-1);

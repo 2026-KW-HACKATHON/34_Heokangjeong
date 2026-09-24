@@ -78,6 +78,10 @@ function QuestionStep({ bundle, q, userId, onDone }: { bundle: ProjectBundle; q:
   const [saved, setSaved] = useState<"" | "saving" | "saved">(prev ? "saved" : "");
   const [fu, setFu] = useState<FollowUpSuggestion | null>(null);
   const [fuAnswers, setFuAnswers] = useState<string[]>([]);
+  const [aiPending, setAiPending] = useState(false);
+  const fuTouched = useRef(false);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
   const act = useAction();
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const latest = useRef({ value, choices });
@@ -110,10 +114,17 @@ function QuestionStep({ bundle, q, userId, onDone }: { bundle: ProjectBundle; q:
     await act.run(async () => {
       if (!fu) {
         await save("ANSWERED");
-        const s = await suggestFollowUps(q, [...choices, value].filter(Boolean).join(", "), bundle.project.domain);
-        if (s.questions.length) {
-          const prevFu = s.questions.map((_, i) => mine.find((a) => a.questionId === `${q.id}:fu${i}`)?.value ?? "");
-          setFu(s); setFuAnswers(prevFu); return;
+        const { rule, ai } = suggestFollowUps(q, [...choices, value].filter(Boolean).join(", "), bundle.project.domain);
+        const prevFor = (s: FollowUpSuggestion) => s.questions.map((_, i) => mine.find((a) => a.questionId === `${q.id}:fu${i}`)?.value ?? "");
+        if (rule) {
+          // 규칙 기반 질문을 바로 보여 주고, AI 질문이 도착하면 (아직 아무것도 안 적었을 때만) 바꿔 끼운다
+          setFu(rule); setFuAnswers(prevFor(rule)); setAiPending(true);
+          ai.then((s) => {
+            if (!alive.current) return;
+            setAiPending(false);
+            if (s && !fuTouched.current) { setFu(s); setFuAnswers(prevFor(s)); }
+          });
+          return;
         }
       } else {
         // 후속 질문은 선택. 답한 것만 저장한다
@@ -158,10 +169,11 @@ function QuestionStep({ bundle, q, userId, onDone }: { bundle: ProjectBundle; q:
         {fu && (
           <div className="mt-4 rounded-2xl bg-[var(--primary-weak)] p-4">
             <p className="text-xs font-bold text-[var(--primary)]">{fu.source === "AI" ? "✨ AI 추천 질문" : "추천 질문"} · 답하지 않아도 넘어갈 수 있어요</p>
+            {aiPending && <p className="sub mt-1 text-[11px]" aria-live="polite">AI 가 답에 맞춘 질문을 찾는 중… (기다리지 않아도 돼요)</p>}
             {fu.questions.map((text, i) => (
               <label key={i} className="mt-3 block">
                 <span className="block text-[15px] font-semibold">{text}</span>
-                <textarea className={`${inputCls} mt-1 h-20 bg-white`} value={fuAnswers[i] ?? ""} onChange={(e) => setFuAnswers(fuAnswers.map((x, j) => (j === i ? e.target.value : x)))} />
+                <textarea className={`${inputCls} mt-1 h-20 bg-white`} value={fuAnswers[i] ?? ""} onChange={(e) => { fuTouched.current = true; setFuAnswers(fuAnswers.map((x, j) => (j === i ? e.target.value : x))); }} />
               </label>
             ))}
           </div>

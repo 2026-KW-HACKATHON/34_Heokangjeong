@@ -46,3 +46,6 @@ supabase/functions/deno.lock
 
 # E2E 스크린샷
 /e2e/shots/
+
+# Supabase CLI 임시 파일
+supabase/.temp/

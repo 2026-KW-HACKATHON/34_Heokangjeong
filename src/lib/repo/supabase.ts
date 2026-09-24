@@ -189,7 +189,8 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return ok(await q).map((r: Row) => ({ project: toProject(r), post: toPost(r.post) }));
     },
     async getBundle(projectId) {
-      const p = ok(await db.from("projects").select("*, post:posts(*)").eq("id", projectId).single());
+      const p = maybe(await db.from("projects").select("*, post:posts(*)").eq("id", projectId).maybeSingle());
+      if (!p) throw new Error("프로젝트를 찾을 수 없거나 볼 권한이 없어요 (선정된 학생과 의뢰인만 볼 수 있어요)");
       const by = (t: string, order = "created_at") => db.from(t).select("*").eq("project_id", projectId).order(order);
       const [members, answers, logs, evidence, versions, verification, review, outcomes, snapshots, drafts, edits] = await Promise.all([
         by("project_members", "joined_at"), by("project_answers", "updated_at"), by("activity_logs"), by("evidence"), by("submission_versions", "version"),

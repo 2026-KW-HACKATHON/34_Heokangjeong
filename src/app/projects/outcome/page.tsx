@@ -17,9 +17,10 @@ function AddOutcome() {
   const id = useSearchParams().get("id") ?? "";
   const router = useRouter();
   const { user } = useSession();
-  const { bundle: b } = useBundle(id);
+  const { bundle: b, error: loadError } = useBundle(id);
   const [f, setF] = useState({ metricName: "", measured: true, value: "", unit: "", baseline: "", measurementPeriod: "", source: "", evidenceId: "", qualitativeDescription: "" });
   const act = useAction();
+  if (loadError) return <><TopBar title="성과 추가" back /><div className="px-4"><ErrorText text={loadError} /></div></>;
   if (!b || !user) return <><TopBar title="성과 추가" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const toNum = (s: string) => (s.trim() === "" ? null : Number(s.replace(/,/g, "")));
 

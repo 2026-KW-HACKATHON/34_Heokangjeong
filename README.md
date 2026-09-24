@@ -18,8 +18,8 @@
 4. **Narrative Engine** — 기록을 나열하지 않고 Problem → Decision → Action → Evidence → Result → Reflection 으로 바꾸되, 기록에 없는 숫자·성과·도구는 사실 검사로 걸러낸다.
 
 지금 상태: Supabase 백엔드(로그인·채팅·AI 공고 초안) 위에 검증형 포트폴리오 파이프라인을 얹은 프로토타입.
-> ⚠️ 새 파이프라인은 DB 마이그레이션 `0002` 와 Edge Function `portfolio-ai`·`notion` 배포가 필요합니다 → [docs/SUPABASE.md](docs/SUPABASE.md).
-> 적용 전에는 `.env.local` 에 `NEXT_PUBLIC_SUPABASE_URL=` / `NEXT_PUBLIC_SUPABASE_KEY=` (빈 값)을 적어 **가짜 데이터(mock) 모드**로 돌리세요. 전체 흐름이 mock 에서도 동작합니다 (AI 대신 템플릿 초안, Notion 비활성).
+팀 Supabase(`wolgye-hackathon`)에는 마이그레이션 `0002` 와 Edge Function `portfolio-ai`·`notion` 이 적용·배포돼 있습니다 (2026-09-24). 새 Supabase 프로젝트에 붙일 때는 [docs/SUPABASE.md](docs/SUPABASE.md).
+> 서버 없이 보려면 `.env.local` 에 `NEXT_PUBLIC_SUPABASE_URL=` / `NEXT_PUBLIC_SUPABASE_KEY=` (빈 값)을 적어 **가짜 데이터(mock) 모드**로 돌리세요. 전체 흐름이 mock 에서도 동작합니다 (AI 대신 템플릿 초안, Notion 비활성).
 당근마켓처럼 "동네 공고 피드 + 지도" 를 축으로, 토스처럼 흰 배경·큰 카드·파란 포인트의 단순한 UI 로 잡았습니다.
 누구나 원하는 부분부터 채워 넣을 수 있게 구조를 나눠 두었습니다.
 
@@ -38,6 +38,7 @@ npm run lint
 npm test                 # 단위 테스트 + DB 마이그레이션·RLS 테스트(PGlite)
 npm run check:functions  # Edge Function 타입 검사 (Deno, npx 로 자동 설치)
 npm run test:e2e         # mock 모드 E2E (dev 서버 실행 중, 처음 한 번 npx playwright install chromium)
+node e2e/real-scenario.mjs  # 실제 Supabase E2E — 공유 DB 에 테스트 계정·데이터가 생기므로 끝나고 정리 (파일 상단 주석)
 ```
 
 ### 환경변수·AI·Notion
@@ -131,9 +132,8 @@ docs/SUPABASE.md        Supabase·Gemini 연결 방법
 자세한 방법은 [CONTRIBUTING.md](CONTRIBUTING.md), 설계는 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## 남은 한계
-- Notion OAuth·페이지 생성은 **실제 Notion 계정으로 검증하지 못함** (코드·타입 검사·블록 생성 로직만 확인). [docs/NOTION.md](docs/NOTION.md)
-- AI(Gemini) 경로는 키가 없어 실제 호출을 검증하지 못함. 사실 검사(guard)와 템플릿 대체 경로는 테스트로 확인.
-- 마이그레이션 `0002`·새 Edge Function 은 팀 Supabase 에 아직 적용·배포하지 않음. DB 함수·RLS 는 PGlite 로만 검증.
+- Notion OAuth·페이지 생성은 **실제 Notion 계정으로 검증하지 못함** (팀 서버에 Notion secret 없음) (코드·타입 검사·블록 생성 로직만 확인). [docs/NOTION.md](docs/NOTION.md)
+- Gemini 응답이 느림 (후속 질문 15~25초, 가끔 시간 초과). 그래서 후속 질문은 규칙 기반 질문을 먼저 보여 주고 AI 질문이 도착하면 바꿔 끼운다. 포트폴리오 초안은 실제 AI 로 생성·사실 검사까지 확인함.
 - 팀 프로젝트는 여러 명 선정·각자 기록까지만. 팀 역할별 템플릿·팀 포트폴리오 화면은 아직 없음.
 - Capacitor 앱 안에서는 Notion OAuth 후 앱으로 돌아오는 딥링크가 없음 (웹에서 사용).
 

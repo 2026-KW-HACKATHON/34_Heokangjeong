@@ -28,7 +28,7 @@ function AddEvidence() {
   const id = sp.get("id") ?? "";
   const back = sp.get("back");
   const { user } = useSession();
-  const { bundle: b } = useBundle(id);
+  const { bundle: b, error: loadError } = useBundle(id);
   const [type, setType] = useState<EvidenceType>((sp.get("type") as EvidenceType) || "BEFORE_IMAGE");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
@@ -36,6 +36,7 @@ function AddEvidence() {
   const [linkedField, setLinkedField] = useState<string | null>(null);
   const [linkedClaim, setLinkedClaim] = useState("");
   const act = useAction();
+  if (loadError) return <><TopBar title="증빙 추가" back /><div className="px-4"><ErrorText text={loadError} /></div></>;
   if (!b || !user) return <><TopBar title="증빙 추가" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const isOwner = b.project.ownerId === user.id;
   const fields = DOMAINS[b.project.domain].fields;

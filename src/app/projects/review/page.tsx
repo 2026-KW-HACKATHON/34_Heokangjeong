@@ -29,13 +29,14 @@ function Review() {
   const id = useSearchParams().get("id") ?? "";
   const router = useRouter();
   const { user } = useSession();
-  const { bundle: b, reload } = useBundle(id);
+  const { bundle: b, error: loadError, reload } = useBundle(id);
   const [mode, setMode] = useState<"approve" | "revise">("approve");
   const [comment, setComment] = useState("");
   const [claims, setClaims] = useState<VerificationClaims>({ workPerformed: false, roleConfirmed: false, deliverableReceived: false, completionCriteriaMet: false, actuallyUsed: false });
   const [review, setReview] = useState({ satisfaction: 0, deadline: 0, communication: 0, handoff: 0, comment: "" });
   const [note, setNote] = useState("");
   const act = useAction();
+  if (loadError) return <><TopBar title="검토" back /><div className="px-4"><ErrorText text={loadError} /></div></>;
   if (!b || !user) return <><TopBar title="검토" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const v = b.versions.at(-1);
   const listing = listingOf(b.post);
