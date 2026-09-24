@@ -71,7 +71,7 @@ DESIGN · MARKETING · DEVELOPMENT 전용, 그 밖의 카테고리(영상·사�
 2. `planSections` : 분야 템플릿 중 재료가 있는 섹션만. 의뢰인 평가 원문 섹션은 잠김(AI·학생이 쓰지 않음).
 3. AI(Gemini) : Problem → Decision → Action → Evidence → Result → Reflection 서사로 쓰게 하는 지시 + 섹션 key enum 스키마.
 4. `guardNarrative` : 스냅샷에 없는 숫자·성과 주장 문장 삭제, 기록에 없는 도구 삭제, 계획 밖 섹션·없는 증빙 id 삭제, 빈 섹션은 템플릿으로 채움 → 보고서(guardReport)를 화면에 보여 준다.
-5. AI 실패 → `templateDraft` (화면·DB 에 `TEMPLATE` = "Template-generated draft" 로 표시).
+5. AI 실패 → `templateDraft` (화면·DB 에 `TEMPLATE` = "템플릿 초안 · AI 미사용" 로 표시).
 6. 학생 편집본은 재생성으로 덮어쓰지 않는다. 검증·평가 원문·증빙은 편집 대상이 아니라 문서에 원본을 붙인다 (`document.ts`).
 
 ## 신뢰 지표 (P2)

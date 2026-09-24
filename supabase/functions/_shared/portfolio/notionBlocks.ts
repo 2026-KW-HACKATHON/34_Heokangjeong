@@ -53,7 +53,7 @@ export function toNotionBlocks(doc: DocBlock[], summary: string, opts: { imagesA
   for (const b of doc) {
     switch (b.kind) {
       case "info":
-        blocks.push(h2("Project Information"), ...b.rows.map(([k, v]) => bullet(v, k)));
+        blocks.push(h2("프로젝트 정보"), ...b.rows.map(([k, v]) => bullet(v, k)));
         break;
       case "section":
         blocks.push(h2(b.section.title));
@@ -61,18 +61,18 @@ export function toNotionBlocks(doc: DocBlock[], summary: string, opts: { imagesA
         for (const e of b.evidence) { shown.add(e.id); blocks.push(...evidenceBlocks(e, failed, !!opts.imagesAsLinks)); }
         break;
       case "feedback":
-        blocks.push(h2("Client Feedback (원문)"), { object: "block", type: "quote", quote: { rich_text: rt(b.review.comment) } },
+        blocks.push(h2("의뢰인 평가 (원문)"), { object: "block", type: "quote", quote: { rich_text: rt(b.review.comment) } },
           para(`만족도 ${b.review.satisfaction}/5 · 기한 ${b.review.deadline}/5 · 소통 ${b.review.communication}/5 · 인계 ${b.review.handoff}/5`, { color: "gray" }));
         break;
       case "tools":
-        blocks.push(h2("Tools & Why"), ...b.tools.map((t) => bullet(t.why || "", t.name)));
-        if (b.skills.length) blocks.push(para(`Skills: ${b.skills.join(" · ")}`));
+        blocks.push(h2("사용 도구와 이유"), ...b.tools.map((t) => bullet(t.why || "", t.name)));
+        if (b.skills.length) blocks.push(para(`역량: ${b.skills.join(" · ")}`));
         break;
       case "outcomes":
-        blocks.push(h2("Outcome"), ...b.lines.map((l) => bullet(l.text)));
+        blocks.push(h2("성과"), ...b.lines.map((l) => bullet(l.text)));
         break;
       case "verification": {
-        blocks.push(h2("Client Verification"));
+        blocks.push(h2("의뢰인 검증"));
         if (!b.verification) { blocks.push(para("의뢰인 검증 전입니다.")); break; }
         for (const k of CLAIM_KEYS) blocks.push({ object: "block", type: "to_do", to_do: { rich_text: rt(CLAIM_LABEL[k]), checked: !!b.verification[k] } });
         blocks.push({ object: "block", type: "to_do", to_do: { rich_text: rt(b.outcomeTotal ? `성과 수치 확인 ${b.outcomeVerified}/${b.outcomeTotal}` : "성과 수치는 아직 확인되지 않음"), checked: b.outcomeTotal > 0 && b.outcomeVerified === b.outcomeTotal } });
@@ -82,7 +82,7 @@ export function toNotionBlocks(doc: DocBlock[], summary: string, opts: { imagesA
       case "evidenceList": {
         const rest = b.evidence.filter((e) => !shown.has(e.id));
         if (!rest.length) break;
-        blocks.push(h2("Evidence / Links"));
+        blocks.push(h2("증빙·링크"));
         for (const e of rest) blocks.push(...evidenceBlocks(e, failed, !!opts.imagesAsLinks));
         break;
       }

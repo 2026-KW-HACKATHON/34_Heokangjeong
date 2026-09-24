@@ -9,6 +9,7 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { myAnswers, useBundle } from "@/lib/useBundle";
 import { computeReadiness } from "@shared/portfolio/readiness";
+import { DOMAINS } from "@shared/portfolio/domains";
 import { answerText } from "@shared/portfolio/narrative";
 import { CLAIM_KEYS, CLAIM_LABEL, EVIDENCE_LABEL } from "@shared/portfolio/document";
 import type { PortfolioContent, PortfolioDraft, PortfolioSource, ProjectBundle } from "@/types";
@@ -88,16 +89,16 @@ function Transform({ source, draft }: { source: PortfolioSource; draft: Portfoli
       <p className="my-2 text-center text-xl text-[var(--primary)]" aria-hidden>↓</p>
       <div className="rounded-2xl border border-[var(--primary-weak)] p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-bold text-[var(--primary)]">📁 Portfolio Case Study</p>
+          <p className="text-xs font-bold text-[var(--primary)]">📁 포트폴리오 초안</p>
           {draft.generator === "AI"
             ? <span className="rounded-full bg-[var(--primary-weak)] px-2 py-0.5 text-[10px] font-semibold text-[var(--primary)]">AI 생성 초안 · 사실 검사 통과</span>
-            : <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] font-semibold text-[#b47a00]">Template-generated draft</span>}
+            : <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] font-semibold text-[#b47a00]">템플릿 초안 · AI 미사용</span>}
         </div>
         <p className="font-bold">{draft.content.title}</p>
         <p className="sub mb-2 text-sm">{draft.content.summary}</p>
         {draft.content.sections.map((s) => (
           <div key={s.key} className="mb-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-[var(--sub)]">{s.title}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--sub)]">{DOMAINS[source.domain].sections.find((d) => d.key === s.key)?.title ?? s.title}</p>
             <p className="whitespace-pre-line text-sm leading-relaxed">{s.body}</p>
           </div>
         ))}
@@ -160,13 +161,13 @@ function Editor({ b, userId, latestDraft }: { b: ProjectBundle; userId: string; 
       <Field label="제목"><input className={inputCls} value={form.title} onChange={(e) => update({ ...form, title: e.target.value })} /></Field>
       <Field label="한 줄 요약"><textarea className={`${inputCls} h-16`} value={form.summary} onChange={(e) => update({ ...form, summary: e.target.value })} /></Field>
       {form.sections.map((s, i) => (
-        <Field key={s.key} label={s.title}>
+        <Field key={s.key} label={DOMAINS[b.project.domain].sections.find((d) => d.key === s.key)?.title ?? s.title}>
           <textarea className={`${inputCls} h-32`} value={s.body} onChange={(e) => update({ ...form, sections: form.sections.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)) })} />
         </Field>
       ))}
-      <Field label="Skills" hint="쉼표로 구분"><input className={inputCls} value={form.skills.join(", ")} onChange={(e) => update({ ...form, skills: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} /></Field>
+      <Field label="역량" hint="쉼표로 구분"><input className={inputCls} value={form.skills.join(", ")} onChange={(e) => update({ ...form, skills: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} /></Field>
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-semibold">Tools & Why</legend>
+        <legend className="mb-1 text-sm font-semibold">사용 도구와 이유</legend>
         {form.tools.map((t, i) => (
           <div key={i} className="flex gap-2">
             <input aria-label="도구" className={`${inputCls} w-28`} value={t.name} onChange={(e) => update({ ...form, tools: form.tools.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) })} />

@@ -8,7 +8,7 @@ export default function Verification({ v, outcomes, approvedVersion }: { v: Clie
   const verified = measured.filter((o) => o.verified);
   return (
     <div>
-      <p className="mb-2 flex items-center gap-1.5 text-sm font-bold text-[#1a8f4b]"><span aria-hidden>🛡️</span> Client Verified{approvedVersion ? ` · 제출 v${approvedVersion} 승인` : ""}</p>
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-bold text-[#1a8f4b]"><span aria-hidden>🛡️</span> 의뢰인 검증 완료{approvedVersion ? ` · 제출 v${approvedVersion} 승인` : ""}</p>
       <ul className="flex flex-col gap-1.5 text-sm">
         {CLAIM_KEYS.map((k) => (
           <li key={k} className="flex items-center gap-2">

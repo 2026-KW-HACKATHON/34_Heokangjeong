@@ -157,7 +157,7 @@ export const mockRepo: Repo = {
   async addOutcome(a) { return tx(() => wf.addOutcome(db, a)); },
   async verifyOutcome(outcomeId, actorId) { return tx(() => { wf.verifyOutcome(db, { outcomeId, actorId }); }); },
   async generatePortfolio(projectId, actorId, opts) {
-    // mock 에는 AI 서버가 없다 → 템플릿 초안 (화면에 "Template-generated draft" 로 표시)
+    // mock 에는 AI 서버가 없다 → 템플릿 초안 (화면에 "템플릿 초안 · AI 미사용" 로 표시)
     return tx(() => {
       const snap = wf.createSnapshot(db, { projectId, actorId });
       const r = wf.addDraft(db, { snapshotId: snap.id, actorId, generator: "TEMPLATE", content: templateDraft(snap.data), regenerate: opts?.regenerate });

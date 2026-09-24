@@ -258,7 +258,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         const body = await error.context.json().catch(() => ({}));
         if (body?.error && error.context.status < 500) throw new Error(body.error);
       }
-      // 함수에 닿지 못함(미배포·네트워크) → 템플릿 초안. 화면에는 "Template-generated draft" 로 표시된다
+      // 함수에 닿지 못함(미배포·네트워크) → 템플릿 초안. 화면에는 "템플릿 초안 · AI 미사용" 로 표시된다
       return templateFallback(projectId, actorId, !!opts?.regenerate, "AI 서버에 연결하지 못해 템플릿으로 만들었어요");
     },
     async savePortfolioEdit(draftId, _actorId, content) {

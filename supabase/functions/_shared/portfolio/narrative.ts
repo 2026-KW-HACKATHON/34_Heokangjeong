@@ -41,7 +41,7 @@ export function outcomeLine(o: SourceOutcome): string {
   return `${o.metricName}: ${change}${meta ? ` (${meta})` : ""} · ${o.verified ? "의뢰인 확인" : "학생 기록, 의뢰인 미확인"}`;
 }
 
-// ── 템플릿 초안 (AI 실패·미설정 시). 화면에는 "Template-generated draft" 로 표시한다 ──────
+// ── 템플릿 초안 (AI 실패·미설정 시). 화면에는 "템플릿 초안 · AI 미사용" 로 표시한다 ──────
 function templateBody(p: SectionPlan, src: PortfolioSource, plans: SectionPlan[]): string {
   const lines: string[] = [];
   let fields = p.fields;

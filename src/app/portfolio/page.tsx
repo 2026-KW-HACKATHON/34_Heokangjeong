@@ -21,6 +21,8 @@ export default function Portfolio() {
     repo.listMyProjects(user.id).then((ps) => setReady(ps.filter((p) => p.project.status === "COMPLETED")));
   }, [user]);
   const pending = ready.filter((r) => !docs.some((d) => d.project.id === r.project.id));
+  // 활동 카드(랭킹용 요약)는 같은 공고의 Case Study 가 있으면 목록에서 숨긴다 (랭킹 계산에는 그대로 쓰인다)
+  const legacy = cards.filter((c) => !docs.some((d) => d.post.id === c.postId) && !ready.some((r) => r.post.id === c.postId));
   return (
     <>
       <TopBar title="내 포트폴리오" back />
@@ -39,15 +41,15 @@ export default function Portfolio() {
         ))}
         {docs.map(({ edit, post, project }) => (
           <Link key={edit.id} href={`/portfolio/view?id=${project.id}&s=${user!.id}`} className="card block active:opacity-80">
-            <div className="flex items-center justify-between"><span className="chip chip-on">{DOMAINS[project.domain].label}</span><span className="text-xs font-semibold text-[var(--green)]">🛡️ Client Verified</span></div>
+            <div className="flex items-center justify-between"><span className="chip chip-on">{DOMAINS[project.domain].label}</span><span className="text-xs font-semibold text-[var(--green)]">🛡️ 의뢰인 검증 완료</span></div>
             <h3 className="mt-2 font-bold">{edit.content.title}</h3>
             <p className="sub mt-1 line-clamp-2 text-sm">{edit.content.summary}</p>
             <p className="sub mt-2 text-xs">{post.title} · 편집본 v{edit.version}</p>
           </Link>
         ))}
         {user?.role === "student" && docs.length === 0 && pending.length === 0 && <EmptyState text="검증을 마친 프로젝트가 생기면 Case Study 로 만들 수 있어요" />}
-        {cards.length > 0 && <h3 className="sub mt-2 text-sm font-semibold">활동 카드</h3>}
-        {cards.map((c) => (
+        {legacy.length > 0 && <h3 className="sub mt-2 text-sm font-semibold">활동 카드</h3>}
+        {legacy.map((c) => (
           <article key={c.id} className="card">
             <div className="flex items-center justify-between"><h3 className="font-bold">{c.title}</h3>{c.verified && <span className="text-xs font-semibold text-[var(--green)]">상인 인증 완료 ✓</span>}</div>
             <dl className="mt-3 grid grid-cols-[64px_1fr] gap-y-1.5 text-sm">

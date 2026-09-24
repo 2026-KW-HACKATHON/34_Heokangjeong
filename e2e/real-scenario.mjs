@@ -219,7 +219,7 @@ try {
 
   // 9. 준비도·보완
   await go(stu, `/projects/detail/?id=${P}`);
-  await see(stu, "Client Verified");
+  await see(stu, "의뢰인 검증 완료");
   const before = await stu.locator("[role=progressbar]").getAttribute("aria-valuenow");
   await stu.locator("li", { hasText: "회고" }).getByRole("link").first().click();
   await stu.waitForURL(/q=d_reflection/);
@@ -235,7 +235,7 @@ try {
   await stu.waitForURL(/portfolio\/build/);
   await click(stu, "포트폴리오 초안 만들기");
   await see(stu, "기록이 어떻게 바뀌었나", 150000);
-  const gen = (await stu.getByText(/AI 생성 초안|Template-generated draft/).first().innerText()).trim();
+  const gen = (await stu.getByText(/AI 생성 초안|템플릿 초안/).first().innerText()).trim();
   const notice = await stu.locator("[role=status]").first().innerText().catch(() => "");
   run.notes.push(`초안: ${gen}${notice ? ` / ${notice}` : ""}`); save();
   await shot(stu, "transform");
@@ -249,7 +249,7 @@ try {
   await click(stu, "포트폴리오 저장");
   await stu.waitForURL(/portfolio\/view/, { timeout: 20000 });
   await see(stu, "[E2E] 분식집 메뉴판 정보 구조 개선");
-  await see(stu, "Client Feedback");
+  await see(stu, "의뢰인 평가");
   await see(stu, "Notion 에 저장");
   const notionMsg = await stu.locator(".card", { hasText: "Notion 에 저장" }).innerText();
   run.notes.push(`Notion 패널: ${notionMsg.replace(/\s+/g, " ").slice(0, 160)}`); save();

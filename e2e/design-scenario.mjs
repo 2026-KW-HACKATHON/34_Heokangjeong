@@ -203,11 +203,11 @@ await shot("13-review");
 await click("v2 승인하고 검증 남기기");
 await page.waitForURL(/projects\/detail/);
 await expectText("완료·검증된 프로젝트");
-log("15 승인 + Client Verification + 평가");
+log("15 승인 + 의뢰인 검증 + 평가");
 
 // 14. 학생: 검증 표시 + 준비도 + 누락 보완
 await as("s1"); await go(`/projects/detail/?id=${projectId}`);
-await expectText("Client Verified");
+await expectText("의뢰인 검증 완료");
 await expectText("포트폴리오 자료 준비도");
 const before = await page.locator("[role=progressbar]").getAttribute("aria-valuenow");
 await shot("14-verified");
@@ -225,11 +225,11 @@ await page.getByRole("link", { name: "포트폴리오 만들기" }).click();
 await page.waitForURL(/portfolio\/build/);
 await click("포트폴리오 초안 만들기");
 await expectText("기록이 어떻게 바뀌었나");
-await expectText("Template-generated draft");
+await expectText("템플릿 초안 · AI 미사용");
 const transform = await page.locator(".card", { hasText: "기록이 어떻게 바뀌었나" }).innerText();
 if (transform.includes("정해진 크기")) throw new Error("해당 없음/건너뛴 항목이 초안에 들어감");
 await shot("15-transform");
-log("17 포트폴리오 초안 생성 + 변환 화면 (mock = Template-generated draft 표시)");
+log("17 포트폴리오 초안 생성 + 변환 화면 (mock = 템플릿 초안 표시)");
 // 중복 생성 방지: 같은 기록으로 다시 누르면 기존 초안
 await click("기록이 바뀌었으면 새 초안 만들기");
 await expectText("기존 초안을 그대로");
@@ -241,7 +241,7 @@ await page.getByLabel("한 줄 요약").fill("38개 메뉴를 4개 구역으로 
 await click("포트폴리오 저장");
 await page.waitForURL(/portfolio\/view/);
 await expectText("행복분식 메뉴판 정보 구조 개선");
-await expectText("Client Feedback");
+await expectText("의뢰인 평가");
 await expectText("손님들이 메뉴를 훨씬 빨리");
 await expectText("Notion 저장은 서버(Supabase)에 연결된 상태에서만");
 await shot("16-portfolio");

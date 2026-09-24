@@ -50,7 +50,7 @@ export function buildDocument(i: DocInput): DocBlock[] {
   for (const def of DOMAINS[i.domain].sections) {
     if (def.locked === "clientFeedback") { if (i.review?.comment) blocks.push({ kind: "feedback", review: i.review }); continue; }
     const s = i.content.sections.find((x) => x.key === def.key);
-    if (s && s.body.trim()) section(s);
+    if (s && s.body.trim()) section({ ...s, title: def.title }); // 제목은 항상 현재 템플릿 기준 (옛 편집본의 영어 제목 대신)
   }
   for (const s of i.content.sections) if (!used.has(s.key) && s.body.trim()) section(s); // 템플릿 밖 섹션(예전 버전)도 잃지 않는다
   if (i.content.tools.length || i.content.skills.length) blocks.push({ kind: "tools", tools: i.content.tools, skills: i.content.skills });
