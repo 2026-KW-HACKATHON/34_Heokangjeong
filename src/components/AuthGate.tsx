@@ -17,6 +17,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => { if (mode === "supabase" && !loading && user && OPEN.includes(path)) router.replace("/"); }, [mode, loading, user, path, router]);
   // 가입 직후(로그인은 됐지만 프로필 없음)에는 로그인 화면에 머무르지 말고 프로필 만들기로
   useEffect(() => { if (mode === "supabase" && !loading && authId && !user && path === "/login") router.replace("/onboarding"); }, [mode, loading, authId, user, path, router]);
+  // 프로필 만들기에서 "다른 계정으로 로그인"(로그아웃) 하면 로그인 화면으로
+  useEffect(() => { if (mode === "supabase" && !loading && !authId && path === "/onboarding") router.replace("/login"); }, [mode, loading, authId, path, router]);
 
   if (mode === "supabase" && loading) return <p className="sub p-10 text-center text-sm">불러오는 중…</p>;
   if (blocked) return null;
