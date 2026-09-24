@@ -9,6 +9,9 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { useBundle } from "@/lib/useBundle";
 import { listingOf } from "@/lib/listing";
+import { myAnswers } from "@/lib/useBundle";
+import { computeReadiness } from "@shared/portfolio/readiness";
+import MissingRequired from "@/components/MissingRequired";
 
 /** 결과물 제출 (버전 관리: v1 → 보완 요청 → v2 …) */
 export default function SubmitPage() {
@@ -46,6 +49,11 @@ function Submit() {
         {status === "REVISION_REQUESTED" && latest?.reviewComment && (
           <div className="card bg-orange-50 text-sm"><p className="font-bold">v{latest.version} 보완 요청</p><p className="mt-1">“{latest.reviewComment}”</p></div>
         )}
+        <div className="card"><h3 className="font-bold">제출 전 확인</h3>
+          <MissingRequired r={computeReadiness({ domain: b.project.domain, answers: myAnswers(b, user.id), evidenceTypes: b.evidence.map((e) => e.type), outcomeCount: b.outcomes.length })}
+            href={(q) => `/projects/log?id=${id}&q=${q}&set=${q}&back=${encodeURIComponent(`/projects/submit?id=${id}`)}`} />
+          <p className="sub mt-2 text-[11px]">비어 있어도 제출할 수 있어요. 다만 포트폴리오에서 그 부분은 빠져요.</p>
+        </div>
         {listing.completionCriteria && <div className="card text-sm"><span className="sub">완료 기준</span><p className="font-semibold">{listing.completionCriteria}</p></div>}
         <div className="card">
           <div className="mb-2 flex items-center justify-between"><h3 className="font-bold">제출할 결과물</h3><Link href={`/projects/evidence?id=${id}&type=DELIVERABLE_FILE&back=${encodeURIComponent(`/projects/submit?id=${id}`)}`} className="text-sm font-semibold text-[var(--primary)]">+ 증빙 추가</Link></div>

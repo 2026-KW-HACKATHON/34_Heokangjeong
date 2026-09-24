@@ -6,6 +6,7 @@ import TopBar from "@/components/TopBar";
 import EvidenceItem from "@/components/EvidenceItem";
 import Verification from "@/components/Verification";
 import Readiness from "@/components/Readiness";
+import MissingRequired from "@/components/MissingRequired";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
@@ -96,6 +97,7 @@ function Project() {
                 );
               })}
             </div>
+            {readiness && <MissingRequired r={readiness} href={(q) => `/projects/log?id=${id}&q=${q}&set=${q}&back=${encodeURIComponent(`/projects/detail?id=${id}`)}`} />}
           </div>
         )}
 
@@ -161,10 +163,12 @@ function Project() {
           </div>
         )}
 
-        {isMember && status === "COMPLETED" && readiness && (
+        {isMember && readiness && (
           <div className="card">
             <Readiness r={readiness} fixHref={(q) => `/projects/log?id=${id}&q=${q}&set=${q}&back=${encodeURIComponent(`/projects/detail?id=${id}`)}`} />
-            <Link href={`/portfolio/build?id=${id}`} className="btn btn-primary mt-3 w-full">{b.edits.some((e) => e.studentId === user.id) ? "내 포트폴리오 보기·고치기" : "포트폴리오 만들기"}</Link>
+            {status === "COMPLETED"
+              ? <Link href={`/portfolio/build?id=${id}`} className="btn btn-primary mt-3 w-full">{b.edits.some((e) => e.studentId === user.id) ? "내 포트폴리오 보기·고치기" : "포트폴리오 만들기"}</Link>
+              : <p className="sub mt-3 text-xs">의뢰인이 승인·검증하면 이 자료로 포트폴리오를 만들 수 있어요. 진행하면서 미리 채워 두세요.</p>}
           </div>
         )}
         <Link href={`/posts/detail?id=${b.post.id}`} className="btn btn-ghost w-full">공고 보기</Link>
