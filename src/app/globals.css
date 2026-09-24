@@ -8,12 +8,15 @@
   --primary: #3182f6; --primary-weak: #e8f3ff; --red: #f04452; --yellow: #ffb331; --green: #2ac769;
 }
 html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Noto Sans KR", system-ui, sans-serif; }
-.card { background: var(--card); border-radius: 20px; padding: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-.btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 600; padding: 14px 18px; transition: opacity .15s; }
-.btn:active { opacity: .7; }
-.btn-primary { background: var(--primary); color: white; }
-.btn-ghost { background: var(--line); color: var(--text); }
-.chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 500; background: var(--line); color: var(--sub); white-space: nowrap; }
-.chip-on { background: var(--primary-weak); color: var(--primary); }
+/* 컴포넌트 클래스는 components 레이어에 둬서 bg-… 같은 유틸리티가 덮어쓸 수 있게 한다 (예: 파란 배너 카드) */
+@layer components {
+  .card { background: var(--card); border-radius: 20px; padding: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 600; padding: 14px 18px; transition: opacity .15s; }
+  .btn:active { opacity: .7; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-ghost { background: var(--line); color: var(--text); }
+  .chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 500; background: var(--line); color: var(--sub); white-space: nowrap; }
+  .chip-on { background: var(--primary-weak); color: var(--primary); }
+}
 .sub { color: var(--sub); }
 .leaflet-container { font: inherit; }
