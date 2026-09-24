@@ -18,8 +18,10 @@
 4. **Narrative Engine** — 기록을 나열하지 않고 Problem → Decision → Action → Evidence → Result → Reflection 으로 바꾸되, 기록에 없는 숫자·성과·도구는 사실 검사로 걸러낸다.
 
 지금 상태: Supabase 백엔드(로그인·채팅·AI 공고 초안) 위에 검증형 포트폴리오 파이프라인을 얹은 프로토타입.
-팀 Supabase(`wolgye-hackathon`)에는 마이그레이션 `0002` 와 Edge Function `portfolio-ai`·`notion` 이 적용·배포돼 있습니다 (2026-09-24). 새 Supabase 프로젝트에 붙일 때는 [docs/SUPABASE.md](docs/SUPABASE.md).
+팀 Supabase(`wolgye-hackathon`)에는 마이그레이션 `0005_verified_portfolio` 와 Edge Function `portfolio-ai`·`notion`(Notion secret 포함)이 적용·배포돼 있습니다 (2026-09-24). 새 Supabase 프로젝트에 붙일 때는 [docs/SUPABASE.md](docs/SUPABASE.md).
 > 서버 없이 보려면 `.env.local` 에 `NEXT_PUBLIC_SUPABASE_URL=` / `NEXT_PUBLIC_SUPABASE_KEY=` (빈 값)을 적어 **가짜 데이터(mock) 모드**로 돌리세요. 전체 흐름이 mock 에서도 동작합니다 (AI 대신 템플릿 초안, Notion 비활성).
+
+> 개발 기간에는 DB 권한을 열어 두었습니다(로그인만 하면 기본 표 모두 가능). 발표 전에 `supabase/migrations/0004_strict.sql` 로 잠급니다. 검증형 포트폴리오 표(`0005`)는 이와 관계없이 항상 잠겨 있습니다.
 당근마켓처럼 "동네 공고 피드 + 지도" 를 축으로, 토스처럼 흰 배경·큰 카드·파란 포인트의 단순한 UI 로 잡았습니다.
 누구나 원하는 부분부터 채워 넣을 수 있게 구조를 나눠 두었습니다.
 
@@ -109,7 +111,7 @@ src/
   components/           TopBar, BottomTab, PostCard, StatusBadge, MapView(Leaflet)
   app/                  화면 (Next.js App Router, 모두 클라이언트 컴포넌트)
 android/                Capacitor 안드로이드 프로젝트 (웹 빌드를 감싸는 껍데기)
-supabase/migrations/     0001 기본 스키마, 0002 검증형 포트폴리오(테이블·RLS·상태 전이 DB 함수)
+supabase/migrations/     0001 기본 스키마, 0002~0004 권한(개발 중 개방·발표 전 잠금), 0005 검증형 포트폴리오(테이블·RLS·상태 전이 DB 함수)
 supabase/functions/      draft-post · portfolio-ai(Gemini) · notion(OAuth·저장)
   _shared/portfolio/     앱과 서버가 같이 쓰는 순수 로직 (분야 모듈·상태 머신·준비도·스냅샷·Narrative·문서·Notion 블록)
 tests/, e2e/             vitest(+PGlite) 테스트, Playwright E2E

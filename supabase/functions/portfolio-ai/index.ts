@@ -35,7 +35,7 @@ async function followup(b: { question?: string; answer?: string; domain?: string
   const domain = (b.domain && b.domain in DOMAINS ? b.domain : "GENERAL") as DomainKey;
   const schema = { type: "OBJECT", properties: { questions: { type: "ARRAY", items: { type: "STRING" } } }, required: ["questions"] };
   try {
-    const { data } = await geminiJson(FOLLOWUP_PROMPT, `분야: ${DOMAINS[domain].label}\n질문: ${question}\n학생 답: ${answer}`, schema, 25_000, { thinking: "minimal" });
+    const { data } = await geminiJson(FOLLOWUP_PROMPT, `분야: ${DOMAINS[domain].label}\n질문: ${question}\n학생 답: ${answer}`, schema, 25_000, { thinking: "minimal", perModelMs: 12_000 });
     const qs = ((data as { questions?: unknown }).questions ?? []) as unknown[];
     const questions = qs.filter((q): q is string => typeof q === "string" && q.trim().length > 3).map((q) => q.trim().slice(0, 80)).map((q) => (/[?？]$/.test(q) ? q : `${q}?`)).slice(0, MAX_FOLLOW_UPS);
     return { questions, source: "AI" };
@@ -88,7 +88,7 @@ async function narrative(db: Awaited<ReturnType<typeof userClient>>["db"], userI
   const plans = planSections(snap.data);
   let content, report = null, generator = "AI", model: string | null = null, aiError: string | undefined;
   try {
-    const r = await geminiJson(NARRATIVE_SYSTEM, narrativeUserPrompt(snap.data, plans), narrativeSchema(plans), 90_000, { thinking: "low" });
+    const r = await geminiJson(NARRATIVE_SYSTEM, narrativeUserPrompt(snap.data, plans), narrativeSchema(plans), 90_000, { thinking: "low", perModelMs: 40_000 });
     const g = guardNarrative(r.data, snap.data, plans);
     content = g.content; report = g.report; model = r.model;
   } catch (e) {

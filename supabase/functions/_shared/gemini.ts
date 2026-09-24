@@ -4,8 +4,8 @@ const MODELS = (Deno.env.get("GEMINI_MODELS") ?? "gemini-3.8-flash,gemini-3.6-fl
 
 export class AiUnavailable extends Error {}
 
-/** budgetMs 는 모델 여러 개를 시도하는 전체 시간 한도다 (모델마다가 아님) */
-export async function geminiJson(system: string, user: string, schema: unknown, budgetMs = 45_000, opts: { preferLite?: boolean; thinking?: "minimal" | "low" | "medium" | "high" } = {}): Promise<{ data: unknown; model: string }> {
+/** budgetMs 는 모델 여러 개를 시도하는 전체 시간 한도, perModelMs 는 한 모델에 쓰는 최대 시간 (한 모델이 멈춰도 다음 모델을 시도하도록) */
+export async function geminiJson(system: string, user: string, schema: unknown, budgetMs = 45_000, opts: { preferLite?: boolean; thinking?: "minimal" | "low" | "medium" | "high"; perModelMs?: number } = {}): Promise<{ data: unknown; model: string }> {
   if (!KEY) throw new AiUnavailable("서버에 GEMINI_API_KEY 가 설정되지 않았어요");
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: system }] },
@@ -21,7 +21,7 @@ export async function geminiJson(system: string, user: string, schema: unknown, 
     const left = deadline - Date.now();
     if (left < 1500) { last = last || "시간 초과"; break; }
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), left);
+    const t = setTimeout(() => ctl.abort(), Math.min(left, opts.perModelMs ?? left));
     try {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": KEY }, body, signal: ctl.signal,

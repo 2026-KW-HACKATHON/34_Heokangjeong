@@ -234,7 +234,7 @@ try {
   await stu.getByRole("link", { name: "포트폴리오 만들기" }).click();
   await stu.waitForURL(/portfolio\/build/);
   await click(stu, "포트폴리오 초안 만들기");
-  await see(stu, "기록이 어떻게 바뀌었나", 90000);
+  await see(stu, "기록이 어떻게 바뀌었나", 150000);
   const gen = (await stu.getByText(/AI 생성 초안|Template-generated draft/).first().innerText()).trim();
   const notice = await stu.locator("[role=status]").first().innerText().catch(() => "");
   run.notes.push(`초안: ${gen}${notice ? ` / ${notice}` : ""}`); save();

@@ -1,4 +1,5 @@
-// Supabase 마이그레이션(0001 + 0002)을 PGlite(WASM Postgres)에 올려 DB 함수·RLS 를 실제로 검증한다.
+// Supabase 마이그레이션을 PGlite(WASM Postgres)에 올려 DB 함수·RLS 를 실제로 검증한다.
+// 팀 DB 와 같은 순서: 0001 → 0005(이미 적용) → 이후 팀이 실행할 0002 → 0003(개방) → 0004(잠금). 테스트는 잠금 상태에서 돈다.
 // Supabase 의 auth/storage 스키마와 역할은 최소한으로 흉내 낸다. RLS 가 적용되도록 authenticated 역할로 실행한다.
 import { beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
@@ -71,6 +72,7 @@ beforeAll(async () => {
   await db.exec(STUBS);
   await db.exec(sql("0001_init.sql"));
   await db.exec(sql("0005_verified_portfolio.sql"));
+  for (const f of ["0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql"]) await db.exec(sql(f));
   await db.exec(GRANTS);
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -195,9 +197,26 @@ describe("SQL: 답변·성과·포트폴리오·Notion 권한", () => {
     expect(await as(U.owner2, "select * from projects where id = $1", [projectId])).toHaveLength(0);
     expect(await as(U.owner, "select * from project_answers where project_id = $1", [projectId])).toHaveLength(1);
   });
-  it("증빙 파일 업로드는 프로젝트 당사자만", async () => {
+  it("증빙 파일은 <내 id>/<프로젝트 id>/… 에만 올린다 (0004 잠금 후에도)", async () => {
     const { projectId } = await startProject("storage");
-    await as(U.stu, "insert into storage.objects (bucket_id, name) values ('evidence', $1)", [`${projectId}/a.png`]);
-    await expect(as(U.stu2, "insert into storage.objects (bucket_id, name) values ('evidence', $1)", [`${projectId}/b.png`])).rejects.toThrow(/row-level security/);
+    await as(U.stu, "insert into storage.objects (bucket_id, name) values ('evidence', $1)", [`${U.stu}/${projectId}/a.png`]);
+    await expect(as(U.stu2, "insert into storage.objects (bucket_id, name) values ('evidence', $1)", [`${U.stu}/${projectId}/b.png`])).rejects.toThrow(/row-level security/);
+  });
+  it("0003/0004 는 검증형 포트폴리오 표의 권한을 바꾸지 않는다", async () => {
+    const r = await db.query<{ tablename: string }>("select distinct tablename from pg_policies where schemaname = 'public' and policyname like '개발 중%'");
+    expect(r.rows).toHaveLength(0); // 0004 로 개방 정책이 모두 사라졌다
+    const mine = await db.query<{ n: number }>("select count(*)::int n from pg_policies where schemaname = 'public' and tablename in ('projects','evidence','project_answers','portfolio_edits','notion_exports')");
+    expect(mine.rows[0].n).toBeGreaterThanOrEqual(7);
+  });
+});
+
+describe("SQL: 새 DB 에 번호 순서대로", () => {
+  it("0001 → 0002 → 0003 → 0004 → 0005 가 오류 없이 적용된다", async () => {
+    const fresh = new PGlite();
+    await fresh.exec(STUBS);
+    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql"]) await fresh.exec(sql(f));
+    const t = await fresh.query<{ n: number }>("select count(*)::int n from information_schema.tables where table_schema = 'public'");
+    expect(t.rows[0].n).toBe(24);
+    await fresh.close();
   });
 });

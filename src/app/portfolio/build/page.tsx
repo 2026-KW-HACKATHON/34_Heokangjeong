@@ -55,7 +55,7 @@ function Build() {
           <Readiness r={readiness} fixHref={(q) => `/projects/log?id=${id}&q=${q}&set=${q}&back=${encodeURIComponent(here)}`} />
           {readiness.missingRequired.length > 0 && <p className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-xs">필수 자료 {readiness.missingRequired.length}개가 비어 있어요. 채우면 더 설득력 있는 Case Study 가 돼요. 비워 둔 채로 만들어도 해당 섹션은 지어내지 않고 빠집니다.</p>}
           <button disabled={gen.busy} onClick={() => generate(false)} className="btn btn-primary mt-3 w-full disabled:opacity-50">
-            {gen.busy ? "기록을 Case Study 로 바꾸는 중…" : draft ? "기록이 바뀌었으면 새 초안 만들기" : "✨ 포트폴리오 초안 만들기"}
+            {gen.busy ? "기록을 Case Study 로 바꾸는 중… (최대 1~2분)" : draft ? "기록이 바뀌었으면 새 초안 만들기" : "✨ 포트폴리오 초안 만들기"}
           </button>
           {draft && <button disabled={gen.busy} onClick={() => generate(true)} className="btn btn-ghost mt-2 w-full text-sm disabled:opacity-50">같은 기록으로 다시 생성 (편집본은 그대로 보존)</button>}
           {notice && <p className="mt-2 text-xs text-[var(--primary)]" role="status">{notice}</p>}
