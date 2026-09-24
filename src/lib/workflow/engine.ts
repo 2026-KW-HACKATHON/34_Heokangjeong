@@ -1,5 +1,5 @@
 // 프로젝트 워크플로 엔진 (순수 로직). mock 저장소가 이 엔진으로 동작하고, 단위 테스트가 이 엔진을 검증한다.
-// Supabase 에서는 같은 규칙을 DB 함수(supabase/migrations/0002_verified_portfolio.sql)가 서버에서 강제한다.
+// Supabase 에서는 같은 규칙을 DB 함수(supabase/migrations/0005_verified_portfolio.sql)가 서버에서 강제한다.
 import type {
   ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, Outcome, PortfolioCard,
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,

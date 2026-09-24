@@ -70,7 +70,7 @@ beforeAll(async () => {
   db = new PGlite();
   await db.exec(STUBS);
   await db.exec(sql("0001_init.sql"));
-  await db.exec(sql("0002_verified_portfolio.sql"));
+  await db.exec(sql("0005_verified_portfolio.sql"));
   await db.exec(GRANTS);
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);

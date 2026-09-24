@@ -16,7 +16,7 @@
   ↓ repo 인터페이스만 호출 (src/lib/repo/index.ts)
 Repo 구현
   ├ mock.ts      : localStorage + src/lib/workflow/engine.ts (순수 규칙)
-  └ supabase.ts  : 테이블/RLS + DB 함수(supabase/migrations/0002) + Edge Function
+  └ supabase.ts  : 테이블/RLS + DB 함수(supabase/migrations/0005) + Edge Function
 공유 순수 로직 (supabase/functions/_shared/portfolio/, 앱에서는 @shared/*)
   domains · stateMachine · readiness · snapshot · narrative(+guard) · document · notionBlocks · policy
 Edge Functions (Deno): portfolio-ai(Gemini), notion(OAuth·저장), draft-post(공고 초안)

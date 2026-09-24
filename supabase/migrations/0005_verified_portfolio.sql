@@ -1,5 +1,5 @@
 -- 검증형 포트폴리오 파이프라인: 지원 → 선정 → 프로젝트 → 활동 기록 → 증빙 → 제출(버전) → 검증·평가 → 포트폴리오 → Notion
--- 0001_init.sql 다음에 실행한다 (SQL Editor 에 붙여 넣기 또는 `npx supabase db push`).
+-- 번호 순서대로 0001 ~ 0004 다음에 실행한다 (SQL Editor 에 붙여 넣기). 0003/0004 는 기존 7개 표와 Storage 권한만 바꾸고 이 파일의 표는 건드리지 않는다.
 -- 규칙(상태 전이·권한·중복 방지)은 security definer 함수가 서버에서 강제한다. 앱의 src/lib/workflow/engine.ts(mock) 와 같은 규칙이다.
 -- 에러 메시지는 'CODE: 한국어 설명' 형식이다. 앱은 ': ' 뒤를 사용자에게 보여 준다.
 
@@ -490,10 +490,14 @@ create policy "점수 기록은 누구나 본다" on public.tier_score_events fo
 create policy "뱃지는 누구나 본다" on public.badges for select to authenticated using (true);
 create policy "Notion 저장 기록은 본인만" on public.notion_exports for select to authenticated using (user_id = auth.uid());
 
--- ── 증빙 파일 저장소 (공개 읽기: Notion 이 이미지를 불러올 수 있어야 한다. 경로 = <project_id>/<무작위>.<확장자>) ──
+-- ── 증빙 파일 저장소 (공개 읽기: Notion 이 이미지를 불러올 수 있어야 한다) ─────────────
+-- 경로 = <내 id>/<project_id>/<무작위>.<확장자>. 업로드 규칙은 0002_permissions·0004_strict 와 같은 "내 폴더에만" 이다
+-- (0003/0004 가 Storage 규칙을 지우고 다시 만들어도 같은 규칙이 남는다). 증빙 기록(evidence 표)은 RLS 가 선정된 학생·의뢰인만 허용한다.
 insert into storage.buckets (id, name, public) values ('evidence', 'evidence', true) on conflict (id) do nothing;
-create policy "증빙 파일은 프로젝트 당사자만 올린다" on storage.objects for insert to authenticated with check (
-  bucket_id = 'evidence' and (public.is_project_member(((storage.foldername(name))[1])::uuid) or public.is_project_owner(((storage.foldername(name))[1])::uuid)));
+drop policy if exists "증빙 파일은 프로젝트 당사자만 올린다" on storage.objects;
+drop policy if exists "증빙 파일은 내 폴더에만 올린다" on storage.objects;
+create policy "증빙 파일은 내 폴더에만 올린다" on storage.objects for insert to authenticated
+  with check (bucket_id = 'evidence' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- 내부 도우미는 앱에서 직접 부르지 못하게 한다
 revoke execute on function public.lock_reviewable(uuid) from public, anon, authenticated;

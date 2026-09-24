@@ -1,4 +1,4 @@
-// 프로젝트 상태 머신. SQL(supabase/migrations/0002) 의 project_next_status 와 같은 표를 쓴다.
+// 프로젝트 상태 머신. SQL(supabase/migrations/0005) 의 project_next_status 와 같은 표를 쓴다.
 import type { ProjectEvent, ProjectMode, ProjectStatus } from "./types.ts";
 
 const TABLE: Record<ProjectStatus, Partial<Record<ProjectEvent, ProjectStatus>>> = {

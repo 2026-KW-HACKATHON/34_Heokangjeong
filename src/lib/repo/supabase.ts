@@ -171,7 +171,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return rows.sort((a, b) => b.score - a.score);
     },
 
-    // ── 검증형 포트폴리오 파이프라인 (규칙은 DB 함수가 강제: supabase/migrations/0002) ──────
+    // ── 검증형 포트폴리오 파이프라인 (규칙은 DB 함수가 강제: supabase/migrations/0005) ──────
     async selectApplicant(applicationId) {
       const app = await repo.getApplication(applicationId);
       const post = app && await repo.getPost(app.postId);
@@ -224,7 +224,9 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async uploadEvidenceFile(projectId, file) {
       if (file.size > 20 * 1024 * 1024) throw new Error("20MB 이하 파일만 올릴 수 있어요");
       const ext = (file.name.split(".").pop() ?? "bin").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) || "bin";
-      const path = `${projectId}/${crypto.randomUUID()}.${ext}`;
+      const { data: auth } = await db.auth.getUser();
+      if (!auth.user) throw new Error("로그인이 필요해요");
+      const path = `${auth.user.id}/${projectId}/${crypto.randomUUID()}.${ext}`; // Storage 규칙: 내 id 폴더에만 올릴 수 있다
       done(await db.storage.from("evidence").upload(path, file, { contentType: file.type || undefined, upsert: false }));
       return { url: db.storage.from("evidence").getPublicUrl(path).data.publicUrl, fileName: file.name, mimeType: file.type };
     },
