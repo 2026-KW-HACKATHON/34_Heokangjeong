@@ -8,7 +8,8 @@
 2. **Authentication → Sign In / Providers → Email** 에서 *Confirm email* 을 끈다 (해커톤용: 가입 즉시 로그인)
 
 ## 2. DB 만들기
-**SQL Editor** 에 [`supabase/migrations/0001_init.sql`](../supabase/migrations/0001_init.sql) 전체를 붙여 넣고 Run.
+**SQL Editor** 에 [`supabase/migrations/`](../supabase/migrations/) 안의 파일을 번호 순서대로 붙여 넣고 Run.
+DB 구조나 권한을 바꾸면 새 파일(`0003_무엇.sql`)로 남기고, 팀에 "SQL 실행해 주세요" 라고 알린다.
 
 ## 3. 앱에 연결
 **Project Settings → API** 의 Project URL 과 publishable(anon) 키를 저장소 루트 `.env` 에 넣는다 (APK 빌드도 이 값을 쓴다).
@@ -28,7 +29,13 @@
      ```
 모델은 무료 Flash 모델을 차례로 시도한다 (붐비면 다음 모델). 순서를 바꾸려면 secret `GEMINI_MODELS=모델1,모델2`.
 
+## 팀원 추가
+DB 구조를 바꾸거나 함수를 배포하려면 Supabase 접근 권한이 필요하다.
+프로젝트 소유자가 **Organization → Team → Invite member** 에서 팀원 이메일을 초대한다 (역할 Developer 이상).
+화면·기능만 만드는 사람은 초대 없이도 저장소를 받아 바로 개발할 수 있다.
+
 ## 구조 메모
 - 테이블: profiles(auth.users 1:1), posts, applications, messages, reviews, portfolio_cards, notifications
 - 권한(RLS): 지원서·채팅은 지원한 학생과 공고 작성자만 읽고 쓴다. 공고는 주민·상인만, 지원은 학생만.
 - 채팅방 = 지원서 하나. 새 메시지는 Supabase Realtime 으로 바로 뜬다.
+- 증빙 파일은 Storage 버킷 `evidence` 에 `<내 id>/파일명` 으로 올린다 (읽기는 공개, 쓰기는 본인 폴더만).
