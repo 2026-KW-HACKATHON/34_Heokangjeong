@@ -40,3 +40,6 @@ next-env.d.ts
 *.jks
 *.keystore
 keystore.properties
+
+# Deno (Edge Function 타입 검사) 잠금 파일
+supabase/functions/deno.lock

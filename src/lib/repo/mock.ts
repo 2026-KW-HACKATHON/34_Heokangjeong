@@ -1,6 +1,10 @@
-import type { Application, ChatMessage, Notification, Post, PortfolioCard, RankRow, Review, User } from "@/types";
+import type { Application, ChatMessage, Notification, Post, PortfolioCard, PortfolioDoc, RankRow, Review, User } from "@/types";
 import type { Repo } from "./index";
 import { distanceM } from "../geo";
+import * as wf from "../workflow/engine";
+import { templateDraft } from "@shared/portfolio/narrative";
+import { summarizeTrust } from "../trust";
+import { fileToDataUrl } from "../files";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
 const users: User[] = [
@@ -22,6 +26,8 @@ const posts: Post[] = [
   { id: "p4", title: "키오스크·스마트폰 사용 도움", category: "디지털도움", description: "주민센터 근처 어르신 5분께 키오스크 주문, 카카오톡 사진 보내기 등을 알려드릴 분. 주 1회 1시간, 4주.", authorId: "r4", location: users[7].location, address: "월계1동 주민센터", status: "open", durationDays: 28, difficulty: 1, isTeam: false, createdAt: "2026-09-13T01:00:00Z" },
   { id: "p5", title: "정육점 디지털 개선 프로젝트 (팀)", category: "웹/앱", description: "간판·메뉴판 디자인 새로 하고, 홍보 영상 1편, 네이버 예약/주문 페이지 연결까지. 팀으로 진행해요.", authorId: "r5", location: users[8].location, address: "월계로 60", status: "open", reward: "팀 사례비 30만원", durationDays: 21, difficulty: 3, isTeam: true, teamSlots: [{ category: "디자인", count: 1, filled: [] }, { category: "영상", count: 1, filled: ["s3"] }, { category: "웹/앱", count: 1, filled: [] }], createdAt: "2026-09-12T07:00:00Z" },
   { id: "p6", title: "인스타그램 계정 운영 도움 (2주)", category: "SNS홍보", description: "게시물 6개 기획·제작과 해시태그 정리. 사진은 함께 찍어요.", authorId: "r1", location: users[4].location, address: "월계로 45길 12", status: "done", reward: "사례비 8만원", durationDays: 14, difficulty: 2, isTeam: false, createdAt: "2026-08-20T09:00:00Z" },
+  { id: "p8", title: "분식집 메뉴판 정보 구조 개선", category: "디자인", description: "메뉴가 40개 가까이 한 판에 섞여 있어 손님들이 원하는 메뉴를 못 찾고 계속 물어보세요. 벽에 붙일 메뉴판을 새로 만들고 싶어요.", authorId: "r2", location: users[5].location, address: "광운로 21", status: "open", reward: "식사권 5장", durationDays: 10, difficulty: 2, isTeam: false, createdAt: "2026-09-16T02:00:00Z",
+    problem: "메뉴가 한 판에 섞여 있어 손님이 원하는 메뉴를 찾기 어렵고, 주문 때마다 같은 질문을 반복해요", domain: "DESIGN", expectedDeliverables: ["벽 부착용 A2 메뉴판 인쇄 파일 1종", "원본 디자인 파일"], completionCriteria: "점주 확인 후 인쇄소에 바로 넘길 수 있는 PDF", deadline: "2026-10-10", revisionLimit: 2, compensationType: "NON_MONETARY", compensationDescription: "식사권 5장" },
   { id: "p7", title: "가게 외관·메뉴 사진 촬영", category: "사진", description: "네이버 플레이스에 올릴 사진 20장. 1시간 정도 촬영.", authorId: "r2", location: users[5].location, address: "광운로 21", status: "done", reward: "식사 제공", durationDays: 3, difficulty: 1, isTeam: false, createdAt: "2026-08-28T03:00:00Z" },
 ];
 
@@ -51,56 +57,74 @@ const notifications: Notification[] = [
   { id: "n3", userId: "r1", postId: "p1", text: "김하늘 학생이 포스터 공고에 지원했습니다.", read: false, createdAt: "2026-09-14T12:00:00Z" },
 ];
 
-// ── 브라우저 새로고침 사이에만 유지되는 간단한 저장(localStorage). 서버 연결 전 임시. ──
-const KEY = "wolgye-mock-v1";
+// ── 저장: 브라우저 localStorage (서버 연결 전 데모용). 새 구조라 키를 v2 로 올렸다 ──
+const KEY = "wolgye-mock-v2";
+const fresh = (): wf.WorkflowDB => ({
+  ...wf.emptyDB(),
+  users: structuredClone(users), posts: structuredClone(posts), applications: structuredClone(applications),
+  legacyReviews: structuredClone(reviews), legacyCards: structuredClone(portfolio),
+});
+let db: wf.WorkflowDB = fresh();
+let msgs: ChatMessage[] = structuredClone(messages);
 function load() {
   if (typeof window === "undefined") return;
-  try { const s = localStorage.getItem(KEY); if (s) { const d = JSON.parse(s); posts.splice(0, posts.length, ...d.posts); applications.splice(0, applications.length, ...d.applications); if (d.messages) messages.splice(0, messages.length, ...d.messages); } } catch {}
+  try {
+    const s = localStorage.getItem(KEY);
+    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; }
+  } catch {}
 }
 function save() {
   if (typeof window === "undefined") return;
-  try { localStorage.setItem(KEY, JSON.stringify({ posts, applications, messages })); } catch {}
+  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs })); }
+  catch { throw new Error("브라우저 저장 공간이 가득 찼어요. 나 › 데모 데이터 초기화 후 다시 시도해 주세요"); }
 }
 let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; } };
 const listeners = new Set<(m: ChatMessage) => void>();
-const wait = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 80));
+const wait = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v === undefined ? v : structuredClone(v)), 60));
+/** 엔진 호출 → 저장. 엔진이 던진 에러는 그대로 화면에 간다 (실패하면 저장하지 않는다) */
+const tx = <T,>(f: () => T): Promise<T> => {
+  ensure();
+  const backup = JSON.stringify(db);
+  try { const r = f(); save(); return wait(r); } catch (e) { db = JSON.parse(backup); return Promise.reject(e); }
+};
 
 export const mockRepo: Repo = {
   async listUsers() { return wait(users); },
   async getUser(id) { return wait(users.find((u) => u.id === id)); },
-  async listPosts() { ensure(); return wait([...posts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },
-  async getPost(id) { ensure(); return wait(posts.find((p) => p.id === id)); },
-  async createPost(p) { ensure(); const post: Post = { ...p, id: `p${Date.now()}`, status: "open", createdAt: new Date().toISOString() }; posts.unshift(post); save(); return wait(post); },
-  async updatePostStatus(id, status) { ensure(); const p = posts.find((x) => x.id === id); if (p) p.status = status; save(); },
-  async listApplications(postId) { ensure(); return wait(applications.filter((a) => !postId || a.postId === postId)); },
-  async apply(postId, studentId, message) { ensure(); const a: Application = { id: `a${Date.now()}`, postId, studentId, message, status: "pending", createdAt: new Date().toISOString() }; applications.push(a); save(); return wait(a); },
-  async getApplication(id) { ensure(); return wait(applications.find((a) => a.id === id)); },
-  async updateApplicationStatus(id, status) { ensure(); const a = applications.find((x) => x.id === id); if (a) a.status = status; save(); },
+  async listPosts() { ensure(); return wait([...db.posts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },
+  async getPost(id) { ensure(); return wait(db.posts.find((p) => p.id === id)); },
+  async createPost(p) { return tx(() => { const post: Post = { ...p, id: `p${Date.now()}`, status: "open", createdAt: new Date().toISOString() }; db.posts.unshift(post); return post; }); },
+  async updatePostStatus(id, status) { return tx(() => { const p = db.posts.find((x) => x.id === id); if (p) p.status = status; }); },
+  async listApplications(postId) { ensure(); return wait(db.applications.filter((a) => !postId || a.postId === postId)); },
+  async apply(postId, studentId, message) { return tx(() => wf.apply(db, { postId, studentId, message })); },
+  async getApplication(id) { ensure(); return wait(db.applications.find((a) => a.id === id)); },
+  async updateApplicationStatus(id, status) { return tx(() => { const a = db.applications.find((x) => x.id === id); if (a) a.status = status; }); },
   async listChatRooms(userId) {
     ensure();
-    const rooms = applications.flatMap((a) => {
-      const post = posts.find((p) => p.id === a.postId);
+    const rooms = db.applications.flatMap((a) => {
+      const post = db.posts.find((p) => p.id === a.postId);
       if (!post || (a.studentId !== userId && post.authorId !== userId)) return [];
-      const last = messages.filter((m) => m.applicationId === a.id).at(-1);
+      const last = msgs.filter((m) => m.applicationId === a.id).at(-1);
       return [{ application: a, post, other: users.find((u) => u.id === (a.studentId === userId ? post.authorId : a.studentId)), last }];
     });
     return wait(rooms.sort((x, y) => (y.last?.createdAt ?? y.application.createdAt).localeCompare(x.last?.createdAt ?? x.application.createdAt)));
   },
-  async listMessages(applicationId) { ensure(); return wait(messages.filter((m) => m.applicationId === applicationId)); },
+  async listMessages(applicationId) { ensure(); return wait(msgs.filter((m) => m.applicationId === applicationId)); },
   async sendMessage(applicationId, senderId, body) {
     ensure(); const m: ChatMessage = { id: `m${Date.now()}`, applicationId, senderId, body, createdAt: new Date().toISOString() };
-    messages.push(m); save(); listeners.forEach((l) => l(m)); return wait(m);
+    msgs.push(m); save(); listeners.forEach((l) => l(m)); return wait(m);
   },
   onMessage(applicationId, cb) { const l = (m: ChatMessage) => { if (m.applicationId === applicationId) cb(m); }; listeners.add(l); return () => { listeners.delete(l); }; },
-  async listReviews(studentId) { return wait(reviews.filter((r) => !studentId || r.studentId === studentId)); },
-  async listPortfolio(studentId) { return wait(portfolio.filter((c) => c.studentId === studentId)); },
+  async listReviews(studentId) { ensure(); return wait(db.legacyReviews.filter((r) => !studentId || r.studentId === studentId)); },
+  async listPortfolio(studentId) { ensure(); return wait(db.legacyCards.filter((c) => c.studentId === studentId)); },
   async listNotifications(userId) { return wait(notifications.filter((n) => n.userId === userId)); },
   async ranking(kind) {
+    ensure();
     // 지역 기여 점수 = 해결 수×10 + 평가 평균×4 + 난이도 합×3 (임시 공식, 나중에 조정)
     const students = users.filter((u): u is Extract<User, { role: "student" }> => u.role === "student");
     const rows: RankRow[] = students.map((s) => {
-      const cards = portfolio.filter((c) => c.studentId === s.id);
-      const solvedPosts = cards.map((c) => posts.find((p) => p.id === c.postId)).filter(Boolean) as Post[];
+      const cards = db.legacyCards.filter((c) => c.studentId === s.id);
+      const solvedPosts = cards.map((c) => db.posts.find((p) => p.id === c.postId)).filter(Boolean) as Post[];
       const avg = cards.length ? cards.reduce((a, c) => a + c.rating, 0) / cards.length : 0;
       const diff = solvedPosts.reduce((a, p) => a + p.difficulty, 0);
       return { id: s.id, label: s.name, sub: s.department, solved: cards.length, score: cards.length * 10 + Math.round(avg * 4) + diff * 3 };
@@ -113,6 +137,52 @@ export const mockRepo: Repo = {
     }
     return wait([{ id: "t1", label: "정육점 디지털 개선팀", sub: "디자인·영상·개발", score: 0, solved: 0 }]);
   },
+
+  // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
+  async selectApplicant(applicationId, actorId) { return tx(() => wf.selectApplicant(db, { applicationId, actorId })); },
+  async getProjectByPost(postId) { ensure(); return wait(db.projects.find((p) => p.postId === postId)); },
+  async listMyProjects(userId) {
+    ensure();
+    const mine = db.projects.filter((p) => p.ownerId === userId || db.members.some((m) => m.projectId === p.id && m.studentId === userId));
+    return wait(mine.map((project) => ({ project, post: db.posts.find((p) => p.id === project.postId)! })).sort((a, b) => b.project.createdAt.localeCompare(a.project.createdAt)));
+  },
+  async getBundle(projectId) { ensure(); return wait(wf.getBundle(db, projectId)); },
+  async saveAnswer(a) { return tx(() => wf.saveAnswer(db, a)); },
+  async addLog(a) { return tx(() => wf.addLog(db, a)); },
+  async uploadEvidenceFile(_projectId, file) { return { url: await fileToDataUrl(file), fileName: file.name, mimeType: file.type.startsWith("image/") && file.type !== "image/gif" ? "image/jpeg" : file.type }; },
+  async addEvidence(a) { return tx(() => wf.addEvidence(db, a)); },
+  async submitVersion(a) { return tx(() => wf.submitVersion(db, a).id); },
+  async requestRevision(versionId, actorId, comment) { return tx(() => { wf.requestRevision(db, { versionId, actorId, comment }); }); },
+  async approveVersion(a) { return tx(() => { wf.approveVersion(db, a); }); },
+  async addOutcome(a) { return tx(() => wf.addOutcome(db, a)); },
+  async verifyOutcome(outcomeId, actorId) { return tx(() => { wf.verifyOutcome(db, { outcomeId, actorId }); }); },
+  async generatePortfolio(projectId, actorId, opts) {
+    // mock 에는 AI 서버가 없다 → 템플릿 초안 (화면에 "Template-generated draft" 로 표시)
+    return tx(() => {
+      const snap = wf.createSnapshot(db, { projectId, actorId });
+      const r = wf.addDraft(db, { snapshotId: snap.id, actorId, generator: "TEMPLATE", content: templateDraft(snap.data), regenerate: opts?.regenerate });
+      return { ...r, aiError: r.reused ? undefined : "가짜 데이터 모드라 AI 서버 없이 템플릿으로 만들었어요" };
+    });
+  },
+  async savePortfolioEdit(draftId, actorId, content) { return tx(() => wf.saveEdit(db, { draftId, actorId, content })); },
+  async listPortfolioDocs(studentId) {
+    ensure();
+    const latest = new Map<string, (typeof db.edits)[number]>();
+    for (const e of db.edits.filter((x) => x.studentId === studentId)) if ((latest.get(e.projectId)?.version ?? 0) < e.version) latest.set(e.projectId, e);
+    return wait([...latest.values()].map((edit) => { const project = wf.getProject(db, edit.projectId); return { edit, project, post: db.posts.find((p) => p.id === project.postId)! }; }));
+  },
+  async getPortfolioDoc(projectId, studentId) {
+    ensure();
+    const edit = db.edits.filter((e) => e.projectId === projectId && e.studentId === studentId).sort((a, b) => b.version - a.version)[0];
+    return wait<PortfolioDoc | undefined>(edit ? { edit, bundle: wf.getBundle(db, projectId) } : undefined);
+  },
+  async trustSummary(studentId) {
+    ensure();
+    const events = db.tierEvents.filter((e) => e.studentId === studentId);
+    const projectIds = new Set(events.map((e) => e.projectId));
+    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId)));
+  },
+  async resetDemo() { db = fresh(); msgs = structuredClone(messages); loaded = true; save(); },
 };
 
 export { distanceM };
