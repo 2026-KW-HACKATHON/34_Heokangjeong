@@ -40,7 +40,7 @@ async function signUp(p, kind, name) {
   await p.getByRole("button", { name: /처음이에요/ }).click();
   await p.getByPlaceholder("이메일").fill(email);
   await p.getByPlaceholder(/비밀번호/).fill(`E2e!${TS}`);
-  await p.getByRole("button", { name: "가입하기", exact: true }).click();
+  await p.getByRole("button", { name: /다음 · 프로필 만들기/ }).click();
   await p.waitForURL(/onboarding/, { timeout: 20000 });
   if (kind === "owner") {
     await p.getByRole("button", { name: /주민·상인/ }).click();

@@ -27,7 +27,8 @@ export default function Login() {
         <input className={field} type="email" autoComplete="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input className={field} type="password" autoComplete={isNew ? "new-password" : "current-password"} placeholder="비밀번호 (6자 이상)" minLength={6} value={pw} onChange={(e) => setPw(e.target.value)} required />
         {err && <p className="text-sm text-[var(--red)]">{err}</p>}
-        <button disabled={busy} className="btn btn-primary w-full disabled:opacity-50">{busy ? "잠시만요…" : isNew ? "가입하기" : "로그인"}</button>
+        <button disabled={busy} className="btn btn-primary w-full disabled:opacity-50">{busy ? "잠시만요…" : isNew ? "다음 · 프로필 만들기" : "로그인"}</button>
+        {isNew && <p className="sub text-center text-xs">프로필까지 입력하고 ‘시작하기’를 누르면 가입이 완료돼요.</p>}
       </form>
       <button onClick={() => { setIsNew(!isNew); setErr(""); }} className="sub text-sm">{isNew ? "이미 계정이 있어요 · 로그인" : "처음이에요 · 가입하기"}</button>
     </section>

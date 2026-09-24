@@ -8,7 +8,7 @@ const CATS: Category[] = ["디자인", "영상", "사진", "SNS홍보", "웹/앱
 
 /** 가입 직후 프로필 만들기: 학생이면 학과·기술·관심, 주민·상인이면 상호·주소 */
 export default function Onboarding() {
-  const { saveProfile, signOut } = useSession();
+  const { saveProfile, signOut, pendingEmail } = useSession();
   const [role, setRole] = useState<"student" | "resident">("student");
   const [f, setF] = useState({ name: "", department: "", skills: "", interests: [] as Category[], availableHours: "", maxDistanceM: 1500, kind: "상인" as "상인" | "주민", address: "" });
   const [err, setErr] = useState("");
@@ -28,6 +28,7 @@ export default function Onboarding() {
   return (
     <section className="flex flex-col gap-3 px-4 py-8">
       <h1 className="text-xl font-bold">프로필 만들기</h1>
+      {pendingEmail && <p className="sub -mt-1 text-sm">{pendingEmail} 로 가입해요 · 마지막 단계예요</p>}
       <div className="grid grid-cols-2 gap-2">
         {([["student", "🎓 광운대 학생"], ["resident", "🏪 주민·상인"]] as const).map(([r, l]) => (
           <button key={r} onClick={() => setRole(r)} className={`btn ${role === r ? "btn-primary" : "btn-ghost"}`}>{l}</button>
