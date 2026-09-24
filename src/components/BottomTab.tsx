@@ -6,14 +6,15 @@ const tabs = [
   { href: "/", label: "홈", icon: "🏠" },
   { href: "/map", label: "지도", icon: "🗺️" },
   { href: "/posts/new", label: "등록", icon: "➕" },
+  { href: "/projects", label: "프로젝트", icon: "🧩" },
   { href: "/chats", label: "채팅", icon: "💬" },
-  { href: "/ranking", label: "랭킹", icon: "🏆" },
   { href: "/me", label: "나", icon: "👤" },
 ];
 
 export default function BottomTab() {
   const path = usePathname() ?? "/";
-  if (path.startsWith("/login") || path.startsWith("/onboarding")) return null;
+  // 로그인·온보딩, 그리고 질문 화면(하단 버튼이 키보드 위에 붙어야 함)에서는 숨긴다
+  if (path.startsWith("/login") || path.startsWith("/onboarding") || path.startsWith("/projects/log")) return null;
   return (
     <nav className="fixed bottom-0 left-1/2 z-[1000] w-full max-w-[480px] -translate-x-1/2 border-t border-[var(--line)] bg-white/95 backdrop-blur">
       <ul className="flex">

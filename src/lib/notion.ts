@@ -24,6 +24,15 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}): P
   return data as T;
 }
 
+export interface NotionExportRow { id: string; status: string; url: string | null; createdAt: string; failedAttachments: { evidenceId: string; reason: string }[]; error: string | null }
+/** 이 편집본을 저장한 기록 (본인 것만 RLS 로 보인다) */
+export async function listNotionExports(editId: string): Promise<NotionExportRow[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("notion_exports").select("*").eq("portfolio_version_id", editId).order("created_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((r) => ({ id: r.id, status: r.status, url: r.notion_page_url, createdAt: r.created_at, failedAttachments: r.failed_attachments ?? [], error: r.error }));
+}
+
 export const notionAvailable = !!supabase;
 export const notion = {
   status: () => call<NotionStatus>("status"),

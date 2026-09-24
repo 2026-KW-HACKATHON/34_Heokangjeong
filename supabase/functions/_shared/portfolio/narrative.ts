@@ -42,13 +42,17 @@ export function outcomeLine(o: SourceOutcome): string {
 }
 
 // ── 템플릿 초안 (AI 실패·미설정 시). 화면에는 "Template-generated draft" 로 표시한다 ──────
-function templateBody(p: SectionPlan, src: PortfolioSource): string {
+function templateBody(p: SectionPlan, src: PortfolioSource, plans: SectionPlan[]): string {
   const lines: string[] = [];
+  let fields = p.fields;
   if (p.def.role === "overview") {
     lines.push(`${src.listing.clientName}(${src.listing.clientType})의 의뢰로 진행한 ${DOMAINS[src.domain].label} 프로젝트입니다.`);
     if (src.listing.problem) lines.push(`의뢰 내용: ${sentence(src.listing.problem)}`);
+    // 다른 섹션에서 다룰 답은 개요에서 반복하지 않는다
+    const elsewhere = new Set(plans.filter((x) => x !== p).flatMap((x) => x.fields.map((f) => f.field)));
+    fields = fields.filter((f) => !elsewhere.has(f.field));
   }
-  for (const f of p.fields) {
+  for (const f of fields) {
     lines.push(`${f.label}: ${sentence(answerText(f))}`);
     for (const fu of f.followUps) lines.push(`${fu.question} ${sentence(fu.answer)}`);
   }
@@ -66,7 +70,7 @@ export function templateDraft(src: PortfolioSource, plans = planSections(src)): 
   return {
     title: `${src.listing.clientName} · ${src.listing.title}`,
     summary: `${src.listing.clientName}의 의뢰로 ${src.member.roleLabel || DOMAINS[src.domain].label} 역할을 맡아 수행한 프로젝트입니다.`,
-    sections: plans.map((p) => ({ key: p.def.key, title: p.def.title, body: templateBody(p, src), evidenceIds: p.evidence.map((e) => e.id) })),
+    sections: plans.map((p) => ({ key: p.def.key, title: p.def.title, body: templateBody(p, src, plans), evidenceIds: p.evidence.map((e) => e.id) })),
     skills: role ? role.choices : [],
     tools: tools ? splitList(answerText(tools)).map((name) => ({ name, why: "" })) : [],
   };
