@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "android:sync": "next build && cap sync android",
-    "android:open": "cap open android"
+    "android:open": "cap open android",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "node e2e/design-scenario.mjs",
+    "check:functions": "cd supabase/functions && npx --yes deno check portfolio-ai/index.ts notion/index.ts draft-post/index.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -29,6 +33,7 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "playwright": "^1.63.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",

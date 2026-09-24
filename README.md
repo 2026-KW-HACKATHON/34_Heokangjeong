@@ -1,12 +1,25 @@
-# 월계 재능나눔 — 대학생 재능기부 플랫폼 (뼈대)
+# 월계 재능나눔 — 검증된 지역 문제 해결 경험을 포트폴리오로
 
-월계1동 주민·상인이 필요한 재능을 공고로 올리면, 광운대 학생이 전공·관심·거리에 맞춰 지원하고
-완료 후 인증·평가를 받아 포트폴리오와 지역 기여 랭킹으로 남기는 **지역 기반 재능 매칭 서비스**의 뼈대입니다.
+> **우리는 봉사시간을 기록하지 않는다. 문제를 해결한 경험을 기록한다.**
+> 지역에서 경험하고 → 검증받고 → 커리어로 가져간다.
 
-> 주민에게는 필요한 재능을, 대학생에게는 실제 경험을, 그 결과는 월계1동에 남긴다.
+월계1동 주민·상인이 문제를 공고로 올리면 광운대 학생이 지원·선정되어 해결하고, 그 과정을 **분야별 질문으로 기록**하고,
+**증빙**과 **의뢰인의 항목별 검증**을 거쳐 **직무별 포트폴리오 Case Study** 로 만들어 **Notion 에 저장**합니다.
 
-지금 상태: **Supabase 에 연결된 프로토타입.** 실제 로그인·지원·수락·채팅·AI 공고 초안(Gemini)이 동작합니다.
-연결 정보를 비우면 가짜 데이터 + 계정 전환 모드로도 돕니다 → [docs/SUPABASE.md](docs/SUPABASE.md)
+```
+공고 → 지원 → 선정 → 분야별 활동 기록 → 증빙 → 제출(v1) → 보완 요청 → 재제출(v2) → 승인
+→ Client Verification(무엇을 확인했는지 항목별) + 평가 → 포트폴리오 자료 준비도 → Narrative Engine → 학생 편집 → Notion
+```
+
+차별점
+1. **직무별 구조** — 디자인·마케팅·개발은 서로 다른 질문·포트폴리오 템플릿·준비도 기준을 가진다 (`supabase/functions/_shared/portfolio/domains.ts`).
+2. **Evidence** — Before/After·결과물·테스트 기록·측정 자료를 답변 필드·주장에 연결한다. 학생 주장만으로 만들지 않는다.
+3. **Claim-level Verification** — "학생이 실제로 작업함 ✓ 역할이 맞음 ✓ … 성과 수치는 아직 확인되지 않음 —" 처럼 의뢰인이 확인한 것만 표시.
+4. **Narrative Engine** — 기록을 나열하지 않고 Problem → Decision → Action → Evidence → Result → Reflection 으로 바꾸되, 기록에 없는 숫자·성과·도구는 사실 검사로 걸러낸다.
+
+지금 상태: Supabase 백엔드(로그인·채팅·AI 공고 초안) 위에 검증형 포트폴리오 파이프라인을 얹은 프로토타입.
+> ⚠️ 새 파이프라인은 DB 마이그레이션 `0002` 와 Edge Function `portfolio-ai`·`notion` 배포가 필요합니다 → [docs/SUPABASE.md](docs/SUPABASE.md).
+> 적용 전에는 `.env.local` 에 `NEXT_PUBLIC_SUPABASE_URL=` / `NEXT_PUBLIC_SUPABASE_KEY=` (빈 값)을 적어 **가짜 데이터(mock) 모드**로 돌리세요. 전체 흐름이 mock 에서도 동작합니다 (AI 대신 템플릿 초안, Notion 비활성).
 당근마켓처럼 "동네 공고 피드 + 지도" 를 축으로, 토스처럼 흰 배경·큰 카드·파란 포인트의 단순한 UI 로 잡았습니다.
 누구나 원하는 부분부터 채워 넣을 수 있게 구조를 나눠 두었습니다.
 
@@ -18,6 +31,28 @@ npm run dev      # http://localhost:3000
 ```
 
 Node 18 이상. 지도는 OpenStreetMap(Leaflet) 이라 API 키가 필요 없습니다.
+
+```bash
+npm run typecheck        # 타입 검사
+npm run lint
+npm test                 # 단위 테스트 + DB 마이그레이션·RLS 테스트(PGlite)
+npm run check:functions  # Edge Function 타입 검사 (Deno, npx 로 자동 설치)
+npm run test:e2e         # mock 모드 E2E (dev 서버 실행 중, 처음 한 번 npx playwright install chromium)
+```
+
+### 환경변수·AI·Notion
+- 앱: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_KEY` (공개 키). 목록은 [.env.example](.env.example)
+- 서버 비밀 값은 Supabase Edge Function secrets 에만: `GEMINI_API_KEY`(AI), `NOTION_CLIENT_ID`/`NOTION_CLIENT_SECRET`/`NOTION_REDIRECT_URI`/`NOTION_TOKEN_KEY`/`APP_ORIGINS`(Notion)
+- AI 설정: [docs/SUPABASE.md](docs/SUPABASE.md) §4 · Notion OAuth 설정: [docs/NOTION.md](docs/NOTION.md)
+
+### 데모 계정·시나리오 (mock 모드)
+나 탭에서 계정 전환: **행복분식(점주)** ↔ **김하늘(디자인학과 학생)**. "데모 데이터 초기화" 로 처음부터.
+1. 행복분식: 등록 탭에서 메뉴판 개선 공고 (문제·기대 결과물·완료 기준) — 또는 준비된 "분식집 메뉴판 정보 구조 개선" 사용
+2. 김하늘: 공고 상세 → 지원 → 행복분식: 지원자 **선정** → 프로젝트 시작
+3. 김하늘: 프로젝트 → 시작 기록 (짧게 답하면 추천 후속 질문, 하나는 건너뛰기) → Before 이미지 증빙 → 진행 기록·중간 기록 → 마무리 기록 → 결과물 업로드 → **v1 제출**
+4. 행복분식: 검토 → **보완 요청** → 김하늘: 수정해서 **v2 제출** → 행복분식: 확인 항목 체크 + 평가 → **승인**
+5. 김하늘: 포트폴리오 자료 준비도 확인 → 빠진 항목 채우기 → **포트폴리오 초안 만들기** → 기록 → Case Study 변환 확인 → 문장 수정·저장
+6. 포트폴리오 상세 → **Notion 에 저장** (Supabase + Notion 설정 필요)
 저장소의 `.env` 에 팀 Supabase 연결 정보가 있어 바로 실제 DB 로 실행됩니다 (가입 후 사용). 자세한 건 [docs/SUPABASE.md](docs/SUPABASE.md).
 
 ## 안드로이드 앱
@@ -36,27 +71,33 @@ Node 18 이상. 지도는 OpenStreetMap(Leaflet) 이라 API 키가 필요 없습
   상세 화면처럼 id 가 필요하면 `/posts/detail?id=...` 처럼 쿼리로 넘깁니다.
 - 서명 키(`*.jks`, `*.keystore`)는 절대 커밋하지 않습니다.
 
-## 화면 (6개 기능 → 9개 화면)
+## 화면
 
 | 경로 | 기능 | 상태 |
 |---|---|---|
 | `/` | ① 맞춤 공고 추천 피드 (학과·관심·기술·거리 점수) | 동작 (규칙 기반) |
 | `/map` | ② 위치 기반 지도 (🔴모집 🟡진행 🟢완료, 거리·도보 시간) | 동작 |
-| `/posts/detail?id=` | 공고 상세 · 지원 · 지원자 수락/거절 · 팀 역할 현황 · 상태 변경 | 동작 (평가 입력은 TODO) |
-| `/posts/new` | 공고 등록. 대충 적으면 AI(Gemini)가 제목·필요 재능·추천 학과·결과물·기간 초안 | 동작 (지도에서 위치 고르기 TODO) |
+| `/posts/detail?id=` | 공고 상세(문제·결과물·완료 기준·보상 유형) · 지원(유료는 검증 이력 필요) · 지원자 선정/거절 | 동작 |
+| `/posts/new` | 공고 등록. AI(Gemini) 초안 + 구조화된 공고 정보 | 동작 (지도에서 위치 고르기 TODO) |
+| `/projects`, `/projects/detail?id=` | 내 프로젝트 · 프로젝트 허브(단계·기록·증빙·제출·검증·성과·준비도) | 동작 |
+| `/projects/log?id=&stage=` | 분야별 Guided Activity Logging (한 화면 한 질문, 자동 저장, 건너뛰기/해당 없음, 후속 질문) | 동작 |
+| `/projects/evidence`, `/projects/submit`, `/projects/review`, `/projects/outcome` | 증빙 · 버전 제출 · 점주 검토(보완/승인+Claim 검증+평가) · 성과 | 동작 |
+| `/portfolio/build?id=`, `/portfolio/view?id=&s=` | 준비도 → 생성 → 변환 보기 → 편집 · Case Study 상세 + Notion 저장 | 동작 (Notion 실계정 미검증) |
 | `/chats`, `/chats/room?id=` | 가게 ↔ 학생 채팅 (지원서마다 채팅방, 실시간) | 동작 |
 | `/login`, `/onboarding` | 이메일 로그인 · 프로필(학생/주민·상인) 만들기 | Supabase 연결 시 |
 | `/teams` | ⑤ 팀 프로젝트 목록 | 목록만 (팀 채팅·역할 확정 TODO) |
-| `/ranking` | ③ 지역 기여 랭킹 (개인/팀/학과) | 동작 (점수 공식 임시) |
-| `/portfolio` | ④ 인증형 포트폴리오 카드 | 동작 (카드 자동 생성 로직 TODO) |
+| `/ranking` | ③ 지역 기여 랭킹 (개인/팀/학과) — 나 탭에서 이동 | 동작 (점수 공식 임시) |
+| `/portfolio` | ④ 검증된 Case Study 목록 + 활동 카드(승인 시 자동 생성) | 동작 |
 | `/notifications` | ⑥ 알림 목록 | 목록만 (푸시·매칭 조건 계산 TODO) |
-| `/me` | 내 정보 · 계정 전환(임시 로그인) | 동작 |
+| `/me` | 내 정보 · 계정 전환(임시 로그인) · 티어/협업 온도/뱃지 | 동작 |
 
 ## 구조 — 어디를 채우면 되나
 
 ```
 src/
-  types/index.ts        도메인 타입 (User, Post, Application, Review, PortfolioCard, Notification…)
+  types/index.ts        도메인 타입 (User, Post, Application…) + 파이프라인 타입 재수출
+  lib/workflow/engine.ts  프로젝트 워크플로 규칙 (mock 이 사용, 단위 테스트 대상)
+  lib/portfolio, lib/notion.ts, lib/ai/followup.ts  스냅샷 조립 · Notion 호출 · 후속 질문
   lib/repo/index.ts     데이터 접근 인터페이스(Repo)  ← 백엔드를 붙일 때 여기 구현만 교체
   lib/repo/mock.ts      가짜 데이터 + 메모리/localStorage 구현 (Supabase 설정이 비었을 때)
   lib/repo/supabase.ts  Supabase 구현 (.env 에 설정이 있을 때, 기본)
@@ -67,7 +108,10 @@ src/
   components/           TopBar, BottomTab, PostCard, StatusBadge, MapView(Leaflet)
   app/                  화면 (Next.js App Router, 모두 클라이언트 컴포넌트)
 android/                Capacitor 안드로이드 프로젝트 (웹 빌드를 감싸는 껍데기)
-supabase/                DB 스키마(migrations), 서버 함수(functions)
+supabase/migrations/     0001 기본 스키마, 0002 검증형 포트폴리오(테이블·RLS·상태 전이 DB 함수)
+supabase/functions/      draft-post · portfolio-ai(Gemini) · notion(OAuth·저장)
+  _shared/portfolio/     앱과 서버가 같이 쓰는 순수 로직 (분야 모듈·상태 머신·준비도·스냅샷·Narrative·문서·Notion 블록)
+tests/, e2e/             vitest(+PGlite) 테스트, Playwright E2E
 docs/ARCHITECTURE.md    설계, 로드맵
 docs/SUPABASE.md        Supabase·Gemini 연결 방법
 ```
@@ -80,12 +124,18 @@ docs/SUPABASE.md        Supabase·Gemini 연결 방법
 이 저장소는 public 입니다. 원하는 기능을 골라 PR 을 보내 주세요. 처음 손대기 좋은 것들:
 
 - [ ] 공고 등록 시 지도에서 위치 찍기 (`posts/new`, `MapView`)
-- [ ] 완료·인증 시 평가 입력 → 포트폴리오 카드 자동 생성 (`repo.updatePostStatus` 확장)
 - [ ] 팀 역할 지원·확정 흐름 (`Post.teamSlots.filled`)
 - [ ] 알림 생성 규칙: 새 공고가 오면 관심·거리 조건에 맞는 학생에게 (`recommend.ts` 재사용)
 - [ ] 카카오/네이버 지도로 교체 (`components/MapView.tsx` 만 바꾸면 됨)
 
 자세한 방법은 [CONTRIBUTING.md](CONTRIBUTING.md), 설계는 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## 남은 한계
+- Notion OAuth·페이지 생성은 **실제 Notion 계정으로 검증하지 못함** (코드·타입 검사·블록 생성 로직만 확인). [docs/NOTION.md](docs/NOTION.md)
+- AI(Gemini) 경로는 키가 없어 실제 호출을 검증하지 못함. 사실 검사(guard)와 템플릿 대체 경로는 테스트로 확인.
+- 마이그레이션 `0002`·새 Edge Function 은 팀 Supabase 에 아직 적용·배포하지 않음. DB 함수·RLS 는 PGlite 로만 검증.
+- 팀 프로젝트는 여러 명 선정·각자 기록까지만. 팀 역할별 템플릿·팀 포트폴리오 화면은 아직 없음.
+- Capacitor 앱 안에서는 Notion OAuth 후 앱으로 돌아오는 딥링크가 없음 (웹에서 사용).
 
 ## 라이선스
 
