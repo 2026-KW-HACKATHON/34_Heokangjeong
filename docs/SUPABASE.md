@@ -9,7 +9,10 @@
 
 ## 2. DB 만들기
 **SQL Editor** 에 [`supabase/migrations/`](../supabase/migrations/) 안의 파일을 번호 순서대로 붙여 넣고 Run.
-DB 구조나 권한을 바꾸면 새 파일(`0003_무엇.sql`)로 남기고, 팀에 "SQL 실행해 주세요" 라고 알린다.
+DB 구조나 권한을 바꾸면 새 파일(`0005_무엇.sql`)로 남기고, 팀에 "SQL 실행해 주세요" 라고 알린다.
+
+**지금은 개발 편의를 위해 권한을 열어 둔 상태다** (`0003_dev_open.sql`): 로그인만 하면 모든 표를 읽고 쓸 수 있어 작업 중 막히지 않는다.
+대신 남의 공고·채팅도 고치거나 볼 수 있으므로, **발표 전이나 실제 사용자를 받기 전에 `0004_strict.sql` 을 실행해 잠근다.**
 
 ## 3. 앱에 연결
 **Project Settings → API** 의 Project URL 과 publishable(anon) 키를 저장소 루트 `.env` 에 넣는다 (APK 빌드도 이 값을 쓴다).
