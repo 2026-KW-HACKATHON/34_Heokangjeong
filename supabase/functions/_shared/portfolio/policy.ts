@@ -6,10 +6,16 @@ export const READINESS_WEIGHTS: Record<ReadinessLevel, number> = { REQUIRED: 70,
 
 /** 검증된 프로젝트 수 기준 티어. 유료 공고는 MIN_VERIFIED_FOR_PAID 이상만 지원할 수 있다. */
 export const TIERS = [
-  { key: "SEED", label: "새싹", minVerified: 0 },
+  { key: "UNRANKED", label: "언랭크", minVerified: 0 },
   { key: "BRONZE", label: "브론즈", minVerified: 1 },
   { key: "SILVER", label: "실버", minVerified: 3 },
   { key: "GOLD", label: "골드", minVerified: 6 },
+  { key: "PLATINUM", label: "플래티넘", minVerified: 10 },
+  { key: "EMERALD", label: "에메랄드", minVerified: 15 },
+  { key: "DIAMOND", label: "다이아", minVerified: 22 },
+  { key: "MASTER", label: "마스터", minVerified: 32 },
+  { key: "GRANDMASTER", label: "그랜드 마스터", minVerified: 45 },
+  { key: "CHALLENGER", label: "챌린저", minVerified: 60 },
 ] as const;
 export const MIN_VERIFIED_FOR_PAID = 1;
 

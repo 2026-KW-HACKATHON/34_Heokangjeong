@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useSession } from "@/lib/session";
+import BrandLogo from "@/components/BrandLogo";
 
 /** 이메일·비밀번호 로그인/가입 (Supabase 연결 시에만 쓰인다) */
 export default function Login() {
@@ -20,8 +21,8 @@ export default function Login() {
   return (
     <section className="flex min-h-screen flex-col justify-center gap-6 px-6">
       <div>
-        <h1 className="text-2xl font-bold">월계 재능나눔</h1>
-        <p className="sub mt-1 text-sm">주민에게는 필요한 재능을, 대학생에게는 실제 경험을</p>
+        <h1><BrandLogo stacked /></h1>
+        <p className="sub mt-4 text-center text-sm">주민에게는 필요한 재능을, 대학생에게는 실제 경험을</p>
       </div>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <input className={field} type="email" autoComplete="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} required />

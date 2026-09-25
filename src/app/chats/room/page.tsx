@@ -28,6 +28,15 @@ function Room() {
     return repo.onMessage(id, (m) => setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])));
   }, [id]);
   useEffect(() => { bottom.current?.scrollIntoView({ block: "end" }); }, [msgs]);
+  useEffect(() => {
+    if (!user || !app || !post || (user.id !== app.studentId && user.id !== post.authorId)) return;
+    const mark = () => {
+      if (document.visibilityState === "visible") void repo.markChatRead(user.id, id, msgs.filter(m => m.applicationId === id && m.senderId !== user.id).map(m => m.id));
+    };
+    mark();
+    document.addEventListener("visibilitychange", mark);
+    return () => document.removeEventListener("visibilitychange", mark);
+  }, [user, app, post, id, msgs]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
