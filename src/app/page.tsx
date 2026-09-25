@@ -36,7 +36,7 @@ export default function Home() {
 
   return (
     <>
-      <TopBar title="월계 · 재능나눔" />
+      <TopBar title="월계 재능나눔" brand />
       <section className="px-5 pb-6">
         <div className="pb-7 pt-5">
           <p className="mb-3 text-xs font-semibold tracking-wide text-[var(--primary)]">우리 동네에서 시작하는 작은 변화</p>

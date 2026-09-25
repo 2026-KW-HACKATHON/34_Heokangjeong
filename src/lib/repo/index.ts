@@ -26,6 +26,8 @@ export interface Repo {
   updateApplicationStatus(id: string, status: Application["status"]): Promise<void>; // 공고 작성자의 거절 (수락은 selectApplicant)
   // 채팅: 지원서 하나가 채팅방 하나 (공고 작성자 ↔ 지원 학생)
   listChatRooms(userId: string): Promise<ChatRoom[]>;
+  readChatMessageIds(userId: string, roomId: string): Promise<string[]>;
+  markChatRead(userId: string, roomId: string, messageIds: string[]): Promise<void>;
   listMessages(applicationId: string): Promise<ChatMessage[]>;
   sendMessage(applicationId: string, senderId: string, body: string): Promise<ChatMessage>;
   onMessage(applicationId: string, cb: (m: ChatMessage) => void): () => void; // 새 메시지 구독, 반환값으로 해제

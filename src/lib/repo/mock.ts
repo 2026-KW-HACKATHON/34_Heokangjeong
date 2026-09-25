@@ -98,7 +98,9 @@ const tx = <T,>(f: () => T): Promise<T> => {
   try { const r = f(); save(); return wait(r); } catch (e) { db = JSON.parse(backup); return Promise.reject(e); }
 };
 
+import { chatReads } from "./chatReads";
 export const mockRepo: Repo = {
+  ...chatReads("mock"),
   async listUsers() { return wait(users); },
   async getUser(id) { return wait(users.find((u) => u.id === id)); },
   async listPosts() { ensure(); return wait([...db.posts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { chatReads } from "./chatReads";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
   ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, Notification, Outcome, PortfolioCard,
@@ -91,6 +92,7 @@ function maybe({ data, error }: { data: any; error: { message: string } | null }
 
 export function supabaseRepo(db: SupabaseClient): Repo {
   const repo: Repo = {
+    ...chatReads(`supabase:${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`),
     async listUsers() { return ok(await db.from("profiles").select("*")).map(toUser); },
     async getUser(id) { const r = maybe(await db.from("profiles").select("*").eq("id", id).maybeSingle()); return r ? toUser(r) : undefined; },
     async listPosts() { return ok(await db.from("posts").select("*").order("created_at", { ascending: false })).map(toPost); },

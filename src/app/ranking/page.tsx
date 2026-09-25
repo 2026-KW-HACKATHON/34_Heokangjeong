@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import TopBar from "@/components/TopBar";
 import { repo } from "@/lib/repo";
-import type { RankRow } from "@/types";
+import type { RankRow, TrustSummary } from "@/types";
+import { useSession } from "@/lib/session";
+import TierCard from "@/components/TierCard";
 
 const KINDS = [["individual", "개인"], ["team", "팀"], ["department", "학과"]] as const;
 const MEDAL = ["🥇", "🥈", "🥉"];
@@ -11,11 +13,32 @@ const MEDAL = ["🥇", "🥈", "🥉"];
 export default function Ranking() {
   const [kind, setKind] = useState<(typeof KINDS)[number][0]>("individual");
   const [rows, setRows] = useState<RankRow[]>([]);
-  useEffect(() => { repo.ranking(kind).then(setRows); }, [kind]);
+  const { user } = useSession();
+  const [trustState, setTrustState] = useState<{ userId: string; value: TrustSummary } | null>(null);
+  const [tierError, setTierError] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const trust = trustState?.userId === user?.id ? trustState?.value : null;
+  useEffect(() => {
+    let active = true;
+    setTierError("");
+    if (!user) return;
+    repo.trustSummary(user.id).then(value => { if (active) setTrustState({ userId: user.id, value }); }).catch(() => { if (active) setTierError("내 티어를 불러오지 못했어요. 잠시 후 다시 열어 주세요."); });
+    return () => { active = false; };
+  }, [user]);
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setError(""); setRows([]);
+    repo.ranking(kind).then(value => { if (active) setRows(value); }).catch(() => { if (active) setError("랭킹을 불러오지 못했어요."); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [kind]);
   return (
     <>
-      <TopBar title="지역 기여 랭킹" />
+      <TopBar title="랭킹" />
       <section className="px-4">
+        {trust ? <TierCard trust={trust} /> : <p role="status" className="card mb-8 text-sm">{tierError || (user ? "내 티어를 불러오는 중…" : "로그인하면 내 티어를 확인할 수 있어요.")}</p>}
+        <h2 className="mb-2 text-xl font-bold tracking-tight">지역 기여 랭킹</h2>
+        <p className="sub mb-5 text-sm">우리 동네에 변화를 만든 이웃들이에요.</p>
         <div className="mb-3 flex gap-2">{KINDS.map(([k, l]) => <button key={k} onClick={() => setKind(k)} className={`chip ${kind === k ? "chip-on" : ""}`}>{l}</button>)}</div>
         <ul className="card flex flex-col divide-y divide-[var(--line)] p-0">
           {rows.map((r, i) => (
@@ -25,7 +48,7 @@ export default function Ranking() {
               <span className="font-bold text-[var(--primary)]">{r.score}점</span>
             </li>
           ))}
-          {rows.length === 0 && <li className="sub p-6 text-center text-sm">아직 기록이 없어요</li>}
+          {rows.length === 0 && <li role="status" className="sub p-6 text-center text-sm">{loading ? "랭킹을 불러오는 중…" : error || "아직 기록이 없어요"}</li>}
         </ul>
         <p className="sub mt-3 text-xs">점수 = 해결 수×10 + 평가 평균×4 + 난이도 합×3 (임시). 팀 랭킹은 팀 기능이 붙으면 채워집니다.</p>
       </section>
