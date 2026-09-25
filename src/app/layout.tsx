@@ -6,7 +6,7 @@ import BottomTab from "@/components/BottomTab";
 import AuthGate from "@/components/AuthGate";
 
 export const metadata: Metadata = { title: "월계 재능나눔", description: "월계1동 주민·상인과 광운대 학생을 잇는 재능 매칭" };
-export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SessionProvider>
           {/* 모바일 앱 느낌의 480px 프레임. 데스크톱에서도 가운데에 폰 화면처럼 보인다. */}
-          <div className="mx-auto min-h-screen max-w-[480px] bg-[var(--bg)] pb-24"><AuthGate>{children}</AuthGate></div>
+          <div className="mx-auto min-h-screen max-w-[480px] pb-24"><AuthGate>{children}</AuthGate></div>
           <BottomTab />
         </SessionProvider>
       </body>

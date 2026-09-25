@@ -1,0 +1,4 @@
+# Edge Function 설정. Notion OAuth 콜백은 Notion 이 브라우저를 보내는 GET 요청이라 JWT 가 없다.
+# notion 함수는 JWT 검사를 끄고, 콜백을 뺀 나머지 요청은 함수 안에서 로그인 사용자를 직접 확인한다.
+[functions.notion]
+verify_jwt = false
