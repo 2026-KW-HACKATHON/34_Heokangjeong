@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
+import { useChatAlerts } from "@/lib/chat-alerts";
 import type { Application, ChatMessage, Post } from "@/types";
 
 /** 채팅방 (/chats/room?id=지원서id). 정적 export 호환을 위해 쿼리로 받는다. */
@@ -15,6 +16,7 @@ export default function ChatRoomPage() {
 function Room() {
   const id = useSearchParams().get("id") ?? "";
   const { user, users } = useSession();
+  const { markChatRead } = useChatAlerts();
   const [app, setApp] = useState<Application | null>(null);
   const [post, setPost] = useState<Post | null>(null);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
@@ -23,10 +25,16 @@ function Room() {
 
   useEffect(() => {
     repo.getApplication(id).then(async (a) => { setApp(a ?? null); if (a) setPost((await repo.getPost(a.postId)) ?? null); });
-    repo.listMessages(id).then(setMsgs);
+    repo.listMessages(id).then((messages) => {
+      setMsgs(messages);
+      markChatRead(id, messages.at(-1)?.createdAt);
+    });
     // 새 메시지: 내가 보낸 것도 구독으로 한 번 더 올 수 있어 id 로 중복 제거
-    return repo.onMessage(id, (m) => setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])));
-  }, [id]);
+    return repo.onMessage(id, (m) => {
+      setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+      markChatRead(id, m.createdAt);
+    });
+  }, [id, markChatRead]);
   useEffect(() => { bottom.current?.scrollIntoView({ block: "end" }); }, [msgs]);
 
   async function send(e: React.FormEvent) {

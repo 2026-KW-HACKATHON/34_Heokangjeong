@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useChatAlerts } from "@/lib/chat-alerts";
 
 const tabs = [
   { href: "/", label: "홈", icon: "🏠" },
@@ -13,6 +14,7 @@ const tabs = [
 
 export default function BottomTab() {
   const path = usePathname() ?? "/";
+  const { hasUnreadChat } = useChatAlerts();
   // 로그인·온보딩, 그리고 질문 화면(하단 버튼이 키보드 위에 붙어야 함)에서는 숨긴다
   if (path.startsWith("/login") || path.startsWith("/onboarding") || path.startsWith("/projects/log")) return null;
   return (
@@ -23,7 +25,10 @@ export default function BottomTab() {
           return (
             <li key={t.href} className="flex-1">
               <Link href={t.href} className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] ${on ? "text-[var(--primary)] font-semibold" : "text-[var(--sub)]"}`}>
-                <span className="text-xl leading-none">{t.icon}</span>{t.label}
+                <span className="relative text-xl leading-none">
+                  {t.icon}
+                  {t.href === "/chats" && hasUnreadChat && <span aria-label="읽지 않은 채팅 있음" className="absolute -right-1.5 -top-1 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white" />}
+                </span>{t.label}
               </Link>
             </li>
           );

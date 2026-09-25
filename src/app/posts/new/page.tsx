@@ -7,7 +7,7 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
 import { draftPost, type PostDraft } from "@/lib/ai/draft";
-import { COMPENSATION_LABEL } from "@/lib/listing";
+import { COMPENSATION_LABEL, formatPaidAmount, parsePaidAmount } from "@/lib/listing";
 import { DOMAINS, DOMAIN_KEYS, domainForCategory } from "@shared/portfolio/domains";
 import type { Category, CompensationType, DomainKey, RoleSlot } from "@/types";
 
@@ -34,8 +34,8 @@ export default function NewPost() {
       if (!l.problem.trim()) throw new Error("어떤 문제를 해결하고 싶은지 적어 주세요");
       if (!(f.durationDays >= 1)) throw new Error("예상 기간은 1일 이상으로 적어 주세요");
       if (f.isTeam && slots.some((s) => !(s.count >= 1))) throw new Error("팀 역할 인원은 1명 이상으로 적어 주세요");
-      const paid = l.compensationType === "PAID" ? Number(l.paidAmount.replace(/,/g, "")) : undefined;
-      if (l.compensationType === "PAID" && (!paid || paid <= 0)) throw new Error("유료 의뢰는 금액을 적어 주세요");
+      const paid = l.compensationType === "PAID" ? parsePaidAmount(l.paidAmount) : undefined;
+      if (l.compensationType === "PAID" && paid === undefined) throw new Error("유료 의뢰는 올바른 금액을 적어 주세요");
       const p = await repo.createPost({
         ...f, authorId: user!.id, location: user!.location ?? WOLGYE_CENTER, address: (user as { address?: string }).address ?? "월계1동", teamSlots: f.isTeam ? slots : undefined,
         problem: l.problem.trim(), domain, expectedDeliverables: l.deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria: l.completionCriteria.trim(),
@@ -93,7 +93,7 @@ export default function NewPost() {
             <legend className="mb-1 text-sm font-semibold">보상</legend>
             <div className="flex gap-2">{(Object.keys(COMPENSATION_LABEL) as CompensationType[]).map((c) => <button key={c} type="button" aria-pressed={l.compensationType === c} onClick={() => setL({ ...l, compensationType: c })} className={`chip ${l.compensationType === c ? "chip-on" : ""}`}>{COMPENSATION_LABEL[c]}</button>)}</div>
             {l.compensationType !== "VOLUNTEER" && <input className={`${inputCls} mt-2`} aria-label="보상 내용" placeholder={l.compensationType === "PAID" ? "보상 설명 (선택)" : "예: 식사권 5장, 음료 쿠폰"} value={f.reward} onChange={(e) => setF({ ...f, reward: e.target.value })} />}
-            {l.compensationType === "PAID" && <input inputMode="numeric" className={`${inputCls} mt-2`} aria-label="금액(원)" placeholder="금액(원)" value={l.paidAmount} onChange={(e) => setL({ ...l, paidAmount: e.target.value })} />}
+            {l.compensationType === "PAID" && <input inputMode="numeric" className={`${inputCls} mt-2`} aria-label="금액(원)" placeholder="금액(원)" value={formatPaidAmount(l.paidAmount)} onChange={(e) => setL((current) => ({ ...current, paidAmount: e.target.value.replace(/[^0-9]/g, "") }))} />}
             {l.compensationType === "PAID" && <p className="sub mt-1 text-xs">유료 의뢰는 검증된 프로젝트 경험이 있는 학생만 지원할 수 있어요.</p>}
           </fieldset>
           <Field label="포트폴리오 기록 방식" hint="학생이 이 분야의 질문에 답하며 과정을 기록해요.">
