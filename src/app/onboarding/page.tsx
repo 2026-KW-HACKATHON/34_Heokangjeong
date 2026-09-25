@@ -12,18 +12,32 @@ export default function Onboarding() {
   const [role, setRole] = useState<"student" | "resident">("student");
   const [f, setF] = useState({ name: "", department: "", skills: "", interests: [] as Category[], availableHours: "", maxDistanceM: 1500, kind: "상인" as "상인" | "주민", address: "" });
   const [err, setErr] = useState("");
+  const [triedSubmit, setTriedSubmit] = useState(false);
   const [busy, setBusy] = useState(false);
+  const skills = f.skills.split(",").map((s) => s.trim()).filter(Boolean);
+
+  const missing = {
+    name: !f.name.trim(),
+    department: role === "student" && !f.department.trim(),
+    skills: role === "student" && skills.length === 0,
+    interests: role === "student" && f.interests.length === 0,
+    availableHours: role === "student" && !f.availableHours.trim(),
+    address: role === "resident" && !f.address.trim(),
+  };
+  const hasMissing = Object.values(missing).some(Boolean);
 
   async function submit() {
-    if (!f.name.trim()) return setErr(role === "student" ? "이름을 입력해 주세요" : "상호 또는 이름을 입력해 주세요");
+    setTriedSubmit(true);
+    if (hasMissing) return setErr("필수 항목을 모두 입력해 주세요");
     setBusy(true); setErr("");
     try {
       await saveProfile(role === "student"
-        ? { role, name: f.name.trim(), department: f.department.trim(), skills: f.skills.split(",").map((s) => s.trim()).filter(Boolean), interests: f.interests, availableHours: f.availableHours, maxDistanceM: f.maxDistanceM, location: WOLGYE_CENTER }
-        : { role, name: f.name.trim(), kind: f.kind, address: f.address.trim() || "월계1동", location: WOLGYE_CENTER });
+        ? { role, name: f.name.trim(), department: f.department.trim(), skills, interests: f.interests, availableHours: f.availableHours, maxDistanceM: f.maxDistanceM, location: WOLGYE_CENTER }
+        : { role, name: f.name.trim(), kind: f.kind, address: f.address.trim(), location: WOLGYE_CENTER });
     } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
   }
-  const field = "w-full rounded-xl bg-[var(--line)] p-3 text-[15px] outline-none";
+  const field = (invalid = false) => `w-full rounded-xl border bg-[var(--line)] p-3 text-[15px] outline-none ${invalid ? "border-[var(--red)]" : "border-transparent"}`;
+  const required = <span className="ml-1 text-[var(--red)]" aria-hidden="true">*</span>;
   return (
     <section className="flex flex-col gap-3 px-4 py-8">
       <h1 className="text-xl font-bold">프로필 만들기</h1>
@@ -33,21 +47,21 @@ export default function Onboarding() {
         ))}
       </div>
       <div className="card flex flex-col gap-3">
-        <input className={field} placeholder={role === "student" ? "이름" : "상호 또는 이름 (예: 월계 커피)"} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+        <label className="text-sm">{role === "student" ? "이름" : "상호 또는 이름"}{required}<input required aria-invalid={triedSubmit && missing.name} className={`${field(triedSubmit && missing.name)} mt-1`} placeholder={role === "student" ? "예: 홍길동" : "예: 월계 커피"} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
         {role === "student" ? (
           <>
-            <input className={field} placeholder="학과 (예: 소프트웨어학부)" value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} />
-            <input className={field} placeholder="보유 기술, 쉼표로 (예: Figma, 포스터, React)" value={f.skills} onChange={(e) => setF({ ...f, skills: e.target.value })} />
-            <div><p className="sub mb-1.5 text-xs">관심 분야</p><div className="flex flex-wrap gap-2">{CATS.map((c) => (
+            <label className="text-sm">학과{required}<input required aria-invalid={triedSubmit && missing.department} className={`${field(triedSubmit && missing.department)} mt-1`} placeholder="예: 소프트웨어학부" value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} /></label>
+            <label className="text-sm">보유 기술{required}<input required aria-invalid={triedSubmit && missing.skills} className={`${field(triedSubmit && missing.skills)} mt-1`} placeholder="쉼표로 구분 (예: Figma, 포스터, React)" value={f.skills} onChange={(e) => setF({ ...f, skills: e.target.value })} /></label>
+            <div><p className={`mb-1.5 text-xs ${triedSubmit && missing.interests ? "text-[var(--red)]" : "sub"}`}>관심 분야{required}</p><div className="flex flex-wrap gap-2">{CATS.map((c) => (
               <button key={c} onClick={() => setF({ ...f, interests: f.interests.includes(c) ? f.interests.filter((x) => x !== c) : [...f.interests, c] })} className={`chip ${f.interests.includes(c) ? "chip-on" : ""}`}>{c}</button>
             ))}</div></div>
-            <input className={field} placeholder="활동 가능 시간 (예: 평일 저녁, 주말)" value={f.availableHours} onChange={(e) => setF({ ...f, availableHours: e.target.value })} />
-            <label className="text-sm"><span className="sub block text-xs">활동 가능 거리(m)</span><input type="number" min={100} step={100} className={field} value={f.maxDistanceM} onChange={(e) => setF({ ...f, maxDistanceM: +e.target.value })} /></label>
+            <label className="text-sm">활동 가능 시간{required}<input required aria-invalid={triedSubmit && missing.availableHours} className={`${field(triedSubmit && missing.availableHours)} mt-1`} placeholder="예: 평일 저녁, 주말" value={f.availableHours} onChange={(e) => setF({ ...f, availableHours: e.target.value })} /></label>
+            <label className="text-sm"><span className="sub block text-xs">활동 가능 거리(m)</span><input type="number" min={100} step={100} className={field()} value={f.maxDistanceM} onChange={(e) => setF({ ...f, maxDistanceM: +e.target.value })} /></label>
           </>
         ) : (
           <>
             <div className="flex gap-2">{(["상인", "주민"] as const).map((k) => <button key={k} onClick={() => setF({ ...f, kind: k })} className={`chip ${f.kind === k ? "chip-on" : ""}`}>{k}</button>)}</div>
-            <input className={field} placeholder="주소 (예: 월계로 45길 12)" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
+            <label className="text-sm">주소{required}<input required aria-invalid={triedSubmit && missing.address} className={`${field(triedSubmit && missing.address)} mt-1`} placeholder="예: 월계로 45길 12" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} /></label>
           </>
         )}
       </div>

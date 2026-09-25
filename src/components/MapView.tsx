@@ -1,5 +1,6 @@
 "use client";
-import { MapContainer, TileLayer, CircleMarker, Popup, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup, Marker, useMap } from "react-leaflet";
+import { useEffect } from "react";
 import L from "leaflet";
 import Link from "next/link";
 import type { GeoPoint, Post } from "@/types";
@@ -9,12 +10,24 @@ import { formatDistance, distanceM } from "@/lib/geo";
 const COLOR: Record<Post["status"], string> = { open: "#f04452", in_progress: "#ffb331", done: "#2ac769" };
 const meIcon = L.divIcon({ className: "", html: '<div style="width:16px;height:16px;border-radius:50%;background:#3182f6;border:3px solid white;box-shadow:0 0 0 2px #3182f6"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
 
+function Recenter({ center, request }: { center: GeoPoint; request: number }) {
+  const map = useMap();
+  useEffect(() => { map.setView([center.lat, center.lng], map.getZoom()); }, [center.lat, center.lng, request, map]);
+  useEffect(() => {
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
 /** OpenStreetMap + Leaflet. API 키 없음. 카카오/네이버 지도로 바꾸려면 이 컴포넌트만 교체. */
-export default function MapView({ posts, me, center }: { posts: Post[]; me?: GeoPoint; center: GeoPoint }) {
+export default function MapView({ posts, me, center, recenterRequest = 0 }: { posts: Post[]; me?: GeoPoint; center: GeoPoint; recenterRequest?: number }) {
   return (
     <MapContainer center={[center.lat, center.lng]} zoom={15} className="h-full w-full" scrollWheelZoom>
+      <Recenter center={center} request={recenterRequest} />
       <TileLayer attribution='&copy; OpenStreetMap' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      {me && <Marker position={[me.lat, me.lng]} icon={meIcon} />}
+      {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
       {posts.map((p) => (
         <CircleMarker key={p.id} center={[p.location.lat, p.location.lng]} radius={11} pathOptions={{ color: "white", weight: 2, fillColor: COLOR[p.status], fillOpacity: 0.95 }}>
           <Popup>
