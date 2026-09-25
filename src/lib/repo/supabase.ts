@@ -19,6 +19,7 @@ import { summarizeTrust } from "../trust";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
 const u = <T,>(v: T | null | undefined) => v ?? undefined;
+let realtimeChannelSequence = 0;
 
 export const toUser = (r: Row): User => r.role === "student"
   ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
@@ -133,7 +134,10 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async listMessages(applicationId) { return ok(await db.from("messages").select("*").eq("application_id", applicationId).order("created_at")).map(toMsg); },
     async sendMessage(applicationId, senderId, body) { return toMsg(ok(await db.from("messages").insert({ application_id: applicationId, sender_id: senderId, body }).select().single())); },
     onMessage(applicationId, cb) {
-      const ch = db.channel(`messages:${applicationId}`)
+      // The room screen and the global unread counter can subscribe to the same
+      // application at once. Supabase reuses channels by topic, so every local
+      // subscriber needs its own topic before handlers are registered.
+      const ch = db.channel(`messages:${applicationId}:${++realtimeChannelSequence}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `application_id=eq.${applicationId}` }, (e) => cb(toMsg(e.new)))
         // 연결까지 몇 초 걸린다. 그 사이 온 메시지를 놓치지 않게 연결되면 한 번 다시 불러온다 (화면에서 id 로 중복 제거)
         .subscribe((status) => { if (status === "SUBSCRIBED") repo.listMessages(applicationId).then((ms) => ms.forEach(cb)); });
