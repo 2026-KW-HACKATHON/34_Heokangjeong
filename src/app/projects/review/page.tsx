@@ -35,6 +35,7 @@ function Review() {
   const [claims, setClaims] = useState<VerificationClaims>({ workPerformed: false, roleConfirmed: false, deliverableReceived: false, completionCriteriaMet: false, actuallyUsed: false });
   const [review, setReview] = useState({ satisfaction: 0, deadline: 0, communication: 0, handoff: 0, comment: "" });
   const [note, setNote] = useState("");
+  const [verifiedMemberIds, setVerifiedMemberIds] = useState<string[] | null>(null);
   const act = useAction();
   if (loadError) return <><TopBar title="검토" back /><div className="px-4"><ErrorText text={loadError} /></div></>;
   if (!b || !user) return <><TopBar title="검토" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
@@ -47,6 +48,7 @@ function Review() {
     <><TopBar title="검토" back /><div className="card mx-4 text-sm">{b.project.status === "COMPLETED" ? "이미 승인한 프로젝트예요." : "검토할 제출이 없어요."}<Link href={`/projects/detail?id=${id}`} className="btn btn-ghost mt-3 w-full">프로젝트로</Link></div></>
   );
   const ratingsDone = review.satisfaction && review.deadline && review.communication && review.handoff;
+  const checkedMembers = verifiedMemberIds ?? b.members.map((m) => m.studentId);
 
   async function submit() {
     await act.run(async () => {
@@ -54,7 +56,8 @@ function Review() {
       else {
         if (!claims.workPerformed) throw new Error("‘학생이 실제로 작업함’을 확인해야 승인할 수 있어요");
         if (!ratingsDone) throw new Error("평가 네 항목을 모두 골라 주세요");
-        await repo.approveVersion({ versionId: v!.id, actorId: user!.id, claims, note, review });
+        if (b!.project.mode === "TEAM" && checkedMembers.length === 0) throw new Error("실제 참여를 확인한 팀원을 한 명 이상 선택해 주세요");
+        await repo.approveVersion({ versionId: v!.id, actorId: user!.id, claims, note, review, verifiedMemberIds: b!.project.mode === "TEAM" ? checkedMembers : undefined });
       }
       await reload();
       router.replace(`/projects/detail?id=${id}`);
@@ -92,6 +95,16 @@ function Review() {
               <p className="sub text-xs">성과 수치(조회수 등)는 학생이 성과를 등록하면 따로 확인할 수 있어요.</p>
               <input className={inputCls} placeholder="확인 메모 (선택)" value={note} onChange={(e) => setNote(e.target.value)} aria-label="확인 메모" />
             </div>
+            {b.project.mode === "TEAM" && <div className="card">
+              <h3 className="font-bold">실제 참여한 팀원을 확인해 주세요</h3>
+              <p className="sub mt-1 text-xs">체크된 팀원만 검증 이력과 개인 포트폴리오를 받을 수 있어요.</p>
+              <div className="mt-3 flex flex-col gap-2">
+                {b.members.map((member) => <label key={member.studentId} className="flex items-center gap-3 rounded-xl bg-[var(--line)] p-3 text-sm">
+                  <input type="checkbox" checked={checkedMembers.includes(member.studentId)} onChange={(e) => setVerifiedMemberIds(e.target.checked ? [...checkedMembers, member.studentId] : checkedMembers.filter((id) => id !== member.studentId))} />
+                  <span><b>{member.roleLabel}</b> · {member.isLead ? "팀장" : "팀원"}</span>
+                </label>)}
+              </div>
+            </div>}
             <div className="card flex flex-col gap-3">
               <h3 className="font-bold">함께해 보니 어땠나요?</h3>
               <Rating label="만족도" value={review.satisfaction} onChange={(n) => setReview({ ...review, satisfaction: n })} />

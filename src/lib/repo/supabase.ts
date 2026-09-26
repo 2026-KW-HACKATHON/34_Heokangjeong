@@ -2,12 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { chatReads } from "./chatReads";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
-  ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, Notification, Outcome, PortfolioCard,
+  ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, MemberVerification, Notification, Outcome, PortfolioCard,
   PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review,
   SubmissionVersion, TierScoreEvent, User,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
-import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
+import { DOMAINS, QUESTION_SET_VERSION, domainForCategory } from "@shared/portfolio/domains";
 import { templateDraft } from "@shared/portfolio/narrative";
 import { sourceHash } from "@shared/portfolio/snapshot";
 import { listingOf } from "../listing";
@@ -28,18 +28,24 @@ export const toUser = (r: Row): User => r.role === "student"
 const toPost = (r: Row): Post => ({
   id: r.id, title: r.title, category: r.category, description: r.description, authorId: r.author_id,
   location: { lat: r.lat, lng: r.lng }, address: r.address, status: r.status, reward: r.reward ?? undefined,
-  durationDays: r.duration_days, difficulty: r.difficulty, isTeam: r.is_team, teamSlots: r.team_slots ?? undefined, createdAt: r.created_at,
+  durationDays: r.duration_days, difficulty: r.difficulty, isTeam: r.is_team,
+  teamSlots: r.roles?.length ? r.roles.map((x: Row) => ({ id: x.id, label: x.label, category: x.category, domain: x.domain, count: x.capacity, filled: [], filledCount: x.filled_count })) : r.team_slots ?? undefined,
+  createdAt: r.created_at,
   problem: r.problem ?? "", domain: u(r.domain), expectedDeliverables: r.expected_deliverables ?? [], completionCriteria: r.completion_criteria ?? "",
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount),
 });
-const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, message: r.message, status: r.status, createdAt: r.created_at });
+const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
 const toMsg = (r: Row): ChatMessage => ({ id: r.id, applicationId: r.application_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
 const toProject = (r: Row): Project => ({
   id: r.id, postId: r.post_id, ownerId: r.owner_id, domain: r.domain, mode: r.mode, status: r.status, questionSnapshot: r.question_snapshot,
   approvedVersionId: u(r.approved_version_id), createdAt: r.created_at, completedAt: u(r.completed_at),
 });
-const toMember = (r: Row): ProjectMember => ({ projectId: r.project_id, studentId: r.student_id, roleLabel: r.role_label, applicationId: u(r.application_id), joinedAt: r.joined_at });
+const toMember = (r: Row): ProjectMember => ({
+  projectId: r.project_id, studentId: r.student_id, roleLabel: r.role_label, roleId: u(r.role_id), domain: u(r.domain),
+  questionSnapshot: u(r.question_snapshot), isLead: r.is_lead ?? false, readyAt: u(r.ready_at), applicationId: u(r.application_id), joinedAt: r.joined_at,
+});
+const toMemberVerification = (r: Row): MemberVerification => ({ projectId: r.project_id, studentId: r.student_id, verifierId: r.verifier_id, verified: r.verified, note: r.note, createdAt: r.created_at });
 const toAnswer = (r: Row): ProjectAnswer => ({
   projectId: r.project_id, authorId: r.author_id, questionId: r.question_id, field: r.field, stage: r.stage, status: r.status, value: r.value,
   choices: r.choices ?? [], origin: r.origin, parentQuestionId: u(r.parent_question_id), prompt: u(r.prompt), updatedAt: r.updated_at,
@@ -92,12 +98,25 @@ function maybe({ data, error }: { data: any; error: { message: string } | null }
 }
 
 export function supabaseRepo(db: SupabaseClient): Repo {
+  const postsWithRoles = async () => {
+    const result = await db.from("posts").select("*, roles:post_roles(*)").order("created_at", { ascending: false });
+    if (!result.error) return result.data;
+    // 0007 적용 전의 팀 DB도 기존 team_slots로 계속 읽을 수 있게 한다.
+    if (/post_roles|relationship/i.test(result.error.message)) return ok(await db.from("posts").select("*").order("created_at", { ascending: false }));
+    throw new Error(friendly(result.error.message));
+  };
+  const postWithRoles = async (id: string) => {
+    const result = await db.from("posts").select("*, roles:post_roles(*)").eq("id", id).maybeSingle();
+    if (!result.error) return result.data;
+    if (/post_roles|relationship/i.test(result.error.message)) return maybe(await db.from("posts").select("*").eq("id", id).maybeSingle());
+    throw new Error(friendly(result.error.message));
+  };
   const repo: Repo = {
     ...chatReads(`supabase:${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`),
     async listUsers() { return ok(await db.from("profiles").select("*")).map(toUser); },
     async getUser(id) { const r = maybe(await db.from("profiles").select("*").eq("id", id).maybeSingle()); return r ? toUser(r) : undefined; },
-    async listPosts() { return ok(await db.from("posts").select("*").order("created_at", { ascending: false })).map(toPost); },
-    async getPost(id) { const r = maybe(await db.from("posts").select("*").eq("id", id).maybeSingle()); return r ? toPost(r) : undefined; },
+    async listPosts() { return (await postsWithRoles()).map(toPost); },
+    async getPost(id) { const r = await postWithRoles(id); return r ? toPost(r) : undefined; },
     async createPost(p) {
       const r = ok(await db.from("posts").insert({
         title: p.title, category: p.category, description: p.description, author_id: p.authorId, lat: p.location.lat, lng: p.location.lng,
@@ -106,7 +125,13 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         deadline: p.deadline || null, revision_limit: p.revisionLimit ?? 2, compensation_type: p.compensationType ?? "VOLUNTEER",
         compensation_description: p.compensationDescription ?? "", paid_amount: p.compensationType === "PAID" ? p.paidAmount ?? null : null,
       }).select().single());
-      return toPost(r);
+      if (p.isTeam && p.teamSlots?.length) {
+        done(await db.from("post_roles").insert(p.teamSlots.map((slot, index) => ({
+          post_id: r.id, label: slot.label?.trim() || slot.category, category: slot.category,
+          domain: slot.domain ?? domainForCategory(slot.category), capacity: slot.count, sort_order: index,
+        }))));
+      }
+      return (await repo.getPost(r.id)) ?? toPost(r);
     },
     async updatePostStatus(id, status) { done(await db.from("posts").update({ status }).eq("id", id)); },
     async listApplications(postId) {
@@ -114,7 +139,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       if (postId) q = q.eq("post_id", postId);
       return ok(await q).map(toApp);
     },
-    async apply(postId, studentId, message) { return toApp(ok(await db.from("applications").insert({ post_id: postId, student_id: studentId, message }).select().single())); },
+    async apply(postId, studentId, message, roleId) { return toApp(ok(await db.from("applications").insert({ post_id: postId, student_id: studentId, message, role_id: roleId ?? null }).select().single())); },
     async getApplication(id) { const r = maybe(await db.from("applications").select("*").eq("id", id).maybeSingle()); return r ? toApp(r) : undefined; },
     async updateApplicationStatus(id, status) { done(await db.from("applications").update({ status }).eq("id", id)); },
 
@@ -182,9 +207,13 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const app = await repo.getApplication(applicationId);
       const post = app && await repo.getPost(app.postId);
       if (!post) throw new Error("지원서를 찾을 수 없어요");
-      const domain = listingOf(post).domain;
+      const domain = post.teamSlots?.find((role) => role.id === app?.roleId)?.domain ?? listingOf(post).domain;
       const snapshot = { domain, version: QUESTION_SET_VERSION, questions: DOMAINS[domain].questions, takenAt: new Date().toISOString() };
       const id: string = ok(await db.rpc("select_applicant", { p_application: applicationId, p_question_snapshot: snapshot }));
+      return toProject(ok(await db.from("projects").select("*").eq("id", id).single()));
+    },
+    async startTeamProject(projectId, _actorId, leaderId) {
+      const id: string = ok(await db.rpc("start_team_project", { p_project: projectId, p_leader: leaderId }));
       return toProject(ok(await db.from("projects").select("*").eq("id", id).single()));
     },
     async getProjectByPost(postId) { const r = maybe(await db.from("projects").select("*").eq("post_id", postId).maybeSingle()); return r ? toProject(r) : undefined; },
@@ -198,14 +227,18 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const p = maybe(await db.from("projects").select("*, post:posts(*)").eq("id", projectId).maybeSingle());
       if (!p) throw new Error("프로젝트를 찾을 수 없거나 볼 권한이 없어요 (선정된 학생과 의뢰인만 볼 수 있어요)");
       const by = (t: string, order = "created_at") => db.from(t).select("*").eq("project_id", projectId).order(order);
-      const [members, answers, logs, evidence, versions, verification, review, outcomes, snapshots, drafts, edits] = await Promise.all([
-        by("project_members", "joined_at"), by("project_answers", "updated_at"), by("activity_logs"), by("evidence"), by("submission_versions", "version"),
+      const optionalMemberVerifications = async () => {
+        const result = await db.from("member_verifications").select("*").eq("project_id", projectId).order("created_at");
+        return result.error && /member_verifications|schema cache/i.test(result.error.message) ? { data: [], error: null } : result;
+      };
+      const [members, memberVerifications, answers, logs, evidence, versions, verification, review, outcomes, snapshots, drafts, edits] = await Promise.all([
+        by("project_members", "joined_at"), optionalMemberVerifications(), by("project_answers", "updated_at"), by("activity_logs"), by("evidence"), by("submission_versions", "version"),
         db.from("client_verifications").select("*").eq("project_id", projectId).maybeSingle(), db.from("client_reviews").select("*").eq("project_id", projectId).maybeSingle(),
         by("outcomes"), by("portfolio_snapshots"), by("portfolio_drafts"), by("portfolio_edits", "version"),
       ]);
       const bundle: ProjectBundle = {
         project: toProject(p), post: toPost(p.post),
-        members: ok(members).map(toMember), answers: ok(answers).map(toAnswer), logs: ok(logs).map(toLog), evidence: ok(evidence).map(toEvidence),
+        members: ok(members).map(toMember), memberVerifications: ok(memberVerifications).map(toMemberVerification), answers: ok(answers).map(toAnswer), logs: ok(logs).map(toLog), evidence: ok(evidence).map(toEvidence),
         versions: ok(versions).map(toVersion), verification: maybe(verification) && toVerification(maybe(verification)!), review: maybe(review) && toReview(maybe(review)!),
         outcomes: ok(outcomes).map(toOutcome), snapshots: ok(snapshots).map(toSnapshot), drafts: ok(drafts).map(toDraft), edits: ok(edits).map(toEdit),
       };
@@ -213,8 +246,9 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     },
     async saveAnswer(a) {
       const origin = a.origin ?? "SCHEMA";
-      const b = ok(await db.from("projects").select("question_snapshot").eq("id", a.projectId).single());
-      const q = (b.question_snapshot.questions as { id: string; field: string; stage: string }[]).find((x) => x.id === (origin === "SCHEMA" ? a.questionId : a.parentQuestionId));
+      const b = ok(await db.from("projects").select("question_snapshot, project_members!inner(question_snapshot, student_id)").eq("id", a.projectId).eq("project_members.student_id", a.actorId).single());
+      const snapshot = b.project_members?.[0]?.question_snapshot ?? b.question_snapshot;
+      const q = (snapshot.questions as { id: string; field: string; stage: string }[]).find((x) => x.id === (origin === "SCHEMA" ? a.questionId : a.parentQuestionId));
       if (!q) throw new Error("질문을 찾을 수 없어요");
       const value = (a.value ?? "").slice(0, 4000), choices = (a.choices ?? []).slice(0, 20);
       const status = a.status === "ANSWERED" && !value.trim() && choices.length === 0 ? "UNANSWERED" : a.status;
@@ -248,7 +282,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     },
     async submitVersion(a) { return ok(await db.rpc("submit_version", { p_project: a.projectId, p_note: a.note, p_evidence_ids: a.evidenceIds })); },
     async requestRevision(versionId, _actorId, comment) { done(await db.rpc("request_revision", { p_version: versionId, p_comment: comment })); },
-    async approveVersion(a) { done(await db.rpc("approve_version", { p_version: a.versionId, p_claims: a.claims, p_review: a.review, p_note: a.note ?? "" })); },
+    async approveVersion(a) {
+      const fn = a.verifiedMemberIds ? "approve_team_version" : "approve_version";
+      const args: Row = { p_version: a.versionId, p_claims: a.claims, p_review: a.review, p_note: a.note ?? "" };
+      if (a.verifiedMemberIds) args.p_verified_members = a.verifiedMemberIds;
+      done(await db.rpc(fn, args));
+    },
     async addOutcome(a) {
       return toOutcome(ok(await db.from("outcomes").insert({
         project_id: a.projectId, author_id: a.actorId, metric_name: a.metricName.trim(), measured: a.measured, value: a.measured ? a.value : null, unit: a.unit,

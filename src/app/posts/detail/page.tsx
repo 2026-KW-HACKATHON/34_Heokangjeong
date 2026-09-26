@@ -29,6 +29,7 @@ function PostDetail() {
   const [project, setProject] = useState<Project | undefined>();
   const [trust, setTrust] = useState<TrustSummary | null>(null);
   const [msg, setMsg] = useState("");
+  const [roleId, setRoleId] = useState("");
   const act = useAction();
   const reload = () => { repo.getPost(id).then((p) => setPost(p ?? null)); repo.listApplications(id).then(setApps); repo.getProjectByPost(id).then(setProject).catch(() => setProject(undefined)); };
   useEffect(reload, [id]);
@@ -39,11 +40,15 @@ function PostDetail() {
   const isOwner = user?.id === post.authorId;
   const listing = listingOf(post);
   const paidLocked = listing.compensationType === "PAID" && trust !== null && !trust.paidEligible;
-  const recruiting = post.status === "open" || (post.isTeam && post.status === "in_progress");
+  const recruiting = post.status === "open";
 
   async function submit() {
     if (!user || user.role !== "student") return;
-    await act.run(async () => { await repo.apply(post!.id, user.id, msg || "지원합니다!"); setMsg(""); reload(); });
+    await act.run(async () => {
+      if (post!.isTeam && !roleId) throw new Error("지원할 역할을 선택해 주세요");
+      await repo.apply(post!.id, user.id, msg || "지원합니다!", roleId || undefined);
+      setMsg(""); reload();
+    });
   }
   async function select(a: Application) {
     await act.run(async () => { const p = await repo.selectApplicant(a.id, user!.id); router.push(`/projects/detail?id=${p.id}`); });
@@ -83,12 +88,14 @@ function PostDetail() {
           <div className="card">
             <h3 className="mb-2 font-bold">필요 인원</h3>
             <ul className="flex flex-col gap-2 text-sm">
-              {post.teamSlots.map((s) => (
-                <li key={s.category} className="flex items-center justify-between rounded-xl bg-[var(--line)] px-3 py-2">
-                  <span>{s.category} {s.count}명</span>
-                  <span className={s.filled.length >= s.count ? "text-[var(--green)]" : "sub"}>{s.filled.length}/{s.count} 확정{s.filled.map((f) => ` · ${users.find((u) => u.id === f)?.name ?? f}`)}</span>
+              {post.teamSlots.map((s) => {
+                const filled = s.filledCount ?? s.filled.length;
+                return (
+                <li key={s.id ?? s.category} className="flex items-center justify-between rounded-xl bg-[var(--line)] px-3 py-2">
+                  <span><b>{s.label ?? s.category}</b> · {s.category}</span>
+                  <span className={filled >= s.count ? "text-[var(--green)]" : "sub"}>{filled}/{s.count} 확정</span>
                 </li>
-              ))}
+              ); })}
             </ul>
           </div>
         )}
@@ -112,6 +119,21 @@ function PostDetail() {
               <p className="rounded-xl bg-[var(--line)] px-3 py-2 text-sm">유료 의뢰는 의뢰인 검증을 받은 프로젝트가 {MIN_VERIFIED_FOR_PAID}개 이상일 때 지원할 수 있어요. 자원봉사·비금전 보상 공고로 첫 검증 경험을 쌓아 보세요.</p>
             ) : (
               <>
+                {post.isTeam && post.teamSlots && (
+                  <fieldset className="mb-3">
+                    <legend className="mb-2 text-sm font-semibold">지원 역할</legend>
+                    <div className="flex flex-col gap-2">
+                      {post.teamSlots.map((slot) => {
+                        const filled = slot.filledCount ?? slot.filled.length;
+                        const full = filled >= slot.count;
+                        return <label key={slot.id ?? slot.category} className={`flex items-center justify-between rounded-xl border p-3 ${full ? "opacity-50" : "cursor-pointer"}`}>
+                          <span><input type="radio" name="role" className="mr-2" value={slot.id} disabled={full} checked={roleId === slot.id} onChange={() => setRoleId(slot.id ?? "")} />{slot.label ?? slot.category}</span>
+                          <span className="sub text-xs">{filled}/{slot.count}명</span>
+                        </label>;
+                      })}
+                    </div>
+                  </fieldset>
+                )}
                 <textarea aria-label="지원 메시지" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="할 수 있는 것과 가능한 시간을 간단히 적어 주세요" className="h-24 w-full rounded-xl bg-[var(--line)] p-3 text-sm outline-none" />
                 <button onClick={submit} disabled={act.busy} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
               </>
@@ -124,11 +146,12 @@ function PostDetail() {
           <div className="card">
             <h3 className="mb-2 font-bold">지원자 {apps.length}명</h3>
             <ul className="flex flex-col gap-2 text-sm">
-              {apps.map((a) => { const s = users.find((u) => u.id === a.studentId) as Extract<User, { role: "student" }> | undefined; return (
+              {apps.map((a) => { const s = users.find((u) => u.id === a.studentId) as Extract<User, { role: "student" }> | undefined; const role = post.teamSlots?.find((x) => x.id === a.roleId); return (
                 <li key={a.id} className="rounded-xl bg-[var(--line)] px-3 py-2">
                   <div className="flex items-center justify-between"><span><b>{s?.name}</b> <span className="sub">{s?.department}</span></span>
                     <span className={a.status === "accepted" ? "font-semibold text-[var(--primary)]" : "sub"}>{a.status === "pending" ? "대기" : a.status === "accepted" ? "선정" : "거절"}</span></div>
                   {s && s.skills.length > 0 && <p className="sub mt-0.5 text-xs">{s.skills.join(" · ")}</p>}
+                  {role && <p className="mt-1 text-xs font-semibold text-[var(--primary)]">지원 역할 · {role.label ?? role.category}</p>}
                   <p className="mt-1">{a.message}</p>
                   <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
                     <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>

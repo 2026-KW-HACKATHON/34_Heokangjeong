@@ -65,7 +65,7 @@ export function buildSource(i: SnapshotInput): PortfolioSource {
       verifiedAt: i.verification.createdAt, submissionVersionId: i.verification.submissionVersionId,
     } : null,
     review: i.review ? { satisfaction: i.review.satisfaction, deadline: i.review.deadline, communication: i.review.communication, handoff: i.review.handoff, comment: i.review.comment } : null,
-    outcomes: i.outcomes.map((o) => ({
+    outcomes: i.outcomes.filter((o) => o.authorId === sid).map((o) => ({
       id: o.id, metricName: o.metricName, measured: o.measured, value: o.value, unit: o.unit, baseline: o.baseline,
       measurementPeriod: o.measurementPeriod, source: o.source, evidenceId: o.evidenceId, qualitativeDescription: o.qualitativeDescription, verified: o.verified,
     })),
