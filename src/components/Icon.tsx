@@ -13,6 +13,7 @@ const paths = {
   search: "M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Zm-2 5 6 6",
   pen: "m15 3 6 6-11 11-7 1 1-7ZM12 6l6 6",
   camera: "M3 6h4l2-3h6l2 3h4v15H3ZM16 13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z",
+  megaphone: "M3 10v4h4l9 4V6L7 10Zm4 4 2 7h4l-2-6",
   web: "M2 4h20v16H2ZM2 9h20m-13 3-3 3 3 3m6-6 3 3-3 3",
   phone: "M6 2h12v20H6ZM10 18h4",
   folder: "M3 6h7l2 3h9v12H3ZM3 6V3h7l2 3h9v3",

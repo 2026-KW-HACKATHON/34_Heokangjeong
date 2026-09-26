@@ -4,7 +4,7 @@ import StatusBadge from "./StatusBadge";
 import { formatDistance } from "@/lib/geo";
 import Icon from "./Icon";
 
-export default function PostCard({ post, authorName, distance, score }: { post: Post; authorName?: string; distance?: number; score?: number }) {
+export default function PostCard({ post, authorName, distance, recommendation }: { post: Post; authorName?: string; distance?: number; recommendation?: string }) {
   return (
     <Link href={`/posts/detail?id=${post.id}`} className="card block active:opacity-80">
       <div className="mb-2 flex items-center justify-between">
@@ -19,7 +19,7 @@ export default function PostCard({ post, authorName, distance, score }: { post: 
         <span>{post.durationDays}일 활동</span>
         {post.reward && <span>{post.reward}</span>}
       </div>
-      <div className="mt-5 flex items-center justify-between border-t border-[var(--line)] pt-4"><span className="sub text-xs">{score !== undefined ? `내 프로필과 ${score}% 일치` : "이웃과 함께 만드는 변화"}</span><span className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--primary)]">자세히<Icon name="arrow" width={16} height={16} /></span></div>
+      <div className="mt-5 flex items-center justify-between border-t border-[var(--line)] pt-4"><span className="sub text-xs">{recommendation ?? "이웃과 함께 만드는 변화"}</span><span className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--primary)]">자세히<Icon name="arrow" width={16} height={16} /></span></div>
     </Link>
   );
 }
