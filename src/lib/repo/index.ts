@@ -21,7 +21,7 @@ export interface Repo {
   createPost(p: Omit<Post, "id" | "createdAt" | "status">): Promise<Post>;
   updatePostStatus(id: string, status: Post["status"]): Promise<void>;
   listApplications(postId?: string): Promise<Application[]>;
-  apply(postId: string, studentId: string, message: string): Promise<Application>;
+  apply(postId: string, studentId: string, message: string, roleId?: string): Promise<Application>;
   getApplication(id: string): Promise<Application | undefined>;
   updateApplicationStatus(id: string, status: Application["status"]): Promise<void>; // 공고 작성자의 거절 (수락은 selectApplicant)
   // 채팅: 지원서 하나가 채팅방 하나 (공고 작성자 ↔ 지원 학생)
@@ -39,6 +39,7 @@ export interface Repo {
   // ── 검증형 포트폴리오 파이프라인 ───────────────────────────────────────────
   /** 점주가 지원자를 선정 → 프로젝트 생성(또는 팀원 추가) */
   selectApplicant(applicationId: string, actorId: string): Promise<Project>;
+  startTeamProject(projectId: string, actorId: string, leaderId: string): Promise<Project>;
   getProjectByPost(postId: string): Promise<Project | undefined>;
   /** 내가 학생으로 참여하거나 의뢰인인 프로젝트 */
   listMyProjects(userId: string): Promise<{ project: Project; post: Post }[]>;
@@ -51,7 +52,7 @@ export interface Repo {
   submitVersion(a: { projectId: string; actorId: string; note: string; evidenceIds: string[] }): Promise<SubmissionVersion["id"]>;
   requestRevision(versionId: string, actorId: string, comment: string): Promise<void>;
   /** 승인 + Claim 단위 검증 + 평가를 한 번에 */
-  approveVersion(a: { versionId: string; actorId: string; claims: VerificationClaims; note?: string; review: ReviewInput }): Promise<void>;
+  approveVersion(a: { versionId: string; actorId: string; claims: VerificationClaims; note?: string; review: ReviewInput; verifiedMemberIds?: string[] }): Promise<void>;
   addOutcome(a: OutcomeInput): Promise<Outcome>;
   verifyOutcome(outcomeId: string, actorId: string): Promise<void>;
   /** 스냅샷 → 초안. 같은 자료로는 기존 초안을 돌려준다(regenerate 면 새 초안). 학생 편집본은 건드리지 않는다 */

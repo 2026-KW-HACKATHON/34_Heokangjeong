@@ -52,6 +52,10 @@ async function narrative(db: Awaited<ReturnType<typeof userClient>>["db"], userI
   const member = members.find((m) => m.studentId === userId);
   if (!member) throw new HttpError(403, "선정된 학생만 포트폴리오를 만들 수 있어요");
   if (project.status !== "COMPLETED") throw new HttpError(409, "의뢰인 승인·검증이 끝난 뒤에 포트폴리오를 만들 수 있어요");
+  if (project.mode === "TEAM") {
+    const verified = await db.from("member_verifications").select("verified").eq("project_id", projectId).eq("student_id", userId).maybeSingle();
+    if (verified.error || !verified.data?.verified) throw new HttpError(403, "의뢰인이 실제 참여를 확인한 팀원만 포트폴리오를 만들 수 있어요");
+  }
 
   const by = (t: string) => db.from(t).select("*").eq("project_id", projectId);
   const [answers, logs, evidence, versions, verification, review, outcomes, profiles] = await Promise.all([
@@ -64,8 +68,9 @@ async function narrative(db: Awaited<ReturnType<typeof userClient>>["db"], userI
   const post = p.post;
   const answerRows: ProjectAnswer[] = ok(answers).map(rowToAnswer);
   const role = answerRows.find((a) => a.authorId === userId && a.field === "role" && a.origin === "SCHEMA" && a.status === "ANSWERED");
+  const memberProject = member.questionSnapshot ? { ...project, domain: member.domain ?? project.domain, questionSnapshot: member.questionSnapshot } : project;
   const src = buildSource({
-    project,
+    project: memberProject,
     listing: {
       title: post.title, problem: post.problem || post.description, category: post.category, expectedDeliverables: post.expected_deliverables ?? [],
       completionCriteria: post.completion_criteria ?? "", compensationType: post.compensation_type ?? "VOLUNTEER",

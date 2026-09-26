@@ -6,7 +6,7 @@ import TopBar from "@/components/TopBar";
 import { BottomCTA, ErrorText, inputCls, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { STAGES, myAnswers, pendingQuestions, schemaAnswer, useBundle } from "@/lib/useBundle";
+import { STAGES, domainForMember, myAnswers, pendingQuestions, questionsForMember, schemaAnswer, useBundle } from "@/lib/useBundle";
 import { suggestFollowUps, type FollowUpSuggestion } from "@/lib/ai/followup";
 import { EVIDENCE_LABEL } from "@shared/portfolio/document";
 import type { AnswerStatus, EvidenceType, ProjectBundle, QuestionDefinition, Stage } from "@/types";
@@ -37,7 +37,7 @@ function Log() {
   const done = sp.get("done") === "1";
   const { user } = useSession();
   const { bundle: b, error, reload } = useBundle(id);
-  const question = b && q ? b.project.questionSnapshot.questions.find((x) => x.id === q) : undefined;
+  const question = b && user && q ? questionsForMember(b, user.id).find((x) => x.id === q) : undefined;
   const stage = (question?.stage ?? (sp.get("stage") as Stage | null) ?? "START") as Stage;
   const base = `/projects/log?id=${id}`;
 
@@ -114,7 +114,7 @@ function QuestionStep({ bundle, q, userId, onDone }: { bundle: ProjectBundle; q:
     await act.run(async () => {
       if (!fu) {
         await save("ANSWERED");
-        const { rule, ai } = suggestFollowUps(q, [...choices, value].filter(Boolean).join(", "), bundle.project.domain);
+        const { rule, ai } = suggestFollowUps(q, [...choices, value].filter(Boolean).join(", "), domainForMember(bundle, userId));
         const prevFor = (s: FollowUpSuggestion) => s.questions.map((_, i) => mine.find((a) => a.questionId === `${q.id}:fu${i}`)?.value ?? "");
         if (rule) {
           // 규칙 기반 질문을 바로 보여 주고, AI 질문이 도착하면 (아직 아무것도 안 적었을 때만) 바꿔 끼운다
@@ -197,7 +197,7 @@ function StageSummary({ b, userId, stage, base, onLogged }: { b: ProjectBundle; 
   const [note, setNote] = useState("");
   const act = useAction();
   const mine = myAnswers(b, userId);
-  const qs = b.project.questionSnapshot.questions.filter((q) => q.stage === stage);
+  const qs = questionsForMember(b, userId).filter((q) => q.stage === stage);
   const left = pendingQuestions(b, userId, stage).length;
   const stageIdx = STAGES.findIndex((s) => s.key === stage);
   const nextStage = STAGES[stageIdx + 1];

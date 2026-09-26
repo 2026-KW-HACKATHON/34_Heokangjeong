@@ -1,5 +1,5 @@
 "use client";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
@@ -10,7 +10,7 @@ import MissingRequired from "@/components/MissingRequired";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { STAGES, myAnswers, stageProgress, useBundle } from "@/lib/useBundle";
+import { STAGES, domainForMember, myAnswers, stageProgress, useBundle } from "@/lib/useBundle";
 import { listingOf } from "@/lib/listing";
 import { DOMAINS } from "@shared/portfolio/domains";
 import { computeReadiness } from "@shared/portfolio/readiness";
@@ -37,18 +37,25 @@ function Project() {
   const { user, users } = useSession();
   const { bundle: b, error, reload } = useBundle(id);
   const act = useAction();
+  const [leaderId, setLeaderId] = useState("");
   if (error) return <><TopBar title="프로젝트" back /><div className="px-4"><ErrorText text={error} /></div></>;
   if (!b || !user) return <><TopBar title="프로젝트" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
 
   const isOwner = user.id === b.project.ownerId;
   const isMember = b.members.some((m) => m.studentId === user.id);
+  const me = b.members.find((m) => m.studentId === user.id);
   const listing = listingOf(b.post);
   const name = (uid: string) => users.find((u: User) => u.id === uid)?.name ?? "학생";
   const latest = b.versions.at(-1);
   const status = b.project.status;
-  const canSubmit = isMember && (status === "IN_PROGRESS" || status === "REVISION_REQUESTED");
+  const canSubmit = isMember && (b.project.mode !== "TEAM" || me?.isLead) && (status === "IN_PROGRESS" || status === "REVISION_REQUESTED");
   const approved = b.versions.find((v) => v.id === b.project.approvedVersionId);
-  const readiness = isMember ? computeReadiness({ domain: b.project.domain, answers: myAnswers(b, user.id), evidenceTypes: b.evidence.map((e) => e.type), outcomeCount: b.outcomes.length }) : null;
+  const readiness = isMember ? computeReadiness({ domain: domainForMember(b, user.id), answers: myAnswers(b, user.id), evidenceTypes: b.evidence.filter((e) => e.authorId === user.id).map((e) => e.type), outcomeCount: b.outcomes.filter((o) => o.authorId === user.id).length }) : null;
+  const visibleLogs = isOwner ? b.logs : b.logs.filter((l) => l.authorId === user.id);
+  const visibleEvidence = isOwner ? b.evidence : b.evidence.filter((e) => e.authorId === user.id);
+  const myMemberVerification = b.memberVerifications.find((v) => v.studentId === user.id);
+  const selectedLeaderId = leaderId || b.members.find((m) => m.isLead)?.studentId || b.members[0]?.studentId || "";
+  const missingRoles = (b.post.teamSlots ?? []).filter((slot) => b.members.filter((m) => m.roleId === slot.id).length < slot.count);
 
   return (
     <>
@@ -57,7 +64,7 @@ function Project() {
         <div className="card">
           <div className="mb-2 flex items-center justify-between"><span className="chip chip-on">{DOMAINS[b.project.domain].label} 모듈</span><ProjectStatusBadge status={status} /></div>
           <h2 className="text-xl font-bold">{b.post.title}</h2>
-          <p className="sub mt-1 text-sm">의뢰인 {name(b.project.ownerId)} · 학생 {b.members.map((m) => name(m.studentId)).join(", ")} · 시작 {fmtDate(b.project.createdAt)}</p>
+          <p className="sub mt-1 text-sm">의뢰인 {name(b.project.ownerId)} · 학생 {b.members.map((m) => `${name(m.studentId)}${m.isLead ? "(팀장)" : ""}`).join(", ")} · 시작 {fmtDate(b.project.createdAt)}</p>
           <ol className="mt-4 flex items-center justify-between gap-1 text-[11px]" aria-label="진행 단계">
             {FLOW.map((f) => (
               <li key={f.key} className="flex flex-1 flex-col items-center gap-1">
@@ -70,6 +77,26 @@ function Project() {
 
         <StatusGuide status={status} isOwner={isOwner} isMember={isMember} id={id} latestComment={latest?.status === "REVISION_REQUESTED" ? latest.reviewComment : undefined} />
 
+        {b.project.mode === "TEAM" && status === "RECRUITING" && isOwner && (
+          <div className="card">
+            <h3 className="font-bold">팀 구성</h3>
+            <ul className="mt-2 flex flex-col gap-2 text-sm">
+              {b.members.map((member) => <li key={member.studentId} className="flex items-center justify-between rounded-xl bg-[var(--line)] px-3 py-2"><span><b>{name(member.studentId)}</b> · {member.roleLabel}</span></li>)}
+            </ul>
+            {missingRoles.length > 0 ? <p className="mt-3 text-sm text-[#c2410c]">인원이 더 필요해요: {missingRoles.map((s) => s.label ?? s.category).join(", ")}</p> : (
+              <>
+                <label className="mt-3 block text-sm font-semibold">팀장
+                  <select className="mt-1 w-full rounded-xl bg-[var(--line)] p-3" value={selectedLeaderId} onChange={(e) => setLeaderId(e.target.value)}>
+                    {b.members.map((member) => <option key={member.studentId} value={member.studentId}>{name(member.studentId)} · {member.roleLabel}</option>)}
+                  </select>
+                </label>
+                <button className="btn btn-primary mt-3 w-full" disabled={act.busy || !selectedLeaderId} onClick={() => act.run(async () => { await repo.startTeamProject(id, user.id, selectedLeaderId); await reload(); })}>팀 확정하고 시작</button>
+              </>
+            )}
+            <ErrorText text={act.error} />
+          </div>
+        )}
+
         <div className="card text-sm">
           <h3 className="mb-2 font-bold">의뢰 내용</h3>
           <p className="whitespace-pre-line">{listing.problem}</p>
@@ -81,7 +108,7 @@ function Project() {
           </dl>
         </div>
 
-        {isMember && (
+        {isMember && status !== "RECRUITING" && (
           <div className="card">
             <h3 className="mb-1 font-bold">활동 기록</h3>
             <p className="sub mb-3 text-xs">한 번에 1~3개 질문만 물어봐요. 짧게 답해도 괜찮아요.</p>
@@ -101,21 +128,21 @@ function Project() {
           </div>
         )}
 
-        {(b.logs.length > 0 || isMember) && (
+        {(visibleLogs.length > 0 || isMember) && (
           <div className="card">
-            <h3 className="mb-2 font-bold">중간 기록 {b.logs.length > 0 && <span className="sub text-sm font-normal">{b.logs.length}</span>}</h3>
-            {b.logs.length === 0 && <p className="sub text-sm">진행 단계에서 오늘 한 일을 남길 수 있어요.</p>}
-            <ol className="flex flex-col gap-2 text-sm">{b.logs.map((l) => <li key={l.id} className="rounded-xl bg-[var(--line)] px-3 py-2"><span className="sub mr-1 text-xs">{fmtDate(l.createdAt)} · {STAGES.find((s) => s.key === l.stage)?.label}</span>{l.note}</li>)}</ol>
+            <h3 className="mb-2 font-bold">{isOwner ? "팀원별 중간 기록" : "내 중간 기록"} {visibleLogs.length > 0 && <span className="sub text-sm font-normal">{visibleLogs.length}</span>}</h3>
+            {visibleLogs.length === 0 && <p className="sub text-sm">진행 단계에서 오늘 한 일을 남길 수 있어요.</p>}
+            <ol className="flex flex-col gap-2 text-sm">{visibleLogs.map((l) => <li key={l.id} className="rounded-xl bg-[var(--line)] px-3 py-2"><span className="sub mr-1 text-xs">{isOwner && `${name(l.authorId)} · `}{fmtDate(l.createdAt)} · {STAGES.find((s) => s.key === l.stage)?.label}</span>{l.note}</li>)}</ol>
           </div>
         )}
 
         <div className="card">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="font-bold">증빙 <span className="sub text-sm font-normal">{b.evidence.length}</span></h3>
+            <h3 className="font-bold">{isOwner ? "팀원별 증빙" : "내 증빙"} <span className="sub text-sm font-normal">{visibleEvidence.length}</span></h3>
             {(isMember || isOwner) && status !== "RECRUITING" && <Link href={`/projects/evidence?id=${id}`} className="text-sm font-semibold text-[var(--primary)]">+ 추가</Link>}
           </div>
-          {b.evidence.length === 0 ? <p className="sub text-sm">Before 사진, 결과물 파일, 링크를 올려 주세요. 학생의 주장만으로 포트폴리오를 만들지 않아요.</p>
-            : <div className="grid grid-cols-2 gap-2">{b.evidence.map((e) => <EvidenceItem key={e.id} e={e} compact />)}</div>}
+          {visibleEvidence.length === 0 ? <p className="sub text-sm">Before 사진, 결과물 파일, 링크를 올려 주세요. 학생의 주장만으로 포트폴리오를 만들지 않아요.</p>
+            : <div className="grid grid-cols-2 gap-2">{visibleEvidence.map((e) => <div key={e.id}>{isOwner && <p className="sub mb-1 text-xs">{name(e.authorId)}</p>}<EvidenceItem e={e} compact /></div>)}</div>}
         </div>
 
         <div className="card">
@@ -167,7 +194,9 @@ function Project() {
           <div className="card">
             <Readiness r={readiness} fixHref={(q) => `/projects/log?id=${id}&q=${q}&set=${q}&back=${encodeURIComponent(`/projects/detail?id=${id}`)}`} />
             {status === "COMPLETED"
-              ? <Link href={`/portfolio/build?id=${id}`} className="btn btn-primary mt-3 w-full">{b.edits.some((e) => e.studentId === user.id) ? "내 포트폴리오 보기·고치기" : "포트폴리오 만들기"}</Link>
+              ? b.project.mode === "TEAM" && !myMemberVerification?.verified
+                ? <p className="mt-3 rounded-xl bg-[var(--line)] p-3 text-sm">의뢰인의 실제 참여 확인을 받은 팀원만 개인 포트폴리오를 만들 수 있어요.</p>
+                : <Link href={`/portfolio/build?id=${id}`} className="btn btn-primary mt-3 w-full">{b.edits.some((e) => e.studentId === user.id) ? "내 포트폴리오 보기·고치기" : "포트폴리오 만들기"}</Link>
               : <p className="sub mt-3 text-xs">의뢰인이 승인·검증하면 이 자료로 포트폴리오를 만들 수 있어요. 진행하면서 미리 채워 두세요.</p>}
           </div>
         )}

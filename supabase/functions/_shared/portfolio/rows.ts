@@ -10,7 +10,10 @@ export const rowToProject = (r: Row): Project => ({
   id: r.id, postId: r.post_id, ownerId: r.owner_id, domain: r.domain, mode: r.mode, status: r.status, questionSnapshot: r.question_snapshot,
   approvedVersionId: u(r.approved_version_id), createdAt: r.created_at, completedAt: u(r.completed_at),
 });
-export const rowToMember = (r: Row): ProjectMember => ({ projectId: r.project_id, studentId: r.student_id, roleLabel: r.role_label, applicationId: u(r.application_id), joinedAt: r.joined_at });
+export const rowToMember = (r: Row): ProjectMember => ({
+  projectId: r.project_id, studentId: r.student_id, roleLabel: r.role_label, roleId: u(r.role_id), domain: u(r.domain),
+  questionSnapshot: u(r.question_snapshot), isLead: r.is_lead ?? false, readyAt: u(r.ready_at), applicationId: u(r.application_id), joinedAt: r.joined_at,
+});
 export const rowToAnswer = (r: Row): ProjectAnswer => ({
   projectId: r.project_id, authorId: r.author_id, questionId: r.question_id, field: r.field, stage: r.stage, status: r.status, value: r.value,
   choices: r.choices ?? [], origin: r.origin, parentQuestionId: u(r.parent_question_id), prompt: u(r.prompt), updatedAt: r.updated_at,

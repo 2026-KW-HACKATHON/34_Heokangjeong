@@ -1,7 +1,7 @@
 // 도메인 타입 — 화면과 데이터 계층이 공유하는 계약. 백엔드를 붙일 때도 이 타입은 유지한다.
 // 프로젝트·증빙·검증·포트폴리오 타입은 서버 함수와 함께 쓰려고 supabase/functions/_shared/portfolio/types.ts 에 있고 여기서 다시 내보낸다.
 import type {
-  ActivityLog, Badge, ClientReview, ClientVerification, CompensationType, DomainKey, Evidence, Outcome, PortfolioDraft,
+  ActivityLog, Badge, ClientReview, ClientVerification, CompensationType, DomainKey, Evidence, MemberVerification, Outcome, PortfolioDraft,
   PortfolioEditedVersion, PortfolioSourceSnapshot, Project, ProjectAnswer, ProjectMember, ProjectMode, SubmissionVersion, TierScoreEvent,
 } from "@shared/portfolio/types";
 export type * from "@shared/portfolio/types";
@@ -37,7 +37,15 @@ export interface Resident {
 
 export type User = Student | Resident;
 
-export interface RoleSlot { category: Category; count: number; filled: string[] } // 팀 공고의 역할 자리
+export interface RoleSlot {
+  id?: string;
+  label?: string;
+  category: Category;
+  domain?: DomainKey;
+  count: number;
+  filled: string[];
+  filledCount?: number;
+}
 
 export interface Post {
   id: string;
@@ -71,6 +79,7 @@ export interface Application {
   postId: string;
   studentId: string;
   message: string;
+  roleId?: string;
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
 }
@@ -132,6 +141,7 @@ export interface ProjectBundle {
   evidence: Evidence[];
   versions: SubmissionVersion[];
   verification: ClientVerification | null;
+  memberVerifications: MemberVerification[];
   review: ClientReview | null;
   outcomes: Outcome[];
   snapshots: PortfolioSourceSnapshot[];

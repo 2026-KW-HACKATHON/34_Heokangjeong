@@ -7,7 +7,7 @@ export type AnswerStatus = "UNANSWERED" | "SKIPPED" | "NOT_APPLICABLE" | "ANSWER
 export type AnswerOrigin = "SCHEMA" | "AI_FOLLOWUP" | "RULE_FOLLOWUP";
 
 export type ProjectStatus = "RECRUITING" | "IN_PROGRESS" | "REVIEW_PENDING" | "REVISION_REQUESTED" | "COMPLETED";
-export type ProjectEvent = "SELECT" | "SUBMIT" | "REQUEST_REVISION" | "RESUBMIT" | "APPROVE";
+export type ProjectEvent = "SELECT" | "START" | "SUBMIT" | "REQUEST_REVISION" | "RESUBMIT" | "APPROVE";
 
 export type CompensationType = "VOLUNTEER" | "NON_MONETARY" | "PAID";
 export type ProjectMode = "INDIVIDUAL" | "TEAM";
@@ -142,7 +142,26 @@ export interface Project {
   createdAt: string;
   completedAt?: string;
 }
-export interface ProjectMember { projectId: string; studentId: string; roleLabel: string; applicationId?: string; joinedAt: string }
+export interface ProjectMember {
+  projectId: string;
+  studentId: string;
+  roleLabel: string;
+  roleId?: string;
+  domain?: DomainKey;
+  questionSnapshot?: ProjectQuestionSnapshot;
+  isLead?: boolean;
+  readyAt?: string;
+  applicationId?: string;
+  joinedAt: string;
+}
+export interface MemberVerification {
+  projectId: string;
+  studentId: string;
+  verifierId: string;
+  verified: boolean;
+  note: string;
+  createdAt: string;
+}
 export interface ProjectAnswer {
   projectId: string;
   authorId: string;
