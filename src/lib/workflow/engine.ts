@@ -1,7 +1,7 @@
 // 프로젝트 워크플로 엔진 (순수 로직). mock 저장소가 이 엔진으로 동작하고, 단위 테스트가 이 엔진을 검증한다.
 // Supabase 에서는 같은 규칙을 DB 함수(supabase/migrations/0005_verified_portfolio.sql)가 서버에서 강제한다.
 import type {
-  ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, Outcome, PortfolioCard,
+  ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, MemberVerification, Outcome, PortfolioCard,
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
   ProjectMember, Review, Stage, SubmissionVersion, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport,
 } from "@/types";
@@ -26,6 +26,7 @@ export interface WorkflowDB {
   evidence: Evidence[];
   versions: SubmissionVersion[];
   verifications: ClientVerification[];
+  memberVerifications: MemberVerification[];
   reviews: ClientReview[];
   outcomes: Outcome[];
   snapshots: PortfolioSourceSnapshot[];
@@ -37,7 +38,7 @@ export interface WorkflowDB {
   legacyCards: PortfolioCard[];
 }
 export const emptyDB = (): WorkflowDB => ({
-  users: [], posts: [], applications: [], projects: [], members: [], answers: [], logs: [], evidence: [], versions: [], verifications: [],
+  users: [], posts: [], applications: [], projects: [], members: [], answers: [], logs: [], evidence: [], versions: [], verifications: [], memberVerifications: [],
   reviews: [], outcomes: [], snapshots: [], drafts: [], edits: [], tierEvents: [], badges: [], legacyReviews: [], legacyCards: [],
 });
 export interface Ctx { now: () => string; id: () => string }
@@ -72,6 +73,7 @@ export function getBundle(db: WorkflowDB, projectId: string): ProjectBundle {
     evidence: by(db.evidence).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     versions: by(db.versions).sort((a, b) => a.version - b.version),
     verification: db.verifications.find((v) => v.projectId === projectId) ?? null,
+    memberVerifications: by(db.memberVerifications),
     review: db.reviews.find((r) => r.projectId === projectId) ?? null,
     outcomes: by(db.outcomes),
     snapshots: by(db.snapshots),
@@ -81,15 +83,18 @@ export function getBundle(db: WorkflowDB, projectId: string): ProjectBundle {
 }
 
 // ── 지원 ────────────────────────────────────────────────────────────────────
-export function apply(db: WorkflowDB, a: { postId: string; studentId: string; message: string }, ctx: Ctx = defaultCtx): Application {
+export function apply(db: WorkflowDB, a: { postId: string; studentId: string; message: string; roleId?: string }, ctx: Ctx = defaultCtx): Application {
   const post = must(db.posts.find((p) => p.id === a.postId), "공고");
   const student = db.users.find((u) => u.id === a.studentId);
   if (student?.role !== "student") fail("FORBIDDEN", "학생만 지원할 수 있어요");
   if (!(post.status === "open" || (post.isTeam && post.status === "in_progress"))) fail("INVALID_STATE", "모집이 끝난 공고예요"); // 팀 공고는 진행 중에도 추가 모집
   if (db.applications.some((x) => x.postId === a.postId && x.studentId === a.studentId)) fail("DUPLICATE", "이미 지원했어요");
+  const role = post.teamSlots?.find((slot) => slot.id === a.roleId);
+  if (post.isTeam && !role) fail("ROLE_REQUIRED", "지원할 역할을 선택해 주세요");
+  if (!post.isTeam && a.roleId) fail("INVALID_ROLE", "개인 프로젝트에는 역할을 선택할 수 없어요");
   if (listingOf(post).compensationType === "PAID" && verifiedCount(db, a.studentId) < MIN_VERIFIED_FOR_PAID)
     fail("PAID_NOT_ELIGIBLE", `유료 의뢰는 검증된 프로젝트가 ${MIN_VERIFIED_FOR_PAID}개 이상일 때 지원할 수 있어요`);
-  const app: Application = { id: ctx.id(), postId: a.postId, studentId: a.studentId, message: a.message, status: "pending", createdAt: ctx.now() };
+  const app: Application = { id: ctx.id(), postId: a.postId, studentId: a.studentId, message: a.message, roleId: a.roleId, status: "pending", createdAt: ctx.now() };
   db.applications.push(app);
   return app;
 }
@@ -101,6 +106,8 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   if (post.authorId !== a.actorId) fail("FORBIDDEN", "이 공고를 올린 의뢰인만 선정할 수 있어요");
   if (app.status === "rejected") fail("INVALID_STATE", "거절한 지원서예요");
   const listing = listingOf(post);
+  const role = post.isTeam ? post.teamSlots?.find((slot) => slot.id === app.roleId) : undefined;
+  if (post.isTeam && !role) fail("INVALID_ROLE", "지원 역할을 찾을 수 없어요");
   let project = db.projects.find((p) => p.postId === post.id);
   if (project && isMember(db, project.id, app.studentId)) return project; // 이미 선정됨 (중복 클릭)
   const now = ctx.now();
@@ -112,9 +119,34 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
     };
     db.projects.push(project);
   }
+  if (role && db.members.filter((m) => m.projectId === project!.id && m.roleId === role.id).length >= role.count)
+    fail("ROLE_FULL", "이 역할의 모집 인원이 이미 찼어요");
   project.status = nextStatus(project.status, "SELECT", project.mode);
-  db.members.push({ projectId: project.id, studentId: app.studentId, roleLabel: DOMAINS[project.domain].label, applicationId: app.id, joinedAt: now });
+  const memberDomain = role?.domain ?? listing.domain;
+  db.members.push({
+    projectId: project.id, studentId: app.studentId, roleId: role?.id,
+    roleLabel: role?.label ?? role?.category ?? DOMAINS[project.domain].label,
+    domain: memberDomain,
+    questionSnapshot: { domain: memberDomain, version: QUESTION_SET_VERSION, questions: DOMAINS[memberDomain].questions, takenAt: now },
+    isLead: false, applicationId: app.id, joinedAt: now,
+  });
+  if (role) { role.filled.push(app.studentId); role.filledCount = role.filled.length; }
   app.status = "accepted";
+  if (!post.isTeam) post.status = "in_progress";
+  return project;
+}
+
+export function startTeamProject(db: WorkflowDB, a: { projectId: string; actorId: string; leaderId: string }): Project {
+  const project = getProject(db, a.projectId);
+  assertOwner(db, project, a.actorId);
+  if (project.mode !== "TEAM") fail("INVALID_STATE", "팀 프로젝트가 아니에요");
+  const post = must(db.posts.find((p) => p.id === project.postId), "공고");
+  const members = db.members.filter((m) => m.projectId === project.id);
+  const missing = (post.teamSlots ?? []).filter((slot) => members.filter((m) => m.roleId === slot.id).length < slot.count);
+  if (missing.length) fail("TEAM_INCOMPLETE", `아직 인원이 부족한 역할이 있어요: ${missing.map((s) => s.label ?? s.category).join(", ")}`);
+  if (!members.some((m) => m.studentId === a.leaderId)) fail("INVALID_LEADER", "선발된 팀원 중에서 팀장을 선택해 주세요");
+  project.status = nextStatus(project.status, "START", project.mode);
+  members.forEach((m) => { m.isLead = m.studentId === a.leaderId; });
   post.status = "in_progress";
   return project;
 }
@@ -127,9 +159,11 @@ export interface AnswerInput {
 export function saveAnswer(db: WorkflowDB, a: AnswerInput, ctx: Ctx = defaultCtx): ProjectAnswer {
   const project = getProject(db, a.projectId);
   assertMember(db, project.id, a.actorId);
+  const member = must(db.members.find((m) => m.projectId === project.id && m.studentId === a.actorId), "팀원");
+  const questionSnapshot = member.questionSnapshot ?? project.questionSnapshot;
   const origin = a.origin ?? "SCHEMA";
   const qid = origin === "SCHEMA" ? a.questionId : a.parentQuestionId;
-  const q = project.questionSnapshot.questions.find((x) => x.id === qid) ?? fail("NOT_FOUND", "질문을 찾을 수 없어요");
+  const q = questionSnapshot.questions.find((x) => x.id === qid) ?? fail("NOT_FOUND", "내 역할에 해당하는 질문을 찾을 수 없어요");
   if (origin !== "SCHEMA" && !a.questionId.startsWith(`${q.id}:fu`)) fail("INVALID_INPUT", "후속 질문 id 형식이 잘못됐어요");
   const value = (a.value ?? "").slice(0, 4000);
   const choices = (a.choices ?? []).slice(0, 20);
@@ -180,6 +214,8 @@ const latestVersion = (db: WorkflowDB, projectId: string) => db.versions.filter(
 export function submitVersion(db: WorkflowDB, a: { projectId: string; actorId: string; note: string; evidenceIds: string[] }, ctx: Ctx = defaultCtx): SubmissionVersion {
   const project = getProject(db, a.projectId);
   assertMember(db, project.id, a.actorId);
+  if (project.mode === "TEAM" && !db.members.some((m) => m.projectId === project.id && m.studentId === a.actorId && m.isLead))
+    fail("LEADER_ONLY", "팀장만 팀의 최종 결과물을 제출할 수 있어요");
   const event = project.status === "REVISION_REQUESTED" ? "RESUBMIT" : "SUBMIT";
   const next = nextStatus(project.status, event, project.mode);
   const ids = [...new Set(a.evidenceIds)];
@@ -220,7 +256,7 @@ export interface ReviewInput { satisfaction: number; deadline: number; communica
 const rating = (n: number, what: string) => (Number.isInteger(n) && n >= 1 && n <= 5 ? n : fail("INVALID_INPUT", `${what}은(는) 1~5 로 골라 주세요`));
 
 /** 승인 = 제출 버전 승인 + Claim 단위 검증 + 평가를 한 번에 (원자적으로) 기록 */
-export function approveVersion(db: WorkflowDB, a: { versionId: string; actorId: string; claims: VerificationClaims; note?: string; review: ReviewInput }, ctx: Ctx = defaultCtx) {
+export function approveVersion(db: WorkflowDB, a: { versionId: string; actorId: string; claims: VerificationClaims; note?: string; review: ReviewInput; verifiedMemberIds?: string[] }, ctx: Ctx = defaultCtx) {
   const { v, project } = reviewable(db, a.versionId, a.actorId);
   if (!a.claims.workPerformed) fail("INVALID_INPUT", "학생이 실제로 작업했음을 확인해야 승인할 수 있어요");
   const r = a.review;
@@ -241,13 +277,20 @@ export function approveVersion(db: WorkflowDB, a: { versionId: string; actorId: 
   db.reviews.push(review);
   const post = must(db.posts.find((p) => p.id === project.postId), "공고");
   post.status = "done";
-  for (const m of db.members.filter((x) => x.projectId === project.id)) {
+  const members = db.members.filter((x) => x.projectId === project.id);
+  const verifiedIds = project.mode === "TEAM" ? new Set(a.verifiedMemberIds ?? []) : new Set(members.map((m) => m.studentId));
+  if (verifiedIds.size === 0) fail("INVALID_INPUT", "실제 참여를 확인한 팀원을 한 명 이상 선택해 주세요");
+  for (const m of members) {
+    const verified = verifiedIds.has(m.studentId);
+    db.memberVerifications.push({ projectId: project.id, studentId: m.studentId, verifierId: a.actorId, verified, note: verified ? "실제 참여 확인" : "참여 확인 안 됨", createdAt: now });
+    if (!verified) continue;
     const hadVerified = verifiedCount(db, m.studentId) > 0;
     grantPoints(db, { studentId: m.studentId, projectId: project.id, kind: "PROJECT_VERIFIED", points: POINTS.projectVerified(post.difficulty) }, ctx);
     if (verification.actuallyUsed) grantPoints(db, { studentId: m.studentId, projectId: project.id, kind: "CLIENT_USED", points: POINTS.clientUsed }, ctx);
     if (!hadVerified) grantBadge(db, { studentId: m.studentId, code: "FIRST_VERIFIED", label: "첫 검증 프로젝트", projectId: project.id }, ctx);
     if (verification.actuallyUsed) grantBadge(db, { studentId: m.studentId, code: "USED_IN_FIELD", label: "현장에서 쓰인 결과물", projectId: project.id }, ctx);
-    grantBadge(db, { studentId: m.studentId, code: `DOMAIN_${project.domain}`, label: `${DOMAINS[project.domain].label} 검증 경험`, projectId: project.id }, ctx);
+    const memberDomain = m.domain ?? project.domain;
+    grantBadge(db, { studentId: m.studentId, code: `DOMAIN_${memberDomain}`, label: `${DOMAINS[memberDomain].label} 검증 경험`, projectId: project.id }, ctx);
     // 예전 화면(랭킹·카드)이 읽는 기록도 남긴다
     if (!db.legacyReviews.some((x) => x.postId === post.id && x.studentId === m.studentId))
       db.legacyReviews.push({ postId: post.id, studentId: m.studentId, rating: review.satisfaction as Review["rating"], comment: review.comment, verified: true });
@@ -291,6 +334,8 @@ export function createSnapshot(db: WorkflowDB, a: { projectId: string; actorId: 
   const b = getBundle(db, a.projectId);
   assertMember(db, b.project.id, a.actorId);
   if (b.project.status !== "COMPLETED") fail("INVALID_STATE", "의뢰인 승인·검증이 끝난 뒤에 포트폴리오를 만들 수 있어요");
+  if (b.project.mode === "TEAM" && !b.memberVerifications.some((v) => v.studentId === a.actorId && v.verified))
+    fail("NOT_VERIFIED", "의뢰인이 실제 참여를 확인한 팀원만 포트폴리오를 만들 수 있어요");
   const data = sourceFromBundle(b, db.users.find((u) => u.id === b.project.ownerId), db.users.find((u) => u.id === a.actorId), a.actorId, ctx.now());
   const hash = sourceHash(data);
   const existing = db.snapshots.find((s) => s.projectId === a.projectId && s.studentId === a.actorId && s.hash === hash);

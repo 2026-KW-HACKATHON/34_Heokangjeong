@@ -19,8 +19,11 @@ export default function MapPage() {
   const [locationMessage, setLocationMessage] = useState("");
   const [locating, setLocating] = useState(false);
   const [recenterRequest, setRecenterRequest] = useState(0);
+  const [loadError, setLoadError] = useState("");
   const locationPending = useRef(false);
-  useEffect(() => { repo.listPosts().then(setPosts); }, []);
+  useEffect(() => {
+    repo.listPosts().then(setPosts).catch((error: Error) => setLoadError(error.message || "공고를 불러오지 못했어요."));
+  }, []);
 
   const findCurrentLocation = useCallback(() => {
     if (locationPending.current) return;
@@ -60,6 +63,7 @@ export default function MapPage() {
       <TopBar title="주변 프로젝트" right={<label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} />완료 숨김</label>} />
       <div className="sub flex gap-3 px-4 pb-2 text-xs"><span>🔴 모집 중</span><span>🟡 진행 중</span><span>🟢 해결 완료</span><span className="ml-auto">🔵 현재 위치</span></div>
       <p role="status" className="sub min-h-6 px-4 pb-2 text-xs">{locationMessage}</p>
+      {loadError && <p role="alert" className="mx-4 mb-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
       <div className="relative isolate h-[calc(100dvh-13rem)] min-h-[240px] overflow-hidden rounded-t-3xl">
         <MapView posts={shown} me={currentLocation ?? undefined} center={mapLocation ?? WOLGYE_CENTER} recenterRequest={recenterRequest} />
         <button

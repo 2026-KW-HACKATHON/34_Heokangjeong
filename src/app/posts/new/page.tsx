@@ -20,7 +20,7 @@ export default function NewPost() {
   const { user } = useSession();
   const [f, setF] = useState({ title: "", category: "디자인" as Category, description: "", reward: "", durationDays: 7, difficulty: 2 as 1 | 2 | 3, isTeam: false });
   const [l, setL] = useState({ problem: "", deliverables: "", completionCriteria: "", deadline: "", revisionLimit: 2, compensationType: "NON_MONETARY" as CompensationType, paidAmount: "", domain: null as DomainKey | null });
-  const [slots, setSlots] = useState<RoleSlot[]>([{ category: "디자인", count: 1, filled: [] }]);
+  const [slots, setSlots] = useState<RoleSlot[]>([{ label: "디자이너", category: "디자인", count: 1, filled: [] }]);
   const [memo, setMemo] = useState("");
   const [draft, setDraft] = useState<PostDraft | null>(null);
   const [drafting, setDrafting] = useState(false);
@@ -107,12 +107,13 @@ export default function NewPost() {
           {f.isTeam && (
             <div className="rounded-xl bg-[var(--line)] p-3 text-sm">
               {slots.map((s, i) => (
-                <div key={i} className="mb-2 flex gap-2">
+                <div key={i} className="mb-2 grid grid-cols-[1fr_1fr_64px] gap-2">
+                  <input aria-label="역할 이름" className="rounded-lg bg-white p-2" placeholder="예: 디자이너" value={s.label ?? ""} onChange={(e) => setSlots(slots.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} />
                   <select aria-label="역할" className="flex-1 rounded-lg bg-white p-2" value={s.category} onChange={(e) => setSlots(slots.map((x, j) => j === i ? { ...x, category: e.target.value as Category } : x))}>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
                   <input aria-label="인원" type="number" min={1} className="w-16 rounded-lg bg-white p-2" value={s.count || ""} onChange={(e) => setSlots(slots.map((x, j) => j === i ? { ...x, count: +e.target.value } : x))} />
                 </div>
               ))}
-              <button onClick={() => setSlots([...slots, { category: "영상", count: 1, filled: [] }])} className="text-[var(--primary)]">+ 역할 추가</button>
+              <button onClick={() => setSlots([...slots, { label: "", category: "영상", count: 1, filled: [] }])} className="text-[var(--primary)]">+ 역할 추가</button>
             </div>
           )}
         </div>

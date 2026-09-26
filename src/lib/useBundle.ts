@@ -22,14 +22,17 @@ export const STAGES: { key: Stage; label: string; desc: string }[] = [
 ];
 
 export const myAnswers = (b: ProjectBundle, userId: string) => b.answers.filter((a) => a.authorId === userId);
+export const memberOf = (b: ProjectBundle, userId: string) => b.members.find((m) => m.studentId === userId);
+export const questionsForMember = (b: ProjectBundle, userId: string) => memberOf(b, userId)?.questionSnapshot?.questions ?? b.project.questionSnapshot.questions;
+export const domainForMember = (b: ProjectBundle, userId: string) => memberOf(b, userId)?.domain ?? b.project.domain;
 export const schemaAnswer = (answers: ProjectAnswer[], questionId: string) => answers.find((a) => a.questionId === questionId && a.origin === "SCHEMA");
 /** 이 단계에서 아직 답도, 건너뜀도, 해당 없음도 아닌 질문 */
 export function pendingQuestions(b: ProjectBundle, userId: string, stage: Stage) {
   const mine = myAnswers(b, userId);
-  return b.project.questionSnapshot.questions.filter((q) => q.stage === stage && (schemaAnswer(mine, q.id)?.status ?? "UNANSWERED") === "UNANSWERED");
+  return questionsForMember(b, userId).filter((q) => q.stage === stage && (schemaAnswer(mine, q.id)?.status ?? "UNANSWERED") === "UNANSWERED");
 }
 export function stageProgress(b: ProjectBundle, userId: string, stage: Stage) {
-  const qs = b.project.questionSnapshot.questions.filter((q) => q.stage === stage);
+  const qs = questionsForMember(b, userId).filter((q) => q.stage === stage);
   const mine = myAnswers(b, userId);
   const answered = qs.filter((q) => schemaAnswer(mine, q.id)?.status === "ANSWERED").length;
   const handled = qs.filter((q) => (schemaAnswer(mine, q.id)?.status ?? "UNANSWERED") !== "UNANSWERED").length;
