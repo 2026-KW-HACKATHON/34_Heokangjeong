@@ -5,6 +5,7 @@ import * as wf from "../workflow/engine";
 import { templateDraft } from "@shared/portfolio/narrative";
 import { summarizeTrust } from "../trust";
 import { fileToDataUrl } from "../files";
+import { domainForCategory } from "@shared/portfolio/domains";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
 const users: User[] = [
@@ -97,18 +98,29 @@ const tx = <T,>(f: () => T): Promise<T> => {
   const backup = JSON.stringify(db);
   try { const r = f(); save(); return wait(r); } catch (e) { db = JSON.parse(backup); return Promise.reject(e); }
 };
+const withRoleIds = (post: Post): Post => {
+  if (!post.isTeam || !post.teamSlots) return post;
+  post.teamSlots = post.teamSlots.map((slot, index) => ({
+    ...slot,
+    id: slot.id ?? `${post.id}-role-${index + 1}`,
+    label: slot.label ?? slot.category,
+    domain: slot.domain ?? domainForCategory(slot.category),
+    filledCount: slot.filledCount ?? slot.filled.length,
+  }));
+  return post;
+};
 
 import { chatReads } from "./chatReads";
 export const mockRepo: Repo = {
   ...chatReads("mock"),
   async listUsers() { return wait(users); },
   async getUser(id) { return wait(users.find((u) => u.id === id)); },
-  async listPosts() { ensure(); return wait([...db.posts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },
-  async getPost(id) { ensure(); return wait(db.posts.find((p) => p.id === id)); },
-  async createPost(p) { return tx(() => { const post: Post = { ...p, id: `p${Date.now()}`, status: "open", createdAt: new Date().toISOString() }; db.posts.unshift(post); return post; }); },
+  async listPosts() { ensure(); return wait([...db.posts].map(withRoleIds).sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },
+  async getPost(id) { ensure(); const post = db.posts.find((p) => p.id === id); return wait(post ? withRoleIds(post) : undefined); },
+  async createPost(p) { return tx(() => { const post = withRoleIds({ ...p, id: `p${Date.now()}`, status: "open", createdAt: new Date().toISOString() }); db.posts.unshift(post); return post; }); },
   async updatePostStatus(id, status) { return tx(() => { const p = db.posts.find((x) => x.id === id); if (p) p.status = status; }); },
   async listApplications(postId) { ensure(); return wait(db.applications.filter((a) => !postId || a.postId === postId)); },
-  async apply(postId, studentId, message) { return tx(() => wf.apply(db, { postId, studentId, message })); },
+  async apply(postId, studentId, message, roleId) { return tx(() => wf.apply(db, { postId, studentId, message, roleId })); },
   async getApplication(id) { ensure(); return wait(db.applications.find((a) => a.id === id)); },
   async updateApplicationStatus(id, status) { return tx(() => { const a = db.applications.find((x) => x.id === id); if (a) a.status = status; }); },
   async listChatRooms(userId) {
@@ -152,6 +164,7 @@ export const mockRepo: Repo = {
 
   // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
   async selectApplicant(applicationId, actorId) { return tx(() => wf.selectApplicant(db, { applicationId, actorId })); },
+  async startTeamProject(projectId, actorId, leaderId) { return tx(() => wf.startTeamProject(db, { projectId, actorId, leaderId })); },
   async getProjectByPost(postId) { ensure(); return wait(db.projects.find((p) => p.postId === postId)); },
   async listMyProjects(userId) {
     ensure();

@@ -75,6 +75,10 @@ beforeAll(async () => {
   for (const f of ["0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql"]) await db.exec(sql(f));
   await db.exec(GRANTS);
   await db.exec(sql("0006_notion_safe_exports.sql"));
+  await db.exec(sql("0007_team_projects.sql"));
+  await db.exec(sql("0008_team_member_work.sql"));
+  await db.exec(sql("0009_team_record_privacy.sql"));
+  await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
     const student = k.startsWith("stu");
@@ -103,7 +107,7 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     const { projectId } = await startProject("z");
     const ev = await addEvidence(projectId);
     await expect(rpc(U.stu2, "submit_version", [projectId, "", [ev]])).rejects.toThrow(/FORBIDDEN/);
-    await expect(as(U.stu2, "insert into project_answers (project_id, author_id, question_id, field, stage, status, value) values ($1, $2, 'd_problem', 'existingProblem', 'START', 'ANSWERED', 'x')", [projectId, U.stu2])).rejects.toThrow(/row-level security/);
+    await expect(as(U.stu2, "insert into project_answers (project_id, author_id, question_id, field, stage, status, value) values ($1, $2, 'd_problem', 'existingProblem', 'START', 'ANSWERED', 'x')", [projectId, U.stu2])).rejects.toThrow(/row-level security|FORBIDDEN/);
     await expect(addEvidence(projectId, U.stu2)).rejects.toThrow(/row-level security/);
   });
   it("v1 → 보완 요청 → v2 → v1 승인 거부 → v2 승인 → 중복 승인 거부, 점수 1회", async () => {
@@ -144,6 +148,45 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     const paid = await newPost("paid", "PAID");
     await expect(as(U.stu2, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu2])).rejects.toThrow(/PAID_NOT_ELIGIBLE/);
     await as(U.stu, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu]); // stu 는 앞 테스트에서 검증됨
+  });
+});
+
+describe("SQL: 팀 프로젝트 전체 흐름", () => {
+  it("역할별 선발·개인 기록·팀장 제출·팀원별 검증을 서버에서 강제한다", async () => {
+    const postId = await newPost("역할 분리 팀 프로젝트");
+    await db.query("update posts set is_team = true where id = $1", [postId]);
+    const roles = (await as<{ id: string; domain: string }>(U.owner, `insert into post_roles(post_id,label,category,domain,capacity,sort_order) values
+      ($1,'디자이너','디자인','DESIGN',1,0),($1,'개발자','웹/앱','DEVELOPMENT',1,1) returning id,domain`, [postId])).sort((a, b) => a.domain.localeCompare(b.domain));
+    const designRole = roles.find((r) => r.domain === "DESIGN")!;
+    const devRole = roles.find((r) => r.domain === "DEVELOPMENT")!;
+    const [a1] = await as<{ id: string }>(U.stu, "insert into applications(post_id,student_id,message,role_id) values($1,$2,'디자인 지원',$3) returning id", [postId, U.stu, designRole.id]);
+    const [a2] = await as<{ id: string }>(U.stu2, "insert into applications(post_id,student_id,message,role_id) values($1,$2,'개발 지원',$3) returning id", [postId, U.stu2, devRole.id]);
+    const [selected] = await rpc<{ select_applicant: string }>(U.owner, "select_applicant", [a1.id, snapshotFor("DESIGN")]);
+    const projectId = selected.select_applicant;
+    expect(await status(projectId)).toBe("RECRUITING");
+    await expect(rpc(U.owner, "start_team_project", [projectId, U.stu])).rejects.toThrow(/TEAM_INCOMPLETE/);
+    await rpc(U.owner, "select_applicant", [a2.id, snapshotFor("DEVELOPMENT")]);
+    await rpc(U.owner, "start_team_project", [projectId, U.stu]);
+    expect(await status(projectId)).toBe("IN_PROGRESS");
+
+    const dq = DOMAINS.DESIGN.questions[0], wq = DOMAINS.DEVELOPMENT.questions[0];
+    await as(U.stu, "insert into project_answers(project_id,author_id,question_id,field,stage,status,value) values($1,$2,$3,$4,$5,'ANSWERED','디자인 문제 분석')", [projectId, U.stu, dq.id, dq.field, dq.stage]);
+    expect(await as(U.stu2, "select * from project_answers where project_id=$1", [projectId])).toHaveLength(0);
+    expect(await as(U.owner, "select * from project_answers where project_id=$1", [projectId])).toHaveLength(1);
+    await expect(as(U.stu2, "insert into project_answers(project_id,author_id,question_id,field,stage,status,value) values($1,$2,$3,$4,$5,'ANSWERED','잘못된 답')", [projectId, U.stu2, dq.id, dq.field, dq.stage])).rejects.toThrow(/INVALID_QUESTION/);
+    await as(U.stu2, "insert into project_answers(project_id,author_id,question_id,field,stage,status,value) values($1,$2,$3,$4,$5,'ANSWERED','개발 문제 분석')", [projectId, U.stu2, wq.id, wq.field, wq.stage]);
+
+    const ev = await addEvidence(projectId, U.stu);
+    await expect(rpc(U.stu2, "submit_version", [projectId, "일반 팀원 제출", [ev]])).rejects.toThrow(/LEADER_ONLY/);
+    const [submitted] = await rpc<{ submit_version: string }>(U.stu, "submit_version", [projectId, "팀장 최종 제출", [ev]]);
+    await rpc(U.owner, "approve_team_version", [submitted.submit_version, claims, review, "팀 검증", [U.stu]]);
+    expect(await status(projectId)).toBe("COMPLETED");
+    const verified = (await db.query<{ student_id: string; verified: boolean }>("select student_id,verified from member_verifications where project_id=$1 order by student_id", [projectId])).rows;
+    expect(verified).toEqual([{ student_id: U.stu, verified: true }, { student_id: U.stu2, verified: false }]);
+    expect((await db.query("select * from tier_score_events where project_id=$1 and student_id=$2", [projectId, U.stu])).rows.length).toBeGreaterThan(0);
+    expect((await db.query("select * from tier_score_events where project_id=$1 and student_id=$2", [projectId, U.stu2])).rows).toHaveLength(0);
+    await expect(as(U.stu2, "insert into portfolio_snapshots(project_id,student_id,hash,data) values($1,$2,'team-unverified','{}')", [projectId, U.stu2])).rejects.toThrow(/NOT_VERIFIED/);
+    expect(await as(U.stu, "insert into portfolio_snapshots(project_id,student_id,hash,data) values($1,$2,'team-verified','{}') returning id", [projectId, U.stu])).toHaveLength(1);
   });
 });
 
@@ -239,9 +282,9 @@ describe("SQL: 새 DB 에 번호 순서대로", () => {
   it("0001 → 0002 → 0003 → 0004 → 0005 가 오류 없이 적용된다", async () => {
     const fresh = new PGlite();
     await fresh.exec(STUBS);
-    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql"]) await fresh.exec(sql(f));
+    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql"]) await fresh.exec(sql(f));
     const t = await fresh.query<{ n: number }>("select count(*)::int n from information_schema.tables where table_schema = 'public'");
-    expect(t.rows[0].n).toBe(24);
+    expect(t.rows[0].n).toBe(26);
     await fresh.close();
   });
 });

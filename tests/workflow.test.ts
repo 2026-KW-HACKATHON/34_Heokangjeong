@@ -30,7 +30,9 @@ describe("상태 머신", () => {
     expect(canTransition("COMPLETED", "SUBMIT")).toBe(false);
     expect(canTransition("REVISION_REQUESTED", "APPROVE")).toBe(false);
     expect(canTransition("IN_PROGRESS", "SELECT", "INDIVIDUAL")).toBe(false);
-    expect(canTransition("IN_PROGRESS", "SELECT", "TEAM")).toBe(true);
+    expect(nextStatus("RECRUITING", "SELECT", "TEAM")).toBe("RECRUITING");
+    expect(nextStatus("RECRUITING", "START", "TEAM")).toBe("IN_PROGRESS");
+    expect(canTransition("IN_PROGRESS", "SELECT", "TEAM")).toBe(false);
   });
 });
 
@@ -55,6 +57,57 @@ describe("지원·선정", () => {
   it("유료 공고는 검증 이력이 없으면 지원할 수 없다", () => {
     const db = seed(); db.posts[0].compensationType = "PAID";
     expect(() => wf.apply(db, { postId: "post", studentId: "stu", message: "" }, ctx())).toThrow(/유료/);
+  });
+});
+
+describe("팀 구성", () => {
+  const teamDB = () => {
+    const db = seed();
+    db.posts[0] = { ...db.posts[0], isTeam: true, teamSlots: [
+      { id: "design", label: "디자이너", category: "디자인", domain: "DESIGN", count: 1, filled: [] },
+      { id: "dev", label: "개발자", category: "웹/앱", domain: "DEVELOPMENT", count: 1, filled: [] },
+    ] };
+    return db;
+  };
+  it("지원 역할을 반드시 선택한다", () => {
+    expect(() => wf.apply(teamDB(), { postId: "post", studentId: "stu", message: "" }, ctx())).toThrow(/역할/);
+  });
+  it("역할별 선발을 마친 뒤 팀장을 정해야 시작한다", () => {
+    const db = teamDB(); const c = ctx();
+    const a1 = wf.apply(db, { postId: "post", studentId: "stu", message: "", roleId: "design" }, c);
+    const a2 = wf.apply(db, { postId: "post", studentId: "stu2", message: "", roleId: "dev" }, c);
+    const project = wf.selectApplicant(db, { applicationId: a1.id, actorId: "owner" }, c);
+    expect(project.status).toBe("RECRUITING");
+    expect(() => wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" })).toThrow(/인원이 부족/);
+    wf.selectApplicant(db, { applicationId: a2.id, actorId: "owner" }, c);
+    wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" });
+    expect(project.status).toBe("IN_PROGRESS");
+    expect(db.posts[0].status).toBe("in_progress");
+    expect(db.members.find((m) => m.studentId === "stu")?.isLead).toBe(true);
+    expect(db.members.find((m) => m.studentId === "stu2")?.domain).toBe("DEVELOPMENT");
+  });
+  it("역할 정원을 넘겨 선발할 수 없다", () => {
+    const db = teamDB(); const c = ctx();
+    const a1 = wf.apply(db, { postId: "post", studentId: "stu", message: "", roleId: "design" }, c);
+    const a2 = wf.apply(db, { postId: "post", studentId: "stu2", message: "", roleId: "design" }, c);
+    wf.selectApplicant(db, { applicationId: a1.id, actorId: "owner" }, c);
+    expect(() => wf.selectApplicant(db, { applicationId: a2.id, actorId: "owner" }, c)).toThrow(/이미 찼/);
+  });
+  it("팀장만 제출하고 검증된 팀원만 개인 포트폴리오를 만든다", () => {
+    const db = teamDB(); const c = ctx();
+    const a1 = wf.apply(db, { postId: "post", studentId: "stu", message: "", roleId: "design" }, c);
+    const a2 = wf.apply(db, { postId: "post", studentId: "stu2", message: "", roleId: "dev" }, c);
+    const project = wf.selectApplicant(db, { applicationId: a1.id, actorId: "owner" }, c);
+    wf.selectApplicant(db, { applicationId: a2.id, actorId: "owner" }, c);
+    wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" });
+    const ev = wf.addEvidence(db, { projectId: project.id, actorId: "stu", type: "DELIVERABLE_FILE", description: "최종 결과물" }, c);
+    expect(() => wf.submitVersion(db, { projectId: project.id, actorId: "stu2", note: "", evidenceIds: [ev.id] }, c)).toThrow(/팀장만/);
+    const version = wf.submitVersion(db, { projectId: project.id, actorId: "stu", note: "최종", evidenceIds: [ev.id] }, c);
+    wf.approveVersion(db, { versionId: version.id, actorId: "owner", claims, review, verifiedMemberIds: ["stu"] }, c);
+    expect(db.memberVerifications.find((v) => v.studentId === "stu")?.verified).toBe(true);
+    expect(db.memberVerifications.find((v) => v.studentId === "stu2")?.verified).toBe(false);
+    expect(() => wf.createSnapshot(db, { projectId: project.id, actorId: "stu2" }, c)).toThrow(/확인한 팀원/);
+    expect(wf.createSnapshot(db, { projectId: project.id, actorId: "stu" }, c).studentId).toBe("stu");
   });
 });
 

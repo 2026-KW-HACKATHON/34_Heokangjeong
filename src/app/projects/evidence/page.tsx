@@ -5,7 +5,7 @@ import TopBar from "@/components/TopBar";
 import { ErrorText, Field, inputCls, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { useBundle } from "@/lib/useBundle";
+import { domainForMember, useBundle } from "@/lib/useBundle";
 import { DOMAINS } from "@shared/portfolio/domains";
 import { EVIDENCE_LABEL } from "@shared/portfolio/document";
 import type { EvidenceType } from "@/types";
@@ -40,7 +40,7 @@ function AddEvidence() {
   if (loadError) return <><TopBar title="증빙 추가" back /><div className="px-4"><ErrorText text={loadError} /></div></>;
   if (!b || !user) return <><TopBar title="증빙 추가" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const isOwner = b.project.ownerId === user.id;
-  const fields = DOMAINS[b.project.domain].fields;
+  const fields = DOMAINS[isOwner ? b.project.domain : domainForMember(b, user.id)].fields;
   const field = linkedField ?? (DEFAULT_FIELD[type] ?? []).find((f) => fields.some((x) => x.key === f)) ?? "";
   const wantsLink = LINK_TYPES.includes(type);
 

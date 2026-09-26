@@ -6,8 +6,9 @@ import { listingOf } from "../listing";
 export function sourceFromBundle(b: ProjectBundle, client: User | undefined, student: User | undefined, studentId: string, now: string): PortfolioSource {
   const listing = listingOf(b.post);
   const member = b.members.find((m) => m.studentId === studentId);
+  const project = member?.questionSnapshot ? { ...b.project, domain: member.domain ?? b.project.domain, questionSnapshot: member.questionSnapshot } : b.project;
   return buildSource({
-    project: b.project,
+    project,
     listing: { title: b.post.title, problem: listing.problem, category: b.post.category, expectedDeliverables: listing.expectedDeliverables, completionCriteria: listing.completionCriteria, compensationType: listing.compensationType },
     client: { name: client?.name ?? "의뢰인", kind: client?.role === "resident" ? client.kind : "주민" },
     member: { studentId, name: student?.name ?? "", department: student?.role === "student" ? student.department : "", roleLabel: roleLabelOf(b, studentId, member?.roleLabel ?? "") },

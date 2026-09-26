@@ -9,7 +9,7 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { useBundle } from "@/lib/useBundle";
 import { listingOf } from "@/lib/listing";
-import { myAnswers } from "@/lib/useBundle";
+import { domainForMember, myAnswers } from "@/lib/useBundle";
 import { computeReadiness } from "@shared/portfolio/readiness";
 import MissingRequired from "@/components/MissingRequired";
 
@@ -35,11 +35,12 @@ function Submit() {
   const nextVersion = (latest?.version ?? 0) + 1;
   const sel = picked ?? b.evidence.filter((e) => DELIVERABLE.has(e.type)).map((e) => e.id);
   const listing = listingOf(b.post);
-  const allowed = b.members.some((m) => m.studentId === user.id) && (status === "IN_PROGRESS" || status === "REVISION_REQUESTED");
+  const member = b.members.find((m) => m.studentId === user.id);
+  const allowed = !!member && (b.project.mode !== "TEAM" || member.isLead) && (status === "IN_PROGRESS" || status === "REVISION_REQUESTED");
 
   if (!allowed) return (
     <><TopBar title="결과물 제출" back />
-      <div className="card mx-4 text-sm">{status === "REVIEW_PENDING" ? "의뢰인이 검토 중이에요. 보완 요청이 오면 다시 제출할 수 있어요." : status === "COMPLETED" ? "이미 승인된 프로젝트예요." : "선정된 학생만 제출할 수 있어요."}
+      <div className="card mx-4 text-sm">{status === "REVIEW_PENDING" ? "의뢰인이 검토 중이에요. 보완 요청이 오면 다시 제출할 수 있어요." : status === "COMPLETED" ? "이미 승인된 프로젝트예요." : b.project.mode === "TEAM" && member && !member.isLead ? "팀장만 팀의 최종 결과물을 제출할 수 있어요." : "선정된 학생만 제출할 수 있어요."}
         <Link href={`/projects/detail?id=${id}`} className="btn btn-ghost mt-3 w-full">프로젝트로</Link></div></>
   );
   return (
@@ -50,7 +51,7 @@ function Submit() {
           <div className="card bg-orange-50 text-sm"><p className="font-bold">v{latest.version} 보완 요청</p><p className="mt-1">“{latest.reviewComment}”</p></div>
         )}
         <div className="card"><h3 className="font-bold">제출 전 확인</h3>
-          <MissingRequired r={computeReadiness({ domain: b.project.domain, answers: myAnswers(b, user.id), evidenceTypes: b.evidence.map((e) => e.type), outcomeCount: b.outcomes.length })}
+          <MissingRequired r={computeReadiness({ domain: domainForMember(b, user.id), answers: myAnswers(b, user.id), evidenceTypes: b.evidence.filter((e) => e.authorId === user.id).map((e) => e.type), outcomeCount: b.outcomes.filter((o) => o.authorId === user.id).length })}
             href={(q) => `/projects/log?id=${id}&q=${q}&set=${q}&back=${encodeURIComponent(`/projects/submit?id=${id}`)}`} />
           <p className="sub mt-2 text-[11px]">비어 있어도 제출할 수 있어요. 다만 포트폴리오에서 그 부분은 빠져요.</p>
         </div>

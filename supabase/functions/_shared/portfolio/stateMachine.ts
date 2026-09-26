@@ -2,8 +2,8 @@
 import type { ProjectEvent, ProjectMode, ProjectStatus } from "./types.ts";
 
 const TABLE: Record<ProjectStatus, Partial<Record<ProjectEvent, ProjectStatus>>> = {
-  RECRUITING: { SELECT: "IN_PROGRESS" },
-  IN_PROGRESS: { SELECT: "IN_PROGRESS", SUBMIT: "REVIEW_PENDING" },   // IN_PROGRESS 의 SELECT 는 팀 공고의 추가 선정만
+  RECRUITING: { SELECT: "IN_PROGRESS", START: "IN_PROGRESS" },
+  IN_PROGRESS: { SUBMIT: "REVIEW_PENDING" },   // IN_PROGRESS 의 SELECT 는 팀 공고의 추가 선정만
   REVIEW_PENDING: { REQUEST_REVISION: "REVISION_REQUESTED", APPROVE: "COMPLETED" },
   REVISION_REQUESTED: { RESUBMIT: "REVIEW_PENDING" },
   COMPLETED: {},
@@ -22,6 +22,8 @@ export class WorkflowError extends Error {
 }
 
 export function nextStatus(current: ProjectStatus, event: ProjectEvent, mode: ProjectMode = "INDIVIDUAL"): ProjectStatus {
+  if (event === "SELECT" && current === "RECRUITING" && mode === "TEAM") return "RECRUITING";
+  if (event === "START" && mode !== "TEAM") throw new WorkflowError("INVALID_TRANSITION", "팀 프로젝트만 팀 확정 후 시작할 수 있어요");
   if (event === "SELECT" && current === "IN_PROGRESS" && mode !== "TEAM") throw new WorkflowError("INVALID_TRANSITION", "개인 프로젝트는 이미 학생이 선정되었어요");
   const next = TABLE[current]?.[event];
   if (!next) throw new WorkflowError("INVALID_TRANSITION", `${STATUS_LABEL[current]} 상태에서는 할 수 없는 작업이에요`);
