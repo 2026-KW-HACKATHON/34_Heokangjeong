@@ -64,7 +64,11 @@ function Project() {
         <div className="card">
           <div className="mb-2 flex items-center justify-between"><span className="chip chip-on">{DOMAINS[b.project.domain].label} 모듈</span><ProjectStatusBadge status={status} /></div>
           <h2 className="text-xl font-bold">{b.post.title}</h2>
-          <p className="sub mt-1 text-sm">의뢰인 {name(b.project.ownerId)} · 학생 {b.members.map((m) => `${name(m.studentId)}${m.isLead ? "(팀장)" : ""}`).join(", ")} · 시작 {fmtDate(b.project.createdAt)}</p>
+          <dl className="sub mt-3 grid grid-cols-[72px_1fr] gap-y-2 text-sm">
+            <dt>의뢰인</dt><dd>{name(b.project.ownerId)}</dd>
+            <dt>참여 학생</dt><dd className="flex flex-col items-start gap-1">{b.members.map((m) => <Link key={m.studentId} href={`/profiles/view?id=${m.studentId}`} className="font-semibold text-[var(--primary)] underline underline-offset-2">{name(m.studentId)}{m.isLead ? " (팀장)" : ""} · {m.roleLabel}</Link>)}</dd>
+            <dt>시작 날짜</dt><dd>{fmtDate(b.project.createdAt)}</dd>
+          </dl>
           <ol className="mt-4 flex items-center justify-between gap-1 text-[11px]" aria-label="진행 단계">
             {FLOW.map((f) => (
               <li key={f.key} className="flex flex-1 flex-col items-center gap-1">
@@ -126,6 +130,9 @@ function Project() {
             </div>
             {readiness && <MissingRequired r={readiness} href={(q) => `/projects/log?id=${id}&q=${q}&set=${q}&back=${encodeURIComponent(`/projects/detail?id=${id}`)}`} />}
           </div>
+        )}
+        {isMember && b.project.mode === "TEAM" && status === "COMPLETED" && b.memberVerifications.some((v) => v.studentId === user.id && v.verified) && (
+          <Link href={`/projects/peer-review?id=${id}`} className="btn btn-ghost w-full">팀원 상호평가</Link>
         )}
 
         {(visibleLogs.length > 0 || isMember) && (

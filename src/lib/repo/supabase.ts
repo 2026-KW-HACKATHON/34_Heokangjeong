@@ -3,7 +3,7 @@ import { chatReads } from "./chatReads";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
   ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, MemberVerification, Notification, Outcome, PortfolioCard,
-  PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review,
+  PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review, TeamPeerReview,
   SubmissionVersion, TierScoreEvent, User,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
@@ -22,7 +22,7 @@ const u = <T,>(v: T | null | undefined) => v ?? undefined;
 let realtimeChannelSequence = 0;
 
 export const toUser = (r: Row): User => r.role === "student"
-  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
+  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), age: u(r.age), phone: u(r.phone), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
   : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
@@ -77,6 +77,7 @@ const toDraft = (r: Row): PortfolioDraft => ({
 const toEdit = (r: Row): PortfolioEditedVersion => ({ id: r.id, draftId: r.draft_id, projectId: r.project_id, studentId: r.student_id, version: r.version, content: r.content, createdAt: r.created_at });
 const toEvent = (r: Row): TierScoreEvent => ({ id: r.id, studentId: r.student_id, projectId: r.project_id, kind: r.kind, points: r.points, createdAt: r.created_at });
 const toBadge = (r: Row): Badge => ({ studentId: r.student_id, code: r.code, label: r.label, projectId: r.project_id, createdAt: r.created_at });
+const toPeerReview = (r: Row): TeamPeerReview => ({ id: r.id, projectId: r.project_id, reviewerId: r.reviewer_id, revieweeId: r.reviewee_id, communication: r.communication, collaboration: r.collaboration, responsibility: r.responsibility, comment: r.comment, createdAt: r.created_at });
 
 /** DB 에러 → 화면용 문장. DB 함수는 'CODE: 설명' 으로 던진다 */
 export function friendly(message: string) {
@@ -219,28 +220,32 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async getProjectByPost(postId) { const r = maybe(await db.from("projects").select("*").eq("post_id", postId).maybeSingle()); return r ? toProject(r) : undefined; },
     async listMyProjects(userId) {
       const memberOf = ok(await db.from("project_members").select("project_id").eq("student_id", userId)).map((r: Row) => r.project_id);
-      let q = db.from("projects").select("*, post:posts(*)").order("created_at", { ascending: false });
+      let q = db.from("projects").select("*, post:posts(*, roles:post_roles(*))").order("created_at", { ascending: false });
       q = memberOf.length ? q.or(`owner_id.eq.${userId},id.in.(${memberOf.join(",")})`) : q.eq("owner_id", userId);
       return ok(await q).map((r: Row) => ({ project: toProject(r), post: toPost(r.post) }));
     },
     async getBundle(projectId) {
-      const p = maybe(await db.from("projects").select("*, post:posts(*)").eq("id", projectId).maybeSingle());
+      const p = maybe(await db.from("projects").select("*, post:posts(*, roles:post_roles(*))").eq("id", projectId).maybeSingle());
       if (!p) throw new Error("프로젝트를 찾을 수 없거나 볼 권한이 없어요 (선정된 학생과 의뢰인만 볼 수 있어요)");
       const by = (t: string, order = "created_at") => db.from(t).select("*").eq("project_id", projectId).order(order);
       const optionalMemberVerifications = async () => {
         const result = await db.from("member_verifications").select("*").eq("project_id", projectId).order("created_at");
         return result.error && /member_verifications|schema cache/i.test(result.error.message) ? { data: [], error: null } : result;
       };
-      const [members, memberVerifications, answers, logs, evidence, versions, verification, review, outcomes, snapshots, drafts, edits] = await Promise.all([
+      const optionalPeerReviews = async () => {
+        const result = await db.from("team_peer_reviews").select("*").eq("project_id", projectId).order("created_at");
+        return result.error && /team_peer_reviews|schema cache/i.test(result.error.message) ? { data: [], error: null } : result;
+      };
+      const [members, memberVerifications, answers, logs, evidence, versions, verification, review, outcomes, snapshots, drafts, edits, peerReviews] = await Promise.all([
         by("project_members", "joined_at"), optionalMemberVerifications(), by("project_answers", "updated_at"), by("activity_logs"), by("evidence"), by("submission_versions", "version"),
         db.from("client_verifications").select("*").eq("project_id", projectId).maybeSingle(), db.from("client_reviews").select("*").eq("project_id", projectId).maybeSingle(),
-        by("outcomes"), by("portfolio_snapshots"), by("portfolio_drafts"), by("portfolio_edits", "version"),
+        by("outcomes"), by("portfolio_snapshots"), by("portfolio_drafts"), by("portfolio_edits", "version"), optionalPeerReviews(),
       ]);
       const bundle: ProjectBundle = {
         project: toProject(p), post: toPost(p.post),
         members: ok(members).map(toMember), memberVerifications: ok(memberVerifications).map(toMemberVerification), answers: ok(answers).map(toAnswer), logs: ok(logs).map(toLog), evidence: ok(evidence).map(toEvidence),
         versions: ok(versions).map(toVersion), verification: maybe(verification) && toVerification(maybe(verification)!), review: maybe(review) && toReview(maybe(review)!),
-        outcomes: ok(outcomes).map(toOutcome), snapshots: ok(snapshots).map(toSnapshot), drafts: ok(drafts).map(toDraft), edits: ok(edits).map(toEdit),
+        outcomes: ok(outcomes).map(toOutcome), snapshots: ok(snapshots).map(toSnapshot), drafts: ok(drafts).map(toDraft), edits: ok(edits).map(toEdit), peerReviews: ok(peerReviews).map(toPeerReview),
       };
       return bundle;
     },
@@ -288,6 +293,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       if (a.verifiedMemberIds) args.p_verified_members = a.verifiedMemberIds;
       done(await db.rpc(fn, args));
     },
+    async savePeerReview(a) {
+      return toPeerReview(ok(await db.from("team_peer_reviews").upsert({
+        project_id: a.projectId, reviewer_id: a.reviewerId, reviewee_id: a.revieweeId,
+        communication: a.communication, collaboration: a.collaboration, responsibility: a.responsibility, comment: a.comment.trim(),
+      }, { onConflict: "project_id,reviewer_id,reviewee_id" }).select().single()));
+    },
     async addOutcome(a) {
       return toOutcome(ok(await db.from("outcomes").insert({
         project_id: a.projectId, author_id: a.actorId, metric_name: a.metricName.trim(), measured: a.measured, value: a.measured ? a.value : null, unit: a.unit,
@@ -322,13 +333,15 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return r ? { edit: toEdit(r), bundle: await repo.getBundle(projectId) } : undefined;
     },
     async trustSummary(studentId) {
-      const [events, badges] = await Promise.all([
+      const [events, badges, peerReviewsResult] = await Promise.all([
         db.from("tier_score_events").select("*").eq("student_id", studentId).then(ok),
         db.from("badges").select("*").eq("student_id", studentId).then(ok),
+        db.from("team_peer_reviews").select("*").eq("reviewee_id", studentId),
       ]);
       const ids = [...new Set((events as Row[]).map((e) => e.project_id))];
       const reviews = ids.length ? ok(await db.from("client_reviews").select("*").in("project_id", ids)).map(toReview) : [];
-      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge));
+      const peerReviews = peerReviewsResult.error && /team_peer_reviews|schema cache/i.test(peerReviewsResult.error.message) ? [] : ok(peerReviewsResult).map(toPeerReview);
+      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge), peerReviews);
     },
   };
 

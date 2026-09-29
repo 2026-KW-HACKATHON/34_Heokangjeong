@@ -10,7 +10,7 @@ const CATS: Category[] = ["디자인", "영상", "사진", "SNS홍보", "웹/앱
 export default function Onboarding() {
   const { saveProfile, signOut } = useSession();
   const [role, setRole] = useState<"student" | "resident">("student");
-  const [f, setF] = useState({ name: "", department: "", skills: "", interests: [] as Category[], availableHours: "", maxDistanceM: 1500, kind: "상인" as "상인" | "주민", address: "" });
+  const [f, setF] = useState({ name: "", department: "", school: "광운대학교", age: "", phone: "", skills: "", interests: [] as Category[], availableHours: "", maxDistanceM: 1500, kind: "상인" as "상인" | "주민", address: "" });
   const [err, setErr] = useState("");
   const [triedSubmit, setTriedSubmit] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -32,7 +32,7 @@ export default function Onboarding() {
     setBusy(true); setErr("");
     try {
       await saveProfile(role === "student"
-        ? { role, name: f.name.trim(), department: f.department.trim(), skills, interests: f.interests, availableHours: f.availableHours, maxDistanceM: f.maxDistanceM, location: WOLGYE_CENTER }
+        ? { role, name: f.name.trim(), department: f.department.trim(), school: f.school.trim(), age: f.age ? Number(f.age) : undefined, phone: f.phone.trim() || undefined, skills, interests: f.interests, availableHours: f.availableHours, maxDistanceM: f.maxDistanceM, location: WOLGYE_CENTER }
         : { role, name: f.name.trim(), kind: f.kind, address: f.address.trim(), location: WOLGYE_CENTER });
     } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
   }
@@ -51,6 +51,8 @@ export default function Onboarding() {
         {role === "student" ? (
           <>
             <label className="text-sm">학과{required}<input required aria-invalid={triedSubmit && missing.department} className={`${field(triedSubmit && missing.department)} mt-1`} placeholder="예: 소프트웨어학부" value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} /></label>
+            <label className="text-sm">학교<input className={`${field()} mt-1`} placeholder="예: 광운대학교" value={f.school} onChange={(e) => setF({ ...f, school: e.target.value })} /></label>
+            <div className="grid grid-cols-2 gap-2"><label className="text-sm">나이<input type="number" min={17} max={100} className={`${field()} mt-1`} placeholder="예: 23" value={f.age} onChange={(e) => setF({ ...f, age: e.target.value })} /></label><label className="text-sm">전화번호<input type="tel" className={`${field()} mt-1`} placeholder="010-0000-0000" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></label></div>
             <label className="text-sm">보유 기술{required}<input required aria-invalid={triedSubmit && missing.skills} className={`${field(triedSubmit && missing.skills)} mt-1`} placeholder="쉼표로 구분 (예: Figma, 포스터, React)" value={f.skills} onChange={(e) => setF({ ...f, skills: e.target.value })} /></label>
             <div><p className={`mb-1.5 text-xs ${triedSubmit && missing.interests ? "text-[var(--red)]" : "sub"}`}>관심 분야{required}</p><div className="flex flex-wrap gap-2">{CATS.map((c) => (
               <button key={c} onClick={() => setF({ ...f, interests: f.interests.includes(c) ? f.interests.filter((x) => x !== c) : [...f.interests, c] })} className={`chip ${f.interests.includes(c) ? "chip-on" : ""}`}>{c}</button>

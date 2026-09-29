@@ -18,12 +18,25 @@ export const POINTS = {
   clientUsed: 5,
 };
 
-/** 협업 온도: 36.5 에서 시작, 의뢰인 평가(기한·소통·인계, 1~5) 평균이 3 보다 높으면 오르고 낮으면 내린다 */
+/** 협업 온도: 의뢰인 평가와 팀원 상호평가를 프로젝트별 평균으로 반영한다. */
 export const TEMPERATURE = { base: 36.5, perPointAboveThree: 0.8, min: 30, max: 99 };
 
 export const tierForTemperature = (temperature: number) => [...TIERS].reverse().find((t) => temperature >= t.minTemperature)!;
-export function temperatureFor(reviews: { deadline: number; communication: number; handoff: number }[]) {
+export function temperatureFor(
+  reviews: { deadline: number; communication: number; handoff: number }[],
+  peerReviews: { projectId: string; communication: number; collaboration: number; responsibility: number }[] = [],
+) {
   let t = TEMPERATURE.base;
   for (const r of reviews) t += ((r.deadline + r.communication + r.handoff) / 3 - 3) * TEMPERATURE.perPointAboveThree;
+  const byProject = new Map<string, number[]>();
+  for (const r of peerReviews) {
+    const scores = byProject.get(r.projectId) ?? [];
+    scores.push((r.communication + r.collaboration + r.responsibility) / 3);
+    byProject.set(r.projectId, scores);
+  }
+  for (const scores of byProject.values()) {
+    const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    t += (average - 3) * TEMPERATURE.perPointAboveThree;
+  }
   return Math.round(Math.min(TEMPERATURE.max, Math.max(TEMPERATURE.min, t)) * 10) / 10;
 }

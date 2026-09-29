@@ -24,6 +24,9 @@ export interface Student {
   availableHours: string;    // 활동 가능 시간 (예: "평일 저녁, 주말")
   maxDistanceM: number;      // 활동 가능 거리(m)
   location: GeoPoint;        // 기준 위치(집/학교)
+  school?: string;
+  age?: number;
+  phone?: string;
 }
 
 export interface Resident {
@@ -147,6 +150,18 @@ export interface ProjectBundle {
   snapshots: PortfolioSourceSnapshot[];
   drafts: PortfolioDraft[];
   edits: PortfolioEditedVersion[];
+  peerReviews: TeamPeerReview[];
+}
+export interface TeamPeerReview {
+  id: string;
+  projectId: string;
+  reviewerId: string;
+  revieweeId: string;
+  communication: number;
+  collaboration: number;
+  responsibility: number;
+  comment: string;
+  createdAt: string;
 }
 export interface TrustSummary { verifiedCount: number; points: number; temperature: number; tier: { key: string; label: string }; paidEligible: boolean; badges: Badge[]; events: TierScoreEvent[] }
 /** 공개 포트폴리오 한 건: 최신 편집본 + 잠긴 원본(검증·평가·증빙) */
