@@ -28,7 +28,7 @@ export default function Projects() {
         {rows?.map(({ project, post }) => (
           <Link key={project.id} href={`/projects/detail?id=${project.id}`} className="card block active:opacity-80">
             <div className="mb-2 flex items-center justify-between"><span className="chip chip-on">{DOMAINS[project.domain].label}</span><ProjectStatusBadge status={project.status} /></div>
-            <h3 className="font-bold">{post.title}</h3>
+            <h3 className="font-bold">{post.title}{project.mode === "TEAM" && <span className="ml-1 text-sm text-[var(--primary)]">(팀)</span>}</h3>
             {todo(project) && <p className="mt-1 text-sm font-semibold text-[var(--primary)]">→ {todo(project)}</p>}
           </Link>
         ))}
