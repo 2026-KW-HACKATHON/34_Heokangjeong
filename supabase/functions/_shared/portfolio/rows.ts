@@ -8,7 +8,7 @@ const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 
 export const rowToProject = (r: Row): Project => ({
   id: r.id, postId: r.post_id, ownerId: r.owner_id, domain: r.domain, mode: r.mode, status: r.status, questionSnapshot: r.question_snapshot,
-  approvedVersionId: u(r.approved_version_id), createdAt: r.created_at, completedAt: u(r.completed_at),
+  approvedVersionId: u(r.approved_version_id), createdAt: r.created_at, startedAt: u(r.started_at), completedAt: u(r.completed_at),
 });
 export const rowToMember = (r: Row): ProjectMember => ({
   projectId: r.project_id, studentId: r.student_id, roleLabel: r.role_label, roleId: u(r.role_id), domain: u(r.domain),

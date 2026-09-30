@@ -67,7 +67,7 @@ function Project() {
           <dl className="sub mt-3 grid grid-cols-[72px_1fr] gap-y-2 text-sm">
             <dt>의뢰인</dt><dd>{name(b.project.ownerId)}</dd>
             <dt>참여 학생</dt><dd className="flex flex-col items-start gap-1">{b.members.map((m) => <Link key={m.studentId} href={`/profiles/view?id=${m.studentId}`} className="font-semibold text-[var(--primary)] underline underline-offset-2">{name(m.studentId)}{m.isLead ? " (팀장)" : ""} · {m.roleLabel}</Link>)}</dd>
-            <dt>시작 날짜</dt><dd>{fmtDate(b.project.createdAt)}</dd>
+            <dt>시작 날짜</dt><dd>{fmtDate(b.project.startedAt ?? b.project.createdAt)}</dd>
           </dl>
           <ol className="mt-4 flex items-center justify-between gap-1 text-[11px]" aria-label="진행 단계">
             {FLOW.map((f) => (

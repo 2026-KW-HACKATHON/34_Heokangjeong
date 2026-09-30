@@ -40,6 +40,7 @@ describe("지원·선정", () => {
   it("선정하면 프로젝트가 생기고 질문 목록이 고정된다", () => {
     const { db, project } = started();
     expect(project.status).toBe("IN_PROGRESS");
+    expect(project.startedAt).toBeTruthy();
     expect(project.questionSnapshot.questions.length).toBeGreaterThan(5);
     expect(db.posts[0].status).toBe("in_progress");
     expect(db.members).toHaveLength(1);
@@ -78,10 +79,12 @@ describe("팀 구성", () => {
     const a2 = wf.apply(db, { postId: "post", studentId: "stu2", message: "", roleId: "dev" }, c);
     const project = wf.selectApplicant(db, { applicationId: a1.id, actorId: "owner" }, c);
     expect(project.status).toBe("RECRUITING");
+    expect(project.startedAt).toBeUndefined();
     expect(() => wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" })).toThrow(/인원이 부족/);
     wf.selectApplicant(db, { applicationId: a2.id, actorId: "owner" }, c);
     wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" });
     expect(project.status).toBe("IN_PROGRESS");
+    expect(project.startedAt).toBeTruthy();
     expect(db.posts[0].status).toBe("in_progress");
     expect(db.members.find((m) => m.studentId === "stu")?.isLead).toBe(true);
     expect(db.members.find((m) => m.studentId === "stu2")?.domain).toBe("DEVELOPMENT");

@@ -39,7 +39,7 @@ const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId
 const toMsg = (r: Row): ChatMessage => ({ id: r.id, applicationId: r.application_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
 const toProject = (r: Row): Project => ({
   id: r.id, postId: r.post_id, ownerId: r.owner_id, domain: r.domain, mode: r.mode, status: r.status, questionSnapshot: r.question_snapshot,
-  approvedVersionId: u(r.approved_version_id), createdAt: r.created_at, completedAt: u(r.completed_at),
+  approvedVersionId: u(r.approved_version_id), createdAt: r.created_at, startedAt: u(r.started_at), completedAt: u(r.completed_at),
 });
 const toMember = (r: Row): ProjectMember => ({
   projectId: r.project_id, studentId: r.student_id, roleLabel: r.role_label, roleId: u(r.role_id), domain: u(r.domain),
@@ -78,6 +78,7 @@ const toEdit = (r: Row): PortfolioEditedVersion => ({ id: r.id, draftId: r.draft
 const toEvent = (r: Row): TierScoreEvent => ({ id: r.id, studentId: r.student_id, projectId: r.project_id, kind: r.kind, points: r.points, createdAt: r.created_at });
 const toBadge = (r: Row): Badge => ({ studentId: r.student_id, code: r.code, label: r.label, projectId: r.project_id, createdAt: r.created_at });
 const toPeerReview = (r: Row): TeamPeerReview => ({ id: r.id, projectId: r.project_id, reviewerId: r.reviewer_id, revieweeId: r.reviewee_id, communication: r.communication, collaboration: r.collaboration, responsibility: r.responsibility, comment: r.comment, createdAt: r.created_at });
+const toNotification = (r: Row): Notification => ({ id: r.id, userId: r.user_id, postId: u(r.post_id), kind: u(r.kind), href: u(r.href), text: r.text, distanceM: u(r.distance_m), read: r.read, createdAt: r.created_at });
 
 /** DB 에러 → 화면용 문장. DB 함수는 'CODE: 설명' 으로 던진다 */
 export function friendly(message: string) {
@@ -181,9 +182,14 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       }));
     },
     async listNotifications(userId) {
-      return ok(await db.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false })).map((r: Row): Notification => ({
-        id: r.id, userId: r.user_id, postId: r.post_id ?? undefined, text: r.text, distanceM: r.distance_m ?? undefined, read: r.read, createdAt: r.created_at,
-      }));
+      return ok(await db.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false })).map(toNotification);
+    },
+    async markNotificationRead(id, userId) { done(await db.from("notifications").update({ read: true }).eq("id", id).eq("user_id", userId)); },
+    onNotification(userId, cb) {
+      const ch = db.channel(`notifications:${userId}:${++realtimeChannelSequence}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (e) => cb(toNotification(e.new)))
+        .subscribe();
+      return () => { db.removeChannel(ch); };
     },
     async ranking(kind) {
       // mock 과 같은 임시 공식: 해결 수×10 + 평가 평균×4 + 난이도 합×3

@@ -61,7 +61,7 @@ export default function Portfolio() {
 function SummaryCard({ title, card, post, project, domain, href, action, highlight }: {
   title: string; card?: PortfolioCard; post?: Post; project?: Project; domain?: string; href?: string; action?: string; highlight?: boolean;
 }) {
-  const days = project?.completedAt ? Math.max(1, Math.round((Date.parse(project.completedAt) - Date.parse(project.createdAt)) / 86_400_000)) : card?.durationDays ?? post?.durationDays;
+  const days = project?.completedAt ? Math.max(1, Math.round((Date.parse(project.completedAt) - Date.parse(project.startedAt ?? project.createdAt)) / 86_400_000)) : card?.durationDays ?? post?.durationDays;
   const rating = card?.rating ?? 0;
   const body = (
     <>

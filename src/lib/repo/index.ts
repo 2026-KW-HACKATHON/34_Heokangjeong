@@ -34,6 +34,8 @@ export interface Repo {
   listReviews(studentId?: string): Promise<Review[]>;
   listPortfolio(studentId: string): Promise<PortfolioCard[]>;
   listNotifications(userId: string): Promise<Notification[]>;
+  markNotificationRead(id: string, userId: string): Promise<void>;
+  onNotification(userId: string, cb: (notification: Notification) => void): () => void;
   ranking(kind: "individual" | "team" | "department"): Promise<RankRow[]>;
 
   // ── 검증형 포트폴리오 파이프라인 ───────────────────────────────────────────

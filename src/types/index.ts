@@ -111,6 +111,8 @@ export interface Notification {
   id: string;
   userId: string;
   postId?: string;
+  kind?: string;
+  href?: string;
   text: string;
   distanceM?: number;
   read: boolean;

@@ -137,6 +137,7 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   if (role && db.members.filter((m) => m.projectId === project!.id && m.roleId === role.id).length >= role.count)
     fail("ROLE_FULL", "이 역할의 모집 인원이 이미 찼어요");
   project.status = nextStatus(project.status, "SELECT", project.mode);
+  if (project.status === "IN_PROGRESS" && !project.startedAt) project.startedAt = now;
   const memberDomain = role?.domain ?? listing.domain;
   db.members.push({
     projectId: project.id, studentId: app.studentId, roleId: role?.id,
@@ -151,7 +152,7 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   return project;
 }
 
-export function startTeamProject(db: WorkflowDB, a: { projectId: string; actorId: string; leaderId: string }): Project {
+export function startTeamProject(db: WorkflowDB, a: { projectId: string; actorId: string; leaderId: string }, ctx: Ctx = defaultCtx): Project {
   const project = getProject(db, a.projectId);
   assertOwner(db, project, a.actorId);
   if (project.mode !== "TEAM") fail("INVALID_STATE", "팀 프로젝트가 아니에요");
@@ -161,6 +162,7 @@ export function startTeamProject(db: WorkflowDB, a: { projectId: string; actorId
   if (missing.length) fail("TEAM_INCOMPLETE", `아직 인원이 부족한 역할이 있어요: ${missing.map((s) => s.label ?? s.category).join(", ")}`);
   if (!members.some((m) => m.studentId === a.leaderId)) fail("INVALID_LEADER", "선발된 팀원 중에서 팀장을 선택해 주세요");
   project.status = nextStatus(project.status, "START", project.mode);
+  project.startedAt ??= ctx.now();
   members.forEach((m) => { m.isLead = m.studentId === a.leaderId; });
   post.status = "in_progress";
   return project;

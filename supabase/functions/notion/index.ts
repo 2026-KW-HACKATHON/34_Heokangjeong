@@ -242,7 +242,7 @@ async function prepareExport(db: Awaited<ReturnType<typeof userClient>>["db"], u
     const approved = (versions.data ?? []).find((v: { id: string }) => v.id === project.approvedVersionId);
     const doc = buildDocument({
       domain: project.domain, content,
-      info: { period: periodText(project.createdAt, project.completedAt), roleLabel: member.data?.role_label ?? "", clientName: client.data?.name ?? "의뢰인", clientType: client.data?.kind ?? "주민", approvedVersion: approved?.version ?? null },
+      info: { period: periodText(project.startedAt ?? project.createdAt, project.completedAt), roleLabel: member.data?.role_label ?? "", clientName: client.data?.name ?? "의뢰인", clientType: client.data?.kind ?? "주민", approvedVersion: approved?.version ?? null },
       verification: verification.data ? rowToVerification(verification.data) : null, review: review.data ? rowToReview(review.data) : null,
       evidence: (evidence.data ?? []).map(rowToEvidence), outcomes: (outcomes.data ?? []).map(rowToOutcome),
     });

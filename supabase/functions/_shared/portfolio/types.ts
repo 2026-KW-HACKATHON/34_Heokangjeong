@@ -140,6 +140,7 @@ export interface Project {
   questionSnapshot: ProjectQuestionSnapshot;
   approvedVersionId?: string;            // 승인된 제출 버전 (정확한 id)
   createdAt: string;
+  startedAt?: string;                    // 실제 활동 시작 시각. 모집 시작(createdAt)과 구분한다
   completedAt?: string;
 }
 export interface ProjectMember {
