@@ -5,7 +5,7 @@ import { SessionProvider } from "@/lib/session";
 import BottomTab from "@/components/BottomTab";
 import AuthGate from "@/components/AuthGate";
 
-export const metadata: Metadata = { title: "월계 재능나눔", description: "월계1동 주민·상인과 광운대 학생을 잇는 재능 매칭" };
+export const metadata: Metadata = { title: "WOLINK — 재능 나눔", description: "동네의 요청과 대학생의 재능을 연결하고, 함께한 경험을 포트폴리오로 남깁니다." };
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

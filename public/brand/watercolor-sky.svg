@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <filter id="wash" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".009 .013" numOctaves="3" seed="24" result="cloud"/>
+      <feDisplacementMap in="SourceGraphic" in2="cloud" scale="95"/>
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+    <filter id="grain" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+    <radialGradient id="blue"><stop stop-color="#aad7e6" stop-opacity=".72"/><stop offset=".62" stop-color="#c4e4ed" stop-opacity=".48"/><stop offset="1" stop-color="#eaf4f6" stop-opacity="0"/></radialGradient>
+  </defs>
+  <path fill="#edf6f8" d="M0 0h1200v900H0z"/>
+  <g filter="url(#wash)">
+    <ellipse cx="130" cy="150" rx="390" ry="310" fill="url(#blue)"/>
+    <ellipse cx="1060" cy="180" rx="470" ry="390" fill="url(#blue)"/>
+    <ellipse cx="230" cy="690" rx="420" ry="350" fill="url(#blue)"/>
+    <ellipse cx="1110" cy="800" rx="390" ry="310" fill="url(#blue)"/>
+    <path d="M-50 390Q180 230 350 410T690 420T1250 400" fill="none" stroke="#fffdf7" stroke-width="130" opacity=".45"/>
+  </g>
+  <path d="M0 0h1200v900H0z" filter="url(#grain)" opacity=".055"/>
+</svg>

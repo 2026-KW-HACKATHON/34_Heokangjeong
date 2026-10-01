@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="220" viewBox="0 0 300 220">
+  <defs>
+    <filter id="paper" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="3" seed="12" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="22"/>
+      <feGaussianBlur stdDeviation=".5"/>
+    </filter>
+    <radialGradient id="peach"><stop stop-color="#d89470" stop-opacity=".6"/><stop offset=".6" stop-color="#e5ae80" stop-opacity=".4"/><stop offset="1" stop-color="#edc896" stop-opacity="0"/></radialGradient>
+  </defs>
+  <g filter="url(#paper)">
+    <path d="M30 101 50 67 84 71 88 37 129 52 147 28 173 63 215 55 213 84 253 102 227 127 246 157 208 165 187 197 148 177 113 193 96 163 60 164 66 133Z" fill="url(#peach)"/>
+    <path d="M59 103Q106 60 150 92T225 120Q190 159 151 144T76 143Z" fill="#dfac89" opacity=".16"/>
+    <path d="M84 85Q113 58 132 79T172 101L194 153Q159 170 137 135T84 122Z" fill="#e6b98d" opacity=".2"/>
+  </g>
+  <g fill="#d4a183" opacity=".28"><circle cx="47" cy="79" r="2"/><circle cx="231" cy="74" r="2.5"/><circle cx="243" cy="89" r="1"/><circle cx="73" cy="171" r="2"/><circle cx="203" cy="184" r="1.5"/><circle cx="57" cy="151" r="1"/></g>
+</svg>
