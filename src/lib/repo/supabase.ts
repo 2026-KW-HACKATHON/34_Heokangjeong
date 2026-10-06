@@ -55,6 +55,24 @@ const toTicket = (r: Row): MaintenanceTicket => ({
 const toTerm = (r: Row): MaintainerTerm => ({ id: r.id, projectId: r.project_id, studentId: r.student_id, startedOn: r.started_on, endedOn: u(r.ended_on), ticketsClosed: r.tickets_closed ?? 0 });
 const toDoc = (r: Row): HandoverDoc => ({ id: r.id, projectId: r.project_id, markdown: r.markdown, model: u(r.model), generatedAt: r.generated_at });
 
+/** AI 없이 쓰는 기본 인수인계서 (서버 함수 handover-ai 의 template 과 같은 내용) */
+function templateHandover(title: string, o: Operations) {
+  const v = (x?: string) => (x && x.trim() ? x : "확인 필요");
+  return [
+    `# ${title} 인수인계서`, "",
+    "## 어디에 무엇이 있나",
+    `- 저장소: ${v(o.repoUrl)}`, `- 배포 주소: ${v(o.deployUrl)}`,
+    `- 관리자 계정 전달: ${o.adminHanded ? "완료 (사장님 보관)" : "미완료"}`,
+    `- 외부 서비스·환경값: ${v(o.envList)}`, "",
+    "## 돈과 만료",
+    `- 월 비용·결제일: ${v(o.monthlyCost)}`,
+    `- 결제 명의: ${o.billingOwner === "CLIENT" ? "사장님" : o.billingOwner === "STUDENT" ? "학생 (사장님 명의로 이관 필요)" : "확인 필요"}`,
+    `- 가장 먼저 만료되는 날: ${v(o.expiresOn)}`, `- 백업: ${v(o.backupNote)}`, "",
+    "## 알려진 문제", o.knownIssues?.trim() || "기록된 문제 없음", "",
+    "_AI 서버에 연결하지 못해 입력한 정보만으로 정리한 문서예요._",
+  ].join("\n");
+}
+
 const toMsg = (r: Row): ChatMessage => ({ id: r.id, applicationId: r.application_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
 const toProject = (r: Row): Project => ({
   id: r.id, postId: r.post_id, ownerId: r.owner_id, domain: r.domain, mode: r.mode, status: r.status, questionSnapshot: r.question_snapshot,
@@ -379,8 +397,14 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async saveHandover(projectId, _actorId, data) { done(await db.rpc("save_handover", { p_project: projectId, p_data: data })); },
     async generateHandoverDoc(projectId) {
       const { data, error } = await db.functions.invoke<HandoverDoc>("handover-ai", { body: { projectId } });
-      if (error) throw new Error(await fnError(error));
-      return data!;
+      if (!error) return data!;
+      // 서버 함수가 아직 배포되지 않았거나 AI 가 실패하면, 입력한 정보만으로 기본 문서를 만들어 저장한다
+      const bundle = await repo.getOperations(projectId);
+      if (!bundle) throw new Error(await fnError(error));
+      const row = maybe(await db.from("projects").select("post:posts(title)").eq("id", projectId).maybeSingle());
+      const markdown = templateHandover(row?.post?.title ?? "프로젝트", bundle.operations);
+      const saved = ok(await db.from("handover_docs").insert({ project_id: projectId, markdown, model: "TEMPLATE" }).select().single());
+      return toDoc(saved);
     },
     async openHandover(projectId) { done(await db.rpc("open_handover", { p_project: projectId })); },
     async takeOver(projectId) { done(await db.rpc("take_over", { p_project: projectId })); },

@@ -309,10 +309,10 @@ describe("SQL: Notion 저장 잠금과 사용자 격리", () => {
 });
 
 describe("SQL: 새 DB 에 번호 순서대로", () => {
-  it("0001 부터 0018 까지 번호 순서대로 오류 없이 적용된다", async () => {
+  it("0001 부터 0019 까지 번호 순서대로 오류 없이 적용된다", async () => {
     const fresh = new PGlite();
     await fresh.exec(STUBS);
-    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_urgent_posts.sql", "0015_urgent_rules.sql", "0016_urgent_apply.sql", "0017_urgent_min_reward.sql", "0018_maintenance.sql"]) await fresh.exec(sql(f));
+    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_urgent_posts.sql", "0015_urgent_rules.sql", "0016_urgent_apply.sql", "0017_urgent_min_reward.sql", "0018_maintenance.sql", "0019_handover_doc_write.sql"]) await fresh.exec(sql(f));
     const t = await fresh.query<{ n: number }>("select count(*)::int n from information_schema.tables where table_schema = 'public'");
     expect(t.rows[0].n).toBe(31);
     await fresh.close();
