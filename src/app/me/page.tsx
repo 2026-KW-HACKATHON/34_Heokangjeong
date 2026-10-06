@@ -5,7 +5,7 @@ import { useSession } from "@/lib/session";
 import { useEffect, useState } from "react";
 import { repo } from "@/lib/repo";
 import type { PortfolioCard, TrustSummary } from "@/types";
-import Icon, { type IconName } from "@/components/Icon";
+import Icon from "@/components/Icon";
 
 /** 내 정보. 서버 연결 전(mock)에는 계정 전환, 연결 후에는 로그아웃. 학생 프로필 항목: 학과·기술·관심·시간·거리 */
 export default function Me() {
@@ -59,9 +59,7 @@ export default function Me() {
         {trust && <section className="card text-sm"><h3 className="font-bold">협업 온도 · 등급</h3><p className="mt-3">{trust.tier.label} · 온도 {trust.temperature.toFixed(1)}° · 완료 {trust.verifiedCount}건</p><p className="sub mt-2">점주 평가가 온도와 다음 등급에 반영돼요.</p><div className="mt-3 flex flex-wrap gap-2">{trust.badges.map(b => <span key={b.code} className="silver-badge text-xs">{b.label}</span>)}</div><Link href="/projects" className="mt-3 inline-block underline">프로젝트 기록 보기</Link></section>}
         <ul className="card flex flex-col divide-y divide-[var(--line)] p-0 text-[15px]">
           <li><Link href="/projects" className="flex min-h-14 items-center justify-between px-4 py-3.5"><span className="inline-flex items-center gap-3"><Icon name="folder" width={19} height={19} />내 진행 프로젝트</span><Icon name="arrow" width={16} height={16} /></Link></li>
-          {([["/portfolio", "내 포트폴리오", "folder"], ["/chats", "채팅", "chat"]] as [string, string, IconName][]).map(([h, l, icon]) => (
-            <li key={h}><Link href={h} className="flex min-h-14 items-center justify-between px-4 py-3.5"><span className="inline-flex items-center gap-3"><Icon name={icon} width={19} height={19} />{l}</span><Icon name="arrow" width={16} height={16} className="sub" /></Link></li>
-          ))}
+          <li><Link href="/portfolio" className="flex min-h-14 items-center justify-between px-4 py-3.5"><span className="inline-flex items-center gap-3"><Icon name="folder" width={19} height={19} />내 포트폴리오</span><Icon name="arrow" width={16} height={16} className="sub" /></Link></li>
         </ul>
         {mode === "supabase" && <button onClick={signOut} className="btn btn-ghost w-full">로그아웃</button>}
       </section>
