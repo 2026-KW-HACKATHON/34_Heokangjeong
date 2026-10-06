@@ -8,7 +8,7 @@ import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
 import { draftPost, type PostDraft } from "@/lib/ai/draft";
 import { COMPENSATION_LABEL } from "@/lib/listing";
-import { COLLEGES } from "@/lib/colleges";
+import { COLLEGES, urgentMinReward } from "@/lib/colleges";
 import { DOMAINS, DOMAIN_KEYS, domainForCategory } from "@shared/portfolio/domains";
 import type { Category, CompensationType, DomainKey, RoleSlot } from "@/types";
 
@@ -38,6 +38,10 @@ export default function NewPost() {
       if (f.isTeam && slots.some((s) => !(s.count >= 1))) throw new Error("팀 역할 인원은 1명 이상으로 적어 주세요");
       const paid = l.compensationType === "PAID" ? Number(l.paidAmount.replace(/,/g, "")) : undefined;
       if (l.compensationType === "PAID" && (!paid || paid <= 0)) throw new Error("유료 의뢰는 금액을 적어 주세요");
+      // 긴급 공고는 학생에게 즉시 알림이 가므로 최소 사례비를 둔다 (DB 제약과 같은 기준)
+      const min = urgentMinReward(f.difficulty);
+      if (urgent.on && (l.compensationType !== "PAID" || !paid || paid < min))
+        throw new Error(`긴급 공고는 사례비가 ${min.toLocaleString()}원 이상이어야 해요 (난이도 ${"★".repeat(f.difficulty)})`);
       const p = await repo.createPost({
         ...f, authorId: user!.id, location: user!.location ?? WOLGYE_CENTER, address: (user as { address?: string }).address ?? "월계1동", teamSlots: f.isTeam ? slots : undefined,
         problem: l.problem.trim(), domain, expectedDeliverables: l.deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria: l.completionCriteria.trim(),
@@ -124,8 +128,15 @@ export default function NewPost() {
         <div className="card flex flex-col gap-3">
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={urgent.on} onChange={(e) => setUrgent({ ...urgent, on: e.target.checked })} />
-            <span><b>🚨 긴급 공고로 올릴게요</b><span className="sub block text-xs">지금 바로 사람이 필요할 때만 선택하세요. 고른 단과대학 학생에게 즉시 알림이 갑니다.</span></span>
+            <span><b>🚨 긴급 공고로 올릴게요</b><span className="sub block text-xs">지금 바로 사람이 필요할 때만 선택하세요. 고른 단과대학 학생과 관심 분야가 맞는 학생에게 즉시 알림이 갑니다.</span></span>
           </label>
+          {urgent.on && (
+            <p className="rounded-xl bg-[var(--primary-weak)] p-3 text-xs leading-5">
+              긴급 공고는 사례비 <b>{urgentMinReward(f.difficulty).toLocaleString()}원 이상</b>이 필요해요 (난이도 {"★".repeat(f.difficulty)}).
+              급하게 와 주는 학생에게 최소한의 보상을 보장하고, 긴급 알림이 남용되지 않게 하려는 기준이에요.
+              {l.compensationType !== "PAID" && <span className="mt-1 block font-semibold text-[var(--red)]">위 보상에서 ‘사례비’를 고르고 금액을 적어 주세요.</span>}
+            </p>
+          )}
           {urgent.on && (
             <fieldset>
               <legend className="mb-1.5 text-sm font-semibold">어느 쪽 학생이 필요하세요?</legend>
@@ -154,7 +165,7 @@ export default function NewPost() {
         </div>
         <ErrorText text={act.error} />
         <button onClick={submit} disabled={act.busy} className="btn btn-primary w-full disabled:opacity-50">{urgent.on ? "🚨 긴급 공고 등록하기" : "등록하기"}</button>
-        <p className="sub text-center text-xs">{urgent.on ? "등록 즉시 선택한 단과대학 학생에게 알림이 갑니다." : "평소 공고는 알림 없이 올라가고, 학생이 홈·지도에서 찾아봅니다."}</p>
+        <p className="sub text-center text-xs">{urgent.on ? "등록 즉시 선택한 단과대학 학생과 관심 분야가 맞는 학생에게 알림이 갑니다." : "평소 공고는 알림 없이 올라가고, 학생이 홈·지도에서 찾아봅니다."}</p>
       </section>
     </>
   );
