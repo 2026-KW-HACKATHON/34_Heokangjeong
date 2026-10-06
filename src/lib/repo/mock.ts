@@ -75,14 +75,47 @@ export const posts: Post[] = [
   { id: "p30", title: "과일 재고 엑셀 장부 만들기", category: "디지털도움", description: "매일 입고·판매·폐기량을 쉽게 입력하고 남은 수량을 확인할 수 있는 엑셀 양식이 필요해요.", authorId: "r11", location: locationOf("r11"), address: "초안산로 5길 9", status: "open", reward: "과일 바구니 + 사례비 6만원", durationDays: 5, difficulty: 2, isTeam: false, createdAt: "2026-10-01T02:40:00Z" },
 ];
 
-const applications: Application[] = [
+export const applications: Application[] = [
   { id: "a1", postId: "p3", studentId: "s3", message: "숏폼 편집 경험 있습니다. 평일 오후 가능해요.", status: "accepted", createdAt: "2026-09-10T08:00:00Z" },
   { id: "a2", postId: "p1", studentId: "s1", message: "포스터 3종 시안 드릴 수 있어요.", status: "pending", createdAt: "2026-09-14T12:00:00Z" },
+  { id: "a3", postId: "p10", studentId: "s5", message: "가격표와 안내물 디자인 경험이 있어요. 먼저 정보 구조부터 정리해 볼게요.", status: "pending", createdAt: "2026-10-04T11:00:00Z" },
+  { id: "a4", postId: "p18", studentId: "s6", roleId: "p18-role-1", message: "Next.js와 Supabase로 예약 화면을 만든 경험이 있습니다.", status: "pending", createdAt: "2026-10-04T04:00:00Z" },
+  { id: "a5", postId: "p16", studentId: "s7", roleId: "p16-role-1", message: "공연 영상 기획과 현장 촬영을 맡고 싶습니다.", status: "pending", createdAt: "2026-10-03T03:30:00Z" },
+  { id: "a6", postId: "p21", studentId: "s10", message: "시장 조사와 콘텐츠 일정표까지 함께 제안드릴 수 있어요.", status: "accepted", createdAt: "2026-10-05T03:10:00Z" },
+  { id: "a7", postId: "p26", studentId: "s8", message: "포스기 메뉴 정리와 사용법 안내를 차근차근 도와드릴게요.", status: "pending", createdAt: "2026-10-05T01:20:00Z" },
+  { id: "a8", postId: "p13", studentId: "s9", message: "제품과 작업 과정 촬영을 자주 했고 Lightroom 보정도 가능합니다.", status: "pending", createdAt: "2026-10-05T06:10:00Z" },
+  { id: "a9", postId: "p17", studentId: "s11", message: "모바일 우선으로 빠르게 한 페이지 사이트를 제작하겠습니다.", status: "rejected", createdAt: "2026-10-05T04:20:00Z" },
+  { id: "a10", postId: "p25", studentId: "s12", message: "책 소개 글과 카드뉴스 문구를 자연스럽게 다듬을 수 있어요.", status: "pending", createdAt: "2026-10-01T06:00:00Z" },
+  { id: "a11", postId: "p12", studentId: "s1", message: "큰 글씨와 명확한 색상 체계로 읽기 쉬운 리플릿을 제안할게요.", status: "pending", createdAt: "2026-10-02T09:20:00Z" },
+  { id: "a12", postId: "p29", studentId: "s2", message: "태블릿과 주문 프린터 연결을 점검하고 사용 설명도 남기겠습니다.", status: "pending", createdAt: "2026-10-02T04:10:00Z" },
 ];
 
-const messages: ChatMessage[] = [
+export const messages: ChatMessage[] = [
   { id: "m1", applicationId: "a2", senderId: "s1", body: "안녕하세요! 포스터 공고 보고 연락드려요.", createdAt: "2026-09-14T12:01:00Z" },
   { id: "m2", applicationId: "a2", senderId: "r1", body: "반가워요. 신메뉴 사진 먼저 보내 드릴게요.", createdAt: "2026-09-14T12:30:00Z" },
+  { id: "m3", applicationId: "a3", senderId: "s5", body: "현재 가격표 사진을 보내주시면 메뉴 분류부터 살펴볼게요.", createdAt: "2026-10-04T11:02:00Z" },
+  { id: "m4", applicationId: "a3", senderId: "r7", body: "사진 보냈어요. 커트와 염색 가격이 특히 복잡해요.", createdAt: "2026-10-04T11:25:00Z" },
+  { id: "m5", applicationId: "a3", senderId: "s5", body: "확인했습니다. 내일까지 두 가지 구성안을 보내드릴게요.", createdAt: "2026-10-04T11:32:00Z" },
+  { id: "m6", applicationId: "a4", senderId: "s6", body: "예약할 때 꼭 받아야 하는 정보가 종류, 날짜, 문구 세 가지일까요?", createdAt: "2026-10-04T04:02:00Z" },
+  { id: "m7", applicationId: "a4", senderId: "r12", body: "네, 알레르기 여부도 하나 추가하면 좋겠어요.", createdAt: "2026-10-04T04:18:00Z" },
+  { id: "m8", applicationId: "a5", senderId: "s7", body: "발표회 장소와 전체 진행 시간을 알려주실 수 있을까요?", createdAt: "2026-10-03T03:32:00Z" },
+  { id: "m9", applicationId: "a5", senderId: "r10", body: "학원 연주실에서 90분 정도 진행할 예정이에요.", createdAt: "2026-10-03T04:05:00Z" },
+  { id: "m10", applicationId: "a6", senderId: "s10", body: "첫 주에는 사과와 배 보관법 콘텐츠부터 시작하면 어떨까요?", createdAt: "2026-10-05T03:12:00Z" },
+  { id: "m11", applicationId: "a6", senderId: "r11", body: "좋아요. 이번 주 할인 품목도 같이 넣고 싶어요.", createdAt: "2026-10-05T03:40:00Z" },
+  { id: "m12", applicationId: "a6", senderId: "s10", body: "그 내용을 반영한 1주차 일정표를 오늘 저녁에 공유할게요.", createdAt: "2026-10-05T03:52:00Z" },
+  { id: "m13", applicationId: "a7", senderId: "s8", body: "사용 중인 포스기 모델명을 확인할 수 있을까요?", createdAt: "2026-10-05T01:22:00Z" },
+  { id: "m14", applicationId: "a7", senderId: "r8", body: "화면 사진을 찍어서 보내드렸어요. 토요일 오전 가능할까요?", createdAt: "2026-10-05T01:45:00Z" },
+  { id: "m15", applicationId: "a8", senderId: "s9", body: "공방이 가장 밝은 시간이 언제인지 궁금해요.", createdAt: "2026-10-05T06:12:00Z" },
+  { id: "m16", applicationId: "a8", senderId: "r6", body: "오후 2시부터 창가로 빛이 잘 들어옵니다.", createdAt: "2026-10-05T06:35:00Z" },
+  { id: "m17", applicationId: "a8", senderId: "s9", body: "그럼 목요일 2시에 방문해서 한 시간 정도 촬영할게요.", createdAt: "2026-10-05T06:42:00Z" },
+  { id: "m18", applicationId: "a9", senderId: "s11", body: "원하시는 참고 사이트가 있으면 보내주세요.", createdAt: "2026-10-05T04:22:00Z" },
+  { id: "m19", applicationId: "a9", senderId: "r9", body: "이번에는 다른 지원자와 진행하게 됐어요. 지원해 주셔서 감사합니다.", createdAt: "2026-10-05T05:10:00Z" },
+  { id: "m20", applicationId: "a10", senderId: "s12", body: "책마다 추천하고 싶은 독자층을 알려주시면 문구에 반영할게요.", createdAt: "2026-10-01T06:02:00Z" },
+  { id: "m21", applicationId: "a10", senderId: "r3", body: "좋습니다. 책 목록과 제가 쓴 짧은 메모를 보내드릴게요.", createdAt: "2026-10-01T06:25:00Z" },
+  { id: "m22", applicationId: "a11", senderId: "s1", body: "리플릿에 꼭 들어갈 복약 주의사항 목록이 있을까요?", createdAt: "2026-10-02T09:22:00Z" },
+  { id: "m23", applicationId: "a11", senderId: "r13", body: "네, 식전·식후 구분과 졸림 주의를 가장 크게 보여주세요.", createdAt: "2026-10-02T09:50:00Z" },
+  { id: "m24", applicationId: "a12", senderId: "s2", body: "태블릿과 프린터 모델 사진을 부탁드려요.", createdAt: "2026-10-02T04:12:00Z" },
+  { id: "m25", applicationId: "a12", senderId: "r1", body: "사진 보냈습니다. 점심 이후 방문 가능하신가요?", createdAt: "2026-10-02T04:35:00Z" },
 ];
 
 const reviews: Review[] = [
@@ -95,15 +128,34 @@ const portfolio: PortfolioCard[] = [
   { id: "c2", studentId: "s3", postId: "p7", title: "행복분식 사진 촬영", roleLabel: "촬영·보정", tasks: ["외관·메뉴 사진 20장 촬영", "네이버 플레이스용 보정"], durationDays: 3, rating: 5, verified: true },
 ];
 
-const seedNotifications: Notification[] = [
+export const seedNotifications: Notification[] = [
   { id: "n1", userId: "s1", postId: "p1", text: "월계 커피에서 '카페 신메뉴 포스터 디자인' 프로젝트가 등록되었습니다.", distanceM: 580, read: false, createdAt: "2026-09-14T09:01:00Z" },
   { id: "n2", userId: "s1", postId: "p5", text: "삼거리 정육점 팀 프로젝트에 디자인 1명이 필요합니다.", distanceM: 1200, read: true, createdAt: "2026-09-12T07:05:00Z" },
   { id: "n3", userId: "r1", postId: "p1", text: "김하늘 학생이 포스터 공고에 지원했습니다.", read: false, createdAt: "2026-09-14T12:00:00Z" },
+  { id: "n4", userId: "s5", postId: "p10", kind: "MATCHED_POST", href: "/posts/detail?id=p10", text: "월계 미용실의 가격표 디자인 공고가 관심 분야와 가까워요.", distanceM: 640, read: true, createdAt: "2026-10-04T10:12:00Z" },
+  { id: "n5", userId: "r7", postId: "p10", kind: "APPLICATION", href: "/chats/room?id=a3", text: "윤서연 학생이 가격표 디자인 공고에 지원했어요.", read: false, createdAt: "2026-10-04T11:00:00Z" },
+  { id: "n6", userId: "s5", postId: "p10", kind: "CHAT", href: "/chats/room?id=a3", text: "월계 미용실에서 새 메시지를 보냈어요.", read: false, createdAt: "2026-10-04T11:25:00Z" },
+  { id: "n7", userId: "r12", postId: "p18", kind: "APPLICATION", href: "/chats/room?id=a4", text: "정민재 학생이 케이크 예약 페이지 개발 역할에 지원했어요.", read: false, createdAt: "2026-10-04T04:00:00Z" },
+  { id: "n8", userId: "s6", postId: "p18", kind: "CHAT", href: "/chats/room?id=a4", text: "별빛 베이커리에서 예약 항목을 답변했어요.", read: false, createdAt: "2026-10-04T04:18:00Z" },
+  { id: "n9", userId: "r10", postId: "p16", kind: "APPLICATION", href: "/chats/room?id=a5", text: "한유진 학생이 발표회 영상 촬영 역할에 지원했어요.", read: false, createdAt: "2026-10-03T03:30:00Z" },
+  { id: "n10", userId: "s7", postId: "p16", kind: "CHAT", href: "/chats/room?id=a5", text: "우리동네 피아노에서 발표회 일정을 보냈어요.", read: false, createdAt: "2026-10-03T04:05:00Z" },
+  { id: "n11", userId: "s10", postId: "p21", kind: "APPLICATION_ACCEPTED", href: "/posts/detail?id=p21", text: "과일상회 SNS 콘텐츠 지원이 수락됐어요.", read: false, createdAt: "2026-10-05T03:30:00Z" },
+  { id: "n12", userId: "r11", postId: "p21", kind: "CHAT", href: "/chats/room?id=a6", text: "배수아 학생이 1주차 콘텐츠 일정을 보냈어요.", read: false, createdAt: "2026-10-05T03:52:00Z" },
+  { id: "n13", userId: "s8", postId: "p26", kind: "MATCHED_POST", href: "/posts/detail?id=p26", text: "햇살 반찬의 포스 메뉴 정리 공고가 보유 기술과 잘 맞아요.", distanceM: 720, read: true, createdAt: "2026-10-05T00:22:00Z" },
+  { id: "n14", userId: "r8", postId: "p26", kind: "APPLICATION", href: "/chats/room?id=a7", text: "오지훈 학생이 포스 메뉴 정리 공고에 지원했어요.", read: false, createdAt: "2026-10-05T01:20:00Z" },
+  { id: "n15", userId: "s9", postId: "p13", kind: "CHAT", href: "/chats/room?id=a8", text: "꽃길 공방에서 촬영 가능한 시간을 알려줬어요.", read: false, createdAt: "2026-10-05T06:35:00Z" },
+  { id: "n16", userId: "s11", postId: "p17", kind: "APPLICATION_REJECTED", href: "/chats/room?id=a9", text: "세탁소 웹사이트 지원 결과를 확인해 주세요.", read: false, createdAt: "2026-10-05T05:10:00Z" },
+  { id: "n17", userId: "r3", postId: "p25", kind: "APPLICATION", href: "/chats/room?id=a10", text: "송예린 학생이 이달의 책 콘텐츠 공고에 지원했어요.", read: false, createdAt: "2026-10-01T06:00:00Z" },
+  { id: "n18", userId: "s12", postId: "p25", kind: "CHAT", href: "/chats/room?id=a10", text: "동네책방 소소에서 책 목록을 보냈어요.", read: false, createdAt: "2026-10-01T06:25:00Z" },
+  { id: "n19", userId: "s1", postId: "p12", kind: "MATCHED_POST", href: "/posts/detail?id=p12", text: "다정 약국의 복약 안내 리플릿 공고가 디자인 관심 분야와 가까워요.", distanceM: 980, read: true, createdAt: "2026-10-02T07:42:00Z" },
+  { id: "n20", userId: "r13", postId: "p12", kind: "APPLICATION", href: "/chats/room?id=a11", text: "김하늘 학생이 복약 안내 리플릿 공고에 지원했어요.", read: false, createdAt: "2026-10-02T09:20:00Z" },
+  { id: "n21", userId: "s2", postId: "p29", kind: "CHAT", href: "/chats/room?id=a12", text: "월계 커피에서 방문 가능한 시간을 물어봤어요.", read: false, createdAt: "2026-10-02T04:35:00Z" },
+  { id: "n22", userId: "r1", postId: "p29", kind: "APPLICATION", href: "/chats/room?id=a12", text: "박도윤 학생이 태블릿 주문 설정 공고에 지원했어요.", read: false, createdAt: "2026-10-02T04:10:00Z" },
 ];
 
 // ── 저장: 브라우저 localStorage (서버 연결 전 데모용). 새 구조라 키를 v2 로 올렸다 ──
-// 확장된 사용자·공고 시드가 기존 브라우저에도 보이도록 키를 올린다. v2 데이터는 삭제하지 않는다.
-const KEY = "wolgye-mock-v3";
+// 확장된 사용자·공고·상호작용 시드가 기존 브라우저에도 보이도록 키를 올린다. 이전 데이터는 삭제하지 않는다.
+const KEY = "wolgye-mock-v4";
 const fresh = (): wf.WorkflowDB => ({
   ...wf.emptyDB(),
   users: structuredClone(users), posts: structuredClone(posts), applications: structuredClone(applications),
