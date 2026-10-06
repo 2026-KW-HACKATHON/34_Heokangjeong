@@ -153,8 +153,17 @@ export default function ConnectionWorld({ children }: { children: ReactNode }) {
       element.style.setProperty("--header-counter", `${-headerSwing}deg`);
       if (Math.abs(distance - previousScroll) > .5 && !reduced) element.style.setProperty("--walker-facing", distance > previousScroll ? "1" : "-1");
       previousScroll = distance;
-      element.style.setProperty("--walker-x", `${10 + walk * 80}%`);
-      element.style.setProperty("--walker-trail", `${walk * 100}%`);
+      element.style.setProperty("--walker-x", `${20 + walk * 60}%`);
+      // Smooth Catmull-Rom curve across the category row.
+      const heights = [0, -7, 4, -6, 0];
+      const segment = Math.min(3, Math.floor(walk * 4));
+      const t = walk === 1 ? 1 : walk * 4 - segment;
+      const p0 = heights[Math.max(0, segment - 1)];
+      const p1 = heights[segment];
+      const p2 = heights[segment + 1];
+      const p3 = heights[Math.min(4, segment + 2)];
+      const curve = .5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+      element.style.setProperty("--walker-y", `${reduced ? 0 : curve}px`);
       element.style.setProperty("--walker-swing", `${swing}deg`);
       element.style.setProperty("--walker-counter", `${-swing}deg`);
       element.style.setProperty("--walker-knee-front", `${reduced ? 0 : Math.max(0, Math.sin(phase)) * 28}deg`);

@@ -1,15 +1,12 @@
 import { useConnectionMotion } from "./ConnectionWorld";
 /** Scroll-scrubbed illustration. Limbs advance with distance, not an autoplay loop. */
 export default function TalentWalker() {
+  return <div className="talent-walker" aria-hidden="true"><WalkingFigure /></div>;
+}
+
+export function TalentMotionToggle() {
   const { enabled, toggle } = useConnectionMotion();
-  return <div className="talent-walkway">
-    <button type="button" className="talent-motion-toggle" aria-pressed={enabled} onClick={toggle}>{enabled ? "걷기 효과 끄기" : "걷기 효과 켜기"}</button>
-    <span className="talent-walk-hint">{enabled ? "스크롤하면 함께 걸어요 ↓" : "걷기 효과가 꺼져 있어요"}</span>
-    <div className="talent-walk-rail" aria-hidden="true"><span className="talent-walk-trail" />{[0, 1, 2, 3, 4].map(n => <i key={n} />)}</div>
-    <div className="talent-walker" aria-hidden="true">
-      <WalkingFigure />
-    </div>
-  </div>;
+  return <button type="button" className="talent-motion-toggle" aria-pressed={enabled} onClick={toggle}>{enabled ? "걷기 효과 끄기" : "걷기 효과 켜기"}</button>;
 }
 
 export function WalkingFigure() {
