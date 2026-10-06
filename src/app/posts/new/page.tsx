@@ -10,6 +10,8 @@ import { draftPost, type PostDraft } from "@/lib/ai/draft";
 import { COMPENSATION_LABEL } from "@/lib/listing";
 import { DOMAINS, DOMAIN_KEYS, domainForCategory } from "@shared/portfolio/domains";
 import type { Category, CompensationType, DomainKey, RoleSlot } from "@/types";
+import { TIERS, MIN_TIER_REWARD, validateTierReward, type ApplicationTier } from "@shared/portfolio/policy";
+import { TierMark } from "@/components/TierCard";
 
 const CATS: Category[] = ["디자인", "영상", "사진", "SNS홍보", "웹/앱", "디지털도움", "기타"];
 
@@ -24,6 +26,7 @@ export default function NewPost() {
   const [memo, setMemo] = useState("");
   const [draft, setDraft] = useState<PostDraft | null>(null);
   const [drafting, setDrafting] = useState(false);
+  const [minimumTier, setMinimumTier] = useState<ApplicationTier>("SEED");
   const act = useAction();
   if (user?.role !== "resident") return <><TopBar title="공고 등록" back /><p className="sub p-6 text-center text-sm">주민·상인 계정으로 전환하면 공고를 등록할 수 있어요. (나 › 계정 전환)</p></>;
   const domain = l.domain ?? domainForCategory(f.category);
@@ -36,10 +39,11 @@ export default function NewPost() {
       if (f.isTeam && slots.some((s) => !(s.count >= 1))) throw new Error("팀 역할 인원은 1명 이상으로 적어 주세요");
       const paid = l.compensationType === "PAID" ? Number(l.paidAmount.replace(/,/g, "")) : undefined;
       if (l.compensationType === "PAID" && (!paid || paid <= 0)) throw new Error("유료 의뢰는 금액을 적어 주세요");
+      validateTierReward(minimumTier, l.compensationType, paid);
       const p = await repo.createPost({
         ...f, authorId: user!.id, location: user!.location ?? WOLGYE_CENTER, address: (user as { address?: string }).address ?? "월계1동", teamSlots: f.isTeam ? slots : undefined,
         problem: l.problem.trim(), domain, expectedDeliverables: l.deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria: l.completionCriteria.trim(),
-        deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: l.compensationType, compensationDescription: f.reward.trim(), paidAmount: paid,
+        deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: l.compensationType, compensationDescription: f.reward.trim(), paidAmount: paid, minimumTier,
       });
       router.replace(`/posts/detail?id=${p.id}`);
     });
@@ -89,12 +93,21 @@ export default function NewPost() {
             <Field label="마감일"><input type="date" className={inputCls} value={l.deadline} onChange={(e) => setL({ ...l, deadline: e.target.value })} /></Field>
             <Field label="보완 요청 횟수"><select className={inputCls} value={l.revisionLimit} onChange={(e) => setL({ ...l, revisionLimit: +e.target.value })}>{[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}번</option>)}</select></Field>
           </div>
+          <fieldset className="minimum-tier-picker">
+            <legend className="mb-2 text-sm font-semibold">최소 지원 등급</legend>
+            <div className="grid grid-cols-3 gap-2">{TIERS.map(t => <button key={t.key} type="button" aria-pressed={minimumTier === t.key} onClick={() => {
+              setMinimumTier(t.key);
+              if (MIN_TIER_REWARD[t.key] > 0) setL(prev => ({ ...prev, compensationType: "PAID", paidAmount: String(Math.max(Number(prev.paidAmount.replace(/,/g, "")) || 0, MIN_TIER_REWARD[t.key])) }));
+            }} className={`minimum-tier-option ${minimumTier === t.key ? "is-selected" : ""}`}><TierMark tier={t.key} size={24}/><strong>{t.label} 이상</strong><span>{MIN_TIER_REWARD[t.key] ? `${MIN_TIER_REWARD[t.key].toLocaleString()}원부터` : "보상 자유"}</span></button>)}</div>
+            <p className="sub mt-2 text-xs">높은 등급을 요청할수록 최소 사례비가 올라가요. 선택한 등급의 최소 금액이 자동 입력됩니다.</p>
+          </fieldset>
           <fieldset>
             <legend className="mb-1 text-sm font-semibold">보상</legend>
-            <div className="flex gap-2">{(Object.keys(COMPENSATION_LABEL) as CompensationType[]).map((c) => <button key={c} type="button" aria-pressed={l.compensationType === c} onClick={() => setL({ ...l, compensationType: c })} className={`chip ${l.compensationType === c ? "chip-on" : ""}`}>{COMPENSATION_LABEL[c]}</button>)}</div>
+            <div className="flex gap-2">{(Object.keys(COMPENSATION_LABEL) as CompensationType[]).map((c) => <button key={c} type="button" disabled={minimumTier !== "SEED" && c !== "PAID"} aria-pressed={l.compensationType === c} onClick={() => setL({ ...l, compensationType: c })} className={`chip disabled:opacity-40 ${l.compensationType === c ? "chip-on" : ""}`}>{COMPENSATION_LABEL[c]}</button>)}</div>
             {l.compensationType !== "VOLUNTEER" && <input className={`${inputCls} mt-2`} aria-label="보상 내용" placeholder={l.compensationType === "PAID" ? "보상 설명 (선택)" : "예: 식사권 5장, 음료 쿠폰"} value={f.reward} onChange={(e) => setF({ ...f, reward: e.target.value })} />}
             {l.compensationType === "PAID" && <input inputMode="numeric" className={`${inputCls} mt-2`} aria-label="금액(원)" placeholder="금액(원)" value={l.paidAmount} onChange={(e) => setL({ ...l, paidAmount: e.target.value })} />}
             {l.compensationType === "PAID" && <p className="sub mt-1 text-xs">유료 의뢰는 검증된 프로젝트 경험이 있는 학생만 지원할 수 있어요.</p>}
+            {minimumTier !== "SEED" && <p className="mt-2 text-xs" role="status">최소 사례비 {MIN_TIER_REWARD[minimumTier].toLocaleString()}원 · 데모 운영 기준{f.isTeam ? " (공고 전체 금액)" : ""}</p>}
           </fieldset>
           <Field label="포트폴리오 기록 방식" hint="학생이 이 분야의 질문에 답하며 과정을 기록해요.">
             <select className={inputCls} value={domain} onChange={(e) => setL({ ...l, domain: e.target.value as DomainKey })}>{DOMAIN_KEYS.map((k) => <option key={k} value={k}>{DOMAINS[k].label}</option>)}</select>

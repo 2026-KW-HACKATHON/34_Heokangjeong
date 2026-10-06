@@ -14,6 +14,8 @@ import { listingOf } from "../listing";
 import { sourceFromBundle } from "../portfolio/source";
 import { sanitizeContent } from "../workflow/engine";
 import { summarizeTrust } from "../trust";
+import { publicationFromSource } from "../portfolio/publication";
+import { validateTierReward } from "@shared/portfolio/policy";
 
 // ── DB 행(snake_case) ↔ 도메인 타입(camelCase) 변환 ────────────────────────────
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -33,7 +35,7 @@ const toPost = (r: Row): Post => ({
   createdAt: r.created_at,
   problem: r.problem ?? "", domain: u(r.domain), expectedDeliverables: r.expected_deliverables ?? [], completionCriteria: r.completion_criteria ?? "",
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
-  compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount),
+  compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount), minimumTier: r.minimum_tier ?? "SEED",
 });
 const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
 const toMsg = (r: Row): ChatMessage => ({ id: r.id, applicationId: r.application_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
@@ -120,12 +122,13 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async listPosts() { return (await postsWithRoles()).map(toPost); },
     async getPost(id) { const r = await postWithRoles(id); return r ? toPost(r) : undefined; },
     async createPost(p) {
+      validateTierReward(p.minimumTier ?? "SEED", p.compensationType ?? "VOLUNTEER", p.paidAmount);
       const r = ok(await db.from("posts").insert({
         title: p.title, category: p.category, description: p.description, author_id: p.authorId, lat: p.location.lat, lng: p.location.lng,
         address: p.address, reward: p.reward || null, duration_days: p.durationDays, difficulty: p.difficulty, is_team: p.isTeam, team_slots: p.teamSlots ?? null,
         problem: p.problem ?? "", domain: p.domain ?? null, expected_deliverables: p.expectedDeliverables ?? [], completion_criteria: p.completionCriteria ?? "",
         deadline: p.deadline || null, revision_limit: p.revisionLimit ?? 2, compensation_type: p.compensationType ?? "VOLUNTEER",
-        compensation_description: p.compensationDescription ?? "", paid_amount: p.compensationType === "PAID" ? p.paidAmount ?? null : null,
+        compensation_description: p.compensationDescription ?? "", paid_amount: p.compensationType === "PAID" ? p.paidAmount ?? null : null, minimum_tier: p.minimumTier ?? "SEED",
       }).select().single());
       if (p.isTeam && p.teamSlots?.length) {
         done(await db.from("post_roles").insert(p.teamSlots.map((slot, index) => ({
@@ -181,6 +184,22 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         id: r.id, studentId: r.student_id, postId: r.post_id, title: r.title, roleLabel: r.role_label, tasks: r.tasks, durationDays: r.duration_days, rating: r.rating, verified: r.verified,
       }));
     },
+    async listPublishedPortfolio(studentId) {
+      return ok(await db.from("portfolio_publications").select("*").eq("student_id", studentId).order("published_at", { ascending: false })).map((r: Row) => ({
+        studentId: r.student_id, sourceId: r.source_id, sourceKind: r.source_kind, title: r.title, summary: r.summary, category: r.category, sections: r.sections, publishedAt: r.published_at,
+      }));
+    },
+    async publishPortfolio(studentId, sourceId, sourceKind) {
+      const { data, error } = await db.auth.getUser();
+      if (error || data.user?.id !== studentId) throw new Error("본인의 포트폴리오만 공개할 수 있어요.");
+      const p = await publicationFromSource(repo, studentId, sourceId, sourceKind);
+      done(await db.from("portfolio_publications").upsert({ student_id: studentId, source_id: sourceId, source_kind: sourceKind, title: p.title, summary: p.summary, category: p.category, sections: p.sections, published_at: p.publishedAt }, { onConflict: "student_id,source_kind,source_id" }));
+    },
+    async unpublishPortfolio(studentId, sourceId, sourceKind) {
+      const { data, error } = await db.auth.getUser();
+      if (error || data.user?.id !== studentId) throw new Error("본인의 공개 설정만 변경할 수 있어요.");
+      done(await db.from("portfolio_publications").delete().eq("student_id", studentId).eq("source_id", sourceId).eq("source_kind", sourceKind));
+    },
     async listNotifications(userId) {
       return ok(await db.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false })).map(toNotification);
     },
@@ -192,6 +211,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return () => { db.removeChannel(ch); };
     },
     async ranking(kind) {
+      if (kind === "individual") return ok(await db.rpc("personal_rankings")).map((r: Row) => ({ id: r.student_id, label: r.label, sub: r.department, score: r.score, solved: r.solved }));
       // mock 과 같은 임시 공식: 해결 수×10 + 평가 평균×4 + 난이도 합×3
       const [users, cards, posts] = await Promise.all([repo.listUsers(), db.from("portfolio_cards").select("*").then(ok), repo.listPosts()]);
       const rows: RankRow[] = users.filter((u) => u.role === "student").map((s) => {
@@ -209,6 +229,10 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return rows.sort((a, b) => b.score - a.score);
     },
 
+    async personalRanking(studentId) {
+      const rows = ok(await db.rpc("personal_rankings", { p_student: studentId }));
+      return { current: rows[0]?.current_rank ?? null, best: rows[0]?.best_rank ?? null };
+    },
     // ── 검증형 포트폴리오 파이프라인 (규칙은 DB 함수가 강제: supabase/migrations/0005) ──────
     async selectApplicant(applicationId) {
       const app = await repo.getApplication(applicationId);

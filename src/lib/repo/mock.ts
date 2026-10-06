@@ -6,6 +6,10 @@ import { templateDraft } from "@shared/portfolio/narrative";
 import { summarizeTrust } from "../trust";
 import { fileToDataUrl } from "../files";
 import { domainForCategory } from "@shared/portfolio/domains";
+import type { PublishedPortfolio } from "@/types";
+import { publicationFromSource } from "../portfolio/publication";
+import { individualRanking, rememberBestRanks } from "../ranking";
+import { validateTierReward } from "@shared/portfolio/policy";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
 const users: User[] = [
@@ -18,6 +22,7 @@ const users: User[] = [
   { id: "r3", role: "resident", name: "동네책방 소소", kind: "상인", location: { lat: 37.6285, lng: 127.0580 }, address: "석계로 7" },
   { id: "r4", role: "resident", name: "정순자 님", kind: "주민", location: { lat: 37.6238, lng: 127.0632 }, address: "월계1동 주민센터 인근" },
   { id: "r5", role: "resident", name: "삼거리 정육점", kind: "상인", location: { lat: 37.6302, lng: 127.0622 }, address: "월계로 60" },
+  { id: "s5", role: "student", name: "한유진", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 } },
 ];
 
 const posts: Post[] = [
@@ -68,11 +73,13 @@ const fresh = (): wf.WorkflowDB => ({
 let db: wf.WorkflowDB = fresh();
 let msgs: ChatMessage[] = structuredClone(messages);
 let demoNotifications: Notification[] = structuredClone(seedNotifications);
+let publications: PublishedPortfolio[] = [];
+let bestRanks: Record<string, number> = {};
 function load() {
   if (typeof window === "undefined") return;
   try {
     const s = localStorage.getItem(KEY);
-    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; }
+    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; publications = d.publications ?? []; bestRanks = d.bestRanks ?? {}; }
     else {
       const legacy = localStorage.getItem("wolgye-mock-v1");
       if (legacy) {
@@ -86,8 +93,9 @@ function load() {
   } catch {}
 }
 function save() {
-  if (typeof window === "undefined") return;
-  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications })); }
+  const nextBest = rememberBestRanks(individualRanking(db.users, db.legacyCards, db.posts), bestRanks);
+  if (typeof window === "undefined") { bestRanks = nextBest; return; }
+  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications, publications, bestRanks: nextBest })); bestRanks = nextBest; }
   catch { throw new Error("브라우저 저장 공간이 가득 찼어요. 나 › 데모 데이터 초기화 후 다시 시도해 주세요"); }
 }
 let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; } };
@@ -125,6 +133,7 @@ export const mockRepo: Repo = {
   async listPosts() { ensure(); return wait([...db.posts].map(withRoleIds).sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },
   async getPost(id) { ensure(); const post = db.posts.find((p) => p.id === id); return wait(post ? withRoleIds(post) : undefined); },
   async createPost(p) { return tx(() => {
+    validateTierReward(p.minimumTier ?? "SEED", p.compensationType ?? "VOLUNTEER", p.paidAmount);
     const post = withRoleIds({ ...p, id: `p${Date.now()}`, status: "open", createdAt: new Date().toISOString() }); db.posts.unshift(post);
     for (const student of users.filter((u): u is Extract<User, { role: "student" }> => u.role === "student" && u.interests.includes(post.category))) {
       const distance = distanceM(student.location, post.location);
@@ -165,20 +174,27 @@ export const mockRepo: Repo = {
   onMessage(applicationId, cb) { const l = (m: ChatMessage) => { if (m.applicationId === applicationId) cb(m); }; listeners.add(l); return () => { listeners.delete(l); }; },
   async listReviews(studentId) { ensure(); return wait(db.legacyReviews.filter((r) => !studentId || r.studentId === studentId)); },
   async listPortfolio(studentId) { ensure(); return wait(db.legacyCards.filter((c) => c.studentId === studentId)); },
+  async listPublishedPortfolio(studentId) { ensure(); return wait(publications.filter(p => p.studentId === studentId)); },
+  async publishPortfolio(studentId, sourceId, sourceKind) {
+    ensure();
+    const item = await publicationFromSource(mockRepo, studentId, sourceId, sourceKind);
+    const previous = publications;
+    publications = [item, ...publications.filter(p => !(p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind))];
+    try { save(); } catch (e) { publications = previous; throw e; }
+  },
+  async unpublishPortfolio(studentId, sourceId, sourceKind) {
+    ensure(); const previous = publications;
+    publications = publications.filter(p => !(p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind));
+    try { save(); } catch (e) { publications = previous; throw e; }
+  },
   async listNotifications(userId) { ensure(); return wait(demoNotifications.filter((n) => n.userId === userId)); },
   async markNotificationRead(id, userId) { ensure(); const notification = demoNotifications.find((n) => n.id === id && n.userId === userId); if (notification) notification.read = true; save(); },
   onNotification(userId, cb) { const listener = (n: Notification) => { if (n.userId === userId) cb(n); }; notificationListeners.add(listener); return () => { notificationListeners.delete(listener); }; },
   async ranking(kind) {
     ensure();
     // 지역 기여 점수 = 해결 수×10 + 평가 평균×4 + 난이도 합×3 (임시 공식, 나중에 조정)
-    const students = users.filter((u): u is Extract<User, { role: "student" }> => u.role === "student");
-    const rows: RankRow[] = students.map((s) => {
-      const cards = db.legacyCards.filter((c) => c.studentId === s.id);
-      const solvedPosts = cards.map((c) => db.posts.find((p) => p.id === c.postId)).filter(Boolean) as Post[];
-      const avg = cards.length ? cards.reduce((a, c) => a + c.rating, 0) / cards.length : 0;
-      const diff = solvedPosts.reduce((a, p) => a + p.difficulty, 0);
-      return { id: s.id, label: s.name, sub: s.department, solved: cards.length, score: cards.length * 10 + Math.round(avg * 4) + diff * 3 };
-    });
+    const rows = individualRanking(db.users, db.legacyCards, db.posts);
+    save();
     if (kind === "individual") return wait(rows.sort((a, b) => b.score - a.score));
     if (kind === "department") {
       const by: Record<string, RankRow> = {};
@@ -188,6 +204,11 @@ export const mockRepo: Repo = {
     return wait([{ id: "t1", label: "정육점 디지털 개선팀", sub: "디자인·영상·개발", score: 0, solved: 0 }]);
   },
 
+  async personalRanking(studentId) {
+    const rows = await mockRepo.ranking("individual");
+    const index = rows.findIndex(r => r.id === studentId);
+    return { current: index < 0 ? null : index + 1, best: index < 0 ? null : bestRanks[studentId] ?? index + 1 };
+  },
   // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
   async selectApplicant(applicationId, actorId) { return tx(() => { const project = wf.selectApplicant(db, { applicationId, actorId }); const application = db.applications.find((a) => a.id === applicationId)!; const post = db.posts.find((p) => p.id === application.postId)!; pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_ACCEPTED", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 프로젝트에 선정됐어요.` }); return project; }); },
   async startTeamProject(projectId, actorId, leaderId) { return tx(() => { const project = wf.startTeamProject(db, { projectId, actorId, leaderId }); const post = db.posts.find((p) => p.id === project.postId)!; for (const member of db.members.filter((m) => m.projectId === projectId)) pushNotification({ userId: member.studentId, postId: post.id, kind: "PROJECT_STARTED", href: `/projects/detail?id=${projectId}`, text: `'${post.title}' 팀 프로젝트가 시작됐어요.` }); return project; }); },
@@ -234,7 +255,7 @@ export const mockRepo: Repo = {
     const projectIds = new Set(events.map((e) => e.projectId));
     return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId)));
   },
-  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); loaded = true; save(); },
+  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; bestRanks = {}; loaded = true; save(); },
 };
 
 export { distanceM };

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
+import PersonalRankCard from "@/components/PersonalRankCard";
 import { useSession } from "@/lib/session";
 import { useEffect, useState } from "react";
 import { repo } from "@/lib/repo";
@@ -30,6 +31,7 @@ export default function Me() {
     <>
       <TopBar title="나의 작업실" />
       <section className="flex flex-col gap-5 px-5 pb-6">
+        {user?.role === "student" && <PersonalRankCard key={user.id} studentId={user.id} />}
         <div className="py-4"><div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--primary-weak)] text-[var(--primary)]"><Icon name="user" width={32} height={32} /></div><h2 className="page-title">{user?.name ?? "나의 프로필"}</h2><p className="sub mt-2 text-sm">{user?.role === "student" ? user.department : user?.role === "resident" ? user.kind : ""}</p><p className="sub mt-4 text-sm">이웃과 함께 만든 경험을 차곡차곡.</p></div>
         {mode === "mock" && <div className="card">
           <p className="sub text-xs">지금 보는 계정</p>
@@ -56,7 +58,7 @@ export default function Me() {
           <div className="mb-4 flex items-center justify-between"><h3 className="text-xl font-bold">내가 남긴 결과물</h3><Link className="inline-flex min-h-11 items-center text-sm text-[var(--primary)]" href="/portfolio">전체 보기</Link></div>
           {loading ? <p role="status" className="card sub text-sm">작업 기록을 불러오는 중이에요.</p> : error ? <p role="alert" className="card text-sm">작업 기록을 불러오지 못했어요. 새로고침해 주세요.</p> : works.length === 0 ? <div className="card py-8 text-center"><Icon name="folder" className="mx-auto mb-4 text-[var(--primary)]" width={32} height={32} /><p className="font-semibold">아직 등록된 작업물이 없어요</p><p className="sub mt-2 text-sm">저장된 포트폴리오를 여기에서 모아 볼 수 있어요.</p><Link href="/" className="btn btn-primary mt-5 text-sm">참여할 공고 찾기</Link></div> : <div className="grid grid-cols-2 gap-x-4 gap-y-6">{works.map((work) => <Link key={work.id} href="/portfolio" className="min-w-0"><div className="work-cover mb-3 flex-col gap-3"><Icon name="folder" width={36} height={36} /><span className="text-xs">대표 이미지 없음</span></div><h4 className="line-clamp-2 text-sm font-semibold">{work.title}</h4><p className="sub mt-1 text-xs">{work.roleLabel}</p>{work.verified && <p className="mt-2 text-xs text-[var(--primary)]">✓ 완료 인증</p>}</Link>)}</div>}
         </section>}
-        {trust && <section className="card text-sm"><h3 className="font-bold">협업 온도 · 등급</h3><p className="mt-3">{trust.tier.label} · 온도 {trust.temperature.toFixed(1)}° · 완료 {trust.verifiedCount}건</p><p className="sub mt-2">점주 평가가 온도와 다음 등급에 반영돼요.</p><div className="mt-3 flex flex-wrap gap-2">{trust.badges.map(b => <span key={b.code} className="silver-badge text-xs">{b.label}</span>)}</div><Link href="/projects" className="mt-3 inline-block underline">프로젝트 기록 보기</Link></section>}
+        {trust && <section className="card text-sm"><h3 className="font-bold">협업 기록</h3><p className="mt-3">협업 온도 {trust.temperature.toFixed(1)}° · 완료 {trust.verifiedCount}건</p><p className="sub mt-2">점주 평가가 협업 온도에 반영돼요. 지원 등급은 상단에서 확인할 수 있어요.</p><div className="mt-3 flex flex-wrap gap-2">{trust.badges.map(b => <span key={b.code} className="silver-badge text-xs">{b.label}</span>)}</div><Link href="/projects" className="mt-3 inline-block underline">프로젝트 기록 보기</Link></section>}
         <ul className="card flex flex-col divide-y divide-[var(--line)] p-0 text-[15px]">
           <li><Link href="/projects" className="flex min-h-14 items-center justify-between px-4 py-3.5"><span className="inline-flex items-center gap-3"><Icon name="folder" width={19} height={19} />내 진행 프로젝트</span><Icon name="arrow" width={16} height={16} /></Link></li>
           {([["/portfolio", "내 포트폴리오", "folder"], ["/chats", "채팅", "chat"]] as [string, string, IconName][]).map(([h, l, icon]) => (

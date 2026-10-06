@@ -8,7 +8,8 @@ import type {
 import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
 import { sourceHash } from "@shared/portfolio/snapshot";
-import { MIN_VERIFIED_FOR_PAID, POINTS } from "@shared/portfolio/policy";
+import { MIN_VERIFIED_FOR_PAID, POINTS, applicationTierFor, meetsApplicationTier, temperatureFor, TIERS } from "@shared/portfolio/policy";
+import { individualRanking } from "../ranking";
 import { listingOf } from "../listing";
 import { sourceFromBundle } from "../portfolio/source";
 export { roleLabelOf } from "../portfolio/source";
@@ -107,6 +108,14 @@ export function apply(db: WorkflowDB, a: { postId: string; studentId: string; me
   const role = post.teamSlots?.find((slot) => slot.id === a.roleId);
   if (post.isTeam && !role) fail("ROLE_REQUIRED", "지원할 역할을 선택해 주세요");
   if (!post.isTeam && a.roleId) fail("INVALID_ROLE", "개인 프로젝트에는 역할을 선택할 수 없어요");
+  const required = post.minimumTier ?? "SEED";
+  if (required !== "SEED") {
+    const position = individualRanking(db.users, db.legacyCards, db.posts).findIndex(r => r.id === a.studentId);
+    const projectIds = new Set(db.tierEvents.filter(e => e.studentId === a.studentId).map(e => e.projectId));
+    const temperature = temperatureFor(db.reviews.filter(r => projectIds.has(r.projectId)), db.peerReviews.filter(r => r.revieweeId === a.studentId));
+    const actual = applicationTierFor(temperature, position < 0 ? null : position + 1);
+    if (!meetsApplicationTier(actual.key, required)) fail("TIER_NOT_ELIGIBLE", `${TIERS.find(t => t.key === required)?.label} 등급 이상부터 지원할 수 있어요.`);
+  }
   if (listingOf(post).compensationType === "PAID" && verifiedCount(db, a.studentId) < MIN_VERIFIED_FOR_PAID)
     fail("PAID_NOT_ELIGIBLE", `유료 의뢰는 검증된 프로젝트가 ${MIN_VERIFIED_FOR_PAID}개 이상일 때 지원할 수 있어요`);
   const app: Application = { id: ctx.id(), postId: a.postId, studentId: a.studentId, message: a.message, roleId: a.roleId, status: "pending", createdAt: ctx.now() };

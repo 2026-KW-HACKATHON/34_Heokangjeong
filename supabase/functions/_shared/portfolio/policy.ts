@@ -12,6 +12,23 @@ export const TIERS = [
 ] as const;
 export const MIN_VERIFIED_FOR_PAID = 1;
 
+export type ApplicationTier = "SEED" | "TRUST" | "RECOMMENDED";
+/** Demo reward floors per listing, not market rates. */
+export const MIN_TIER_REWARD: Record<ApplicationTier, number> = { SEED: 0, TRUST: 30000, RECOMMENDED: 50000 };
+export function applicationTierFor(temperature: number, rank: number | null) {
+  return rank !== null && rank > 0 && rank <= 5 ? TIERS[2] : tierForTemperature(temperature);
+}
+export function meetsApplicationTier(actual: ApplicationTier, required: ApplicationTier) {
+  return TIERS.findIndex(t => t.key === actual) >= TIERS.findIndex(t => t.key === required);
+}
+export function validateTierReward(tier: ApplicationTier, compensation: string, amount?: number) {
+  if (!(tier in MIN_TIER_REWARD)) throw new Error("최소 지원 등급을 확인해 주세요.");
+  const floor = MIN_TIER_REWARD[tier];
+  if (floor > 0 && (compensation !== "PAID" || !Number.isFinite(amount) || !Number.isInteger(amount) || amount! < floor)) {
+    throw new Error(`${TIERS.find(t => t.key === tier)!.label} 이상 공고는 사례비 ${floor.toLocaleString()}원 이상이 필요해요.`);
+  }
+}
+
 /** 승인 시 한 번만 지급되는 점수 (학생·프로젝트·종류별 유일). SQL approve_version 과 같은 값 */
 export const POINTS = {
   projectVerified: (difficulty: number) => 10 + difficulty * 3,

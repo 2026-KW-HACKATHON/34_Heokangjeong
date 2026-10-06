@@ -75,6 +75,7 @@ export interface Post {
   compensationType?: CompensationType;
   compensationDescription?: string;
   paidAmount?: number;               // PAID 일 때 원
+  minimumTier?: "SEED" | "TRUST" | "RECOMMENDED";
 }
 
 export interface Application {
@@ -120,6 +121,18 @@ export interface Notification {
 }
 
 export interface RankRow { id: string; label: string; sub: string; score: number; solved: number }
+export interface PersonalRanking { current: number | null; best: number | null }
+
+export interface PublishedPortfolio {
+  studentId: string;
+  sourceId: string;
+  sourceKind: "project" | "card";
+  title: string;
+  summary: string;
+  category: string;
+  sections: { title: string; body: string }[];
+  publishedAt: string;
+}
 
 export interface ChatMessage {           // 채팅 메시지. 채팅방 = 지원서 하나 (공고 작성자 ↔ 지원 학생)
   id: string;

@@ -1,6 +1,6 @@
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
-  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, RankRow, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims,
+  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, RankRow, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims,
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
 
@@ -33,10 +33,14 @@ export interface Repo {
   onMessage(applicationId: string, cb: (m: ChatMessage) => void): () => void; // 새 메시지 구독, 반환값으로 해제
   listReviews(studentId?: string): Promise<Review[]>;
   listPortfolio(studentId: string): Promise<PortfolioCard[]>;
+  listPublishedPortfolio(studentId: string): Promise<PublishedPortfolio[]>;
+  publishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"]): Promise<void>;
+  unpublishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"]): Promise<void>;
   listNotifications(userId: string): Promise<Notification[]>;
   markNotificationRead(id: string, userId: string): Promise<void>;
   onNotification(userId: string, cb: (notification: Notification) => void): () => void;
   ranking(kind: "individual" | "team" | "department"): Promise<RankRow[]>;
+  personalRanking(studentId: string): Promise<import("@/types").PersonalRanking>;
 
   // ── 검증형 포트폴리오 파이프라인 ───────────────────────────────────────────
   /** 점주가 지원자를 선정 → 프로젝트 생성(또는 팀원 추가) */
