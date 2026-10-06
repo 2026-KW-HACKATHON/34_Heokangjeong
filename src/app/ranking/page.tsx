@@ -13,7 +13,7 @@ const MEDAL = ["🥇", "🥈", "🥉"];
 export default function Ranking() {
   const [kind, setKind] = useState<(typeof KINDS)[number][0]>("individual");
   const [rows, setRows] = useState<RankRow[]>([]);
-  const { user } = useSession();
+  const { user, loading: sessionLoading, mode } = useSession();
   const [trustState, setTrustState] = useState<{ userId: string; value: TrustSummary } | null>(null);
   const [tierError, setTierError] = useState("");
   const [error, setError] = useState("");
@@ -22,7 +22,7 @@ export default function Ranking() {
   useEffect(() => {
     let active = true;
     setTierError("");
-    if (!user) return;
+    if (!user || user.role !== "student") { setTrustState(null); return; }
     repo.trustSummary(user.id).then(value => { if (active) setTrustState({ userId: user.id, value }); }).catch(() => { if (active) setTierError("내 티어를 불러오지 못했어요. 잠시 후 다시 열어 주세요."); });
     return () => { active = false; };
   }, [user]);
@@ -36,7 +36,13 @@ export default function Ranking() {
     <>
       <TopBar title="랭킹" />
       <section className="px-4">
-        {trust ? <TierCard trust={trust} /> : <p role="status" className="card mb-8 text-sm">{tierError || (user ? "내 티어를 불러오는 중…" : "로그인하면 내 티어를 확인할 수 있어요.")}</p>}
+        {user?.role === "student"
+          ? trust ? <TierCard trust={trust} /> : <p role="status" className="card mb-8 text-sm">{tierError || "내 등급을 불러오는 중…"}</p>
+          : <p role="status" className="card mb-8 text-sm">{sessionLoading
+            ? "사용자 정보를 불러오는 중…"
+            : user?.role === "resident"
+              ? "개인 등급은 학생 활동에 제공돼요. 지역 기여 랭킹은 아래에서 확인할 수 있어요."
+              : mode === "mock" ? "데모 사용자를 불러오지 못했어요." : "로그인하면 내 등급을 확인할 수 있어요."}</p>}
         <h2 className="mb-2 text-xl font-bold tracking-tight">지역 기여 랭킹</h2>
         <p className="sub mb-5 text-sm">우리 동네에 변화를 만든 이웃들이에요.</p>
         <div className="mb-3 flex gap-2">{KINDS.map(([k, l]) => <button key={k} onClick={() => setKind(k)} className={`chip ${kind === k ? "chip-on" : ""}`}>{l}</button>)}</div>
