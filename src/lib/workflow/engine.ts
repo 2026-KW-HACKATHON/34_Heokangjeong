@@ -148,7 +148,12 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   });
   if (role) { role.filled.push(app.studentId); role.filledCount = role.filled.length; }
   app.status = "accepted";
-  if (!post.isTeam) post.status = "in_progress";
+  if (!post.isTeam) {
+    post.status = "in_progress";
+    db.applications
+      .filter((candidate) => candidate.postId === post.id && candidate.id !== app.id && candidate.status === "pending")
+      .forEach((candidate) => { candidate.status = "rejected"; });
+  }
   return project;
 }
 

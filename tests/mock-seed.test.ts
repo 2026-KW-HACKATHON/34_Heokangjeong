@@ -49,6 +49,10 @@ describe("mock demo seed", () => {
       expect(application).toBeDefined();
       expect([application!.studentId, post!.authorId]).toContain(message.senderId);
     }
+
+    const comparisonScenario = applications.filter((application) => application.postId === "p10");
+    expect(comparisonScenario).toHaveLength(4);
+    expect(comparisonScenario.every((application) => messages.some((message) => message.applicationId === application.id))).toBe(true);
   });
 
   it("provides actionable notifications for students and clients", () => {

@@ -88,6 +88,9 @@ export const applications: Application[] = [
   { id: "a10", postId: "p25", studentId: "s12", message: "책 소개 글과 카드뉴스 문구를 자연스럽게 다듬을 수 있어요.", status: "pending", createdAt: "2026-10-01T06:00:00Z" },
   { id: "a11", postId: "p12", studentId: "s1", message: "큰 글씨와 명확한 색상 체계로 읽기 쉬운 리플릿을 제안할게요.", status: "pending", createdAt: "2026-10-02T09:20:00Z" },
   { id: "a12", postId: "p29", studentId: "s2", message: "태블릿과 주문 프린터 연결을 점검하고 사용 설명도 남기겠습니다.", status: "pending", createdAt: "2026-10-02T04:10:00Z" },
+  { id: "a13", postId: "p10", studentId: "s1", message: "정보가 많은 가격표를 읽기 쉽게 정리한 경험이 있어요. 인쇄 파일까지 전달하겠습니다.", status: "pending", createdAt: "2026-10-04T11:08:00Z" },
+  { id: "a14", postId: "p10", studentId: "s10", message: "고객이 자주 찾는 시술을 먼저 보여주는 구성과 문구를 제안드릴게요.", status: "pending", createdAt: "2026-10-04T11:12:00Z" },
+  { id: "a15", postId: "p10", studentId: "s11", message: "모바일 시안으로 먼저 확인받고 인쇄용 디자인으로 마무리할 수 있습니다.", status: "pending", createdAt: "2026-10-04T11:16:00Z" },
 ];
 
 export const messages: ChatMessage[] = [
@@ -116,6 +119,12 @@ export const messages: ChatMessage[] = [
   { id: "m23", applicationId: "a11", senderId: "r13", body: "네, 식전·식후 구분과 졸림 주의를 가장 크게 보여주세요.", createdAt: "2026-10-02T09:50:00Z" },
   { id: "m24", applicationId: "a12", senderId: "s2", body: "태블릿과 프린터 모델 사진을 부탁드려요.", createdAt: "2026-10-02T04:12:00Z" },
   { id: "m25", applicationId: "a12", senderId: "r1", body: "사진 보냈습니다. 점심 이후 방문 가능하신가요?", createdAt: "2026-10-02T04:35:00Z" },
+  { id: "m26", applicationId: "a13", senderId: "s1", body: "가격표 크기와 인쇄 예정 수량을 알려주실 수 있을까요?", createdAt: "2026-10-04T11:10:00Z" },
+  { id: "m27", applicationId: "a13", senderId: "r7", body: "A2 크기로 두 장 인쇄할 예정이에요.", createdAt: "2026-10-04T11:27:00Z" },
+  { id: "m28", applicationId: "a14", senderId: "s10", body: "손님들이 가장 많이 묻는 시술 세 가지가 무엇인지 궁금해요.", createdAt: "2026-10-04T11:14:00Z" },
+  { id: "m29", applicationId: "a14", senderId: "r7", body: "커트, 뿌리 염색, 클리닉 가격을 가장 많이 물어봐요.", createdAt: "2026-10-04T11:31:00Z" },
+  { id: "m30", applicationId: "a15", senderId: "s11", body: "기존 로고 파일과 선호하는 색상이 있나요?", createdAt: "2026-10-04T11:18:00Z" },
+  { id: "m31", applicationId: "a15", senderId: "r7", body: "로고는 없고 매장에 있는 연두색을 살리고 싶어요.", createdAt: "2026-10-04T11:34:00Z" },
 ];
 
 const reviews: Review[] = [
@@ -151,11 +160,17 @@ export const seedNotifications: Notification[] = [
   { id: "n20", userId: "r13", postId: "p12", kind: "APPLICATION", href: "/chats/room?id=a11", text: "김하늘 학생이 복약 안내 리플릿 공고에 지원했어요.", read: false, createdAt: "2026-10-02T09:20:00Z" },
   { id: "n21", userId: "s2", postId: "p29", kind: "CHAT", href: "/chats/room?id=a12", text: "월계 커피에서 방문 가능한 시간을 물어봤어요.", read: false, createdAt: "2026-10-02T04:35:00Z" },
   { id: "n22", userId: "r1", postId: "p29", kind: "APPLICATION", href: "/chats/room?id=a12", text: "박도윤 학생이 태블릿 주문 설정 공고에 지원했어요.", read: false, createdAt: "2026-10-02T04:10:00Z" },
+  { id: "n23", userId: "r7", postId: "p10", kind: "APPLICATION", href: "/chats/room?id=a13", text: "김하늘 학생이 가격표 디자인 공고에 지원했어요.", read: false, createdAt: "2026-10-04T11:08:00Z" },
+  { id: "n24", userId: "s1", postId: "p10", kind: "CHAT", href: "/chats/room?id=a13", text: "월계 미용실에서 인쇄 크기를 알려줬어요.", read: false, createdAt: "2026-10-04T11:27:00Z" },
+  { id: "n25", userId: "r7", postId: "p10", kind: "APPLICATION", href: "/chats/room?id=a14", text: "배수아 학생이 가격표 디자인 공고에 지원했어요.", read: false, createdAt: "2026-10-04T11:12:00Z" },
+  { id: "n26", userId: "s10", postId: "p10", kind: "CHAT", href: "/chats/room?id=a14", text: "월계 미용실에서 자주 묻는 시술 정보를 보냈어요.", read: false, createdAt: "2026-10-04T11:31:00Z" },
+  { id: "n27", userId: "r7", postId: "p10", kind: "APPLICATION", href: "/chats/room?id=a15", text: "임태현 학생이 가격표 디자인 공고에 지원했어요.", read: false, createdAt: "2026-10-04T11:16:00Z" },
+  { id: "n28", userId: "s11", postId: "p10", kind: "CHAT", href: "/chats/room?id=a15", text: "월계 미용실에서 선호 색상을 알려줬어요.", read: false, createdAt: "2026-10-04T11:34:00Z" },
 ];
 
 // ── 저장: 브라우저 localStorage (서버 연결 전 데모용). 새 구조라 키를 v2 로 올렸다 ──
 // 확장된 사용자·공고·상호작용 시드가 기존 브라우저에도 보이도록 키를 올린다. 이전 데이터는 삭제하지 않는다.
-const KEY = "wolgye-mock-v4";
+const KEY = "wolgye-mock-v5";
 const fresh = (): wf.WorkflowDB => ({
   ...wf.emptyDB(),
   users: structuredClone(users), posts: structuredClone(posts), applications: structuredClone(applications),
@@ -285,7 +300,15 @@ export const mockRepo: Repo = {
   },
 
   // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
-  async selectApplicant(applicationId, actorId) { return tx(() => { const project = wf.selectApplicant(db, { applicationId, actorId }); const application = db.applications.find((a) => a.id === applicationId)!; const post = db.posts.find((p) => p.id === application.postId)!; pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_ACCEPTED", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 프로젝트에 선정됐어요.` }); return project; }); },
+  async selectApplicant(applicationId, actorId) { return tx(() => {
+    const application = db.applications.find((a) => a.id === applicationId)!;
+    const post = db.posts.find((p) => p.id === application.postId)!;
+    const rejected = post.isTeam ? [] : db.applications.filter((candidate) => candidate.postId === post.id && candidate.id !== applicationId && candidate.status === "pending");
+    const project = wf.selectApplicant(db, { applicationId, actorId });
+    pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_ACCEPTED", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 프로젝트에 선정됐어요.` });
+    for (const candidate of rejected) pushNotification({ userId: candidate.studentId, postId: post.id, kind: "APPLICATION_REJECTED", href: `/posts/detail?id=${post.id}`, text: `'${post.title}' 지원 결과를 확인해 주세요.` });
+    return project;
+  }); },
   async startTeamProject(projectId, actorId, leaderId) { return tx(() => { const project = wf.startTeamProject(db, { projectId, actorId, leaderId }); const post = db.posts.find((p) => p.id === project.postId)!; for (const member of db.members.filter((m) => m.projectId === projectId)) pushNotification({ userId: member.studentId, postId: post.id, kind: "PROJECT_STARTED", href: `/projects/detail?id=${projectId}`, text: `'${post.title}' 팀 프로젝트가 시작됐어요.` }); return project; }); },
   async getProjectByPost(postId) { ensure(); return wait(db.projects.find((p) => p.postId === postId)); },
   async listMyProjects(userId) {

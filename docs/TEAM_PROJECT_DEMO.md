@@ -303,9 +303,10 @@ Production build passed
 | `0011_team_peer_reviews.sql` | 검증된 팀원 간 상호평가, 본인 평가 차단, 조회 RLS | 원격 적용 완료 |
 | `0012_project_started_at.sql` | 모집 생성 시각과 실제 프로젝트 시작 시각 분리 | 원격 적용 완료 |
 | `0013_notification_automation.sql` | 맞춤 공고·지원·채팅·프로젝트 이벤트 알림 자동 생성과 Realtime | 원격 적용 완료 |
+| `0014_individual_applicant_decision.sql` | 개인 공고 1명 선정 시 나머지 대기 지원자 자동 거절·결과 알림 | 원격 적용 완료 |
 | `portfolio-ai` | 팀원 역할별 스냅샷과 검증 자격 검사 | 배포 완료, 버전 11 |
 
-원격 Supabase 마이그레이션은 로컬과 `0001~0013`이 일치한다.
+원격 Supabase 마이그레이션은 로컬과 `0001~0014`가 일치한다.
 
 ---
 

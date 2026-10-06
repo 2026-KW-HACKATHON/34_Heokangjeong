@@ -82,6 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
+  await db.exec(sql("0014_individual_applicant_decision.sql"));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -111,6 +112,16 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     await as(U.stu, "insert into messages(application_id,sender_id,body) values($1,$2,'안녕하세요')", [application.id, U.stu]);
     const [chat] = await as<{ href: string }>(U.owner, "select href from notifications where kind='CHAT' and post_id=$1", [postId]);
     expect(chat.href).toBe(`/chats/room?id=${application.id}`);
+  });
+  it("개인 공고에서 선정되지 않은 대기 지원자를 자동 거절하고 알림을 보낸다", async () => {
+    const postId = await newPost("여러 지원자 중 선정");
+    const [selected] = await as<{ id: string }>(U.stu, "insert into applications(post_id,student_id,message) values($1,$2,'첫 번째 지원') returning id", [postId, U.stu]);
+    const [unselected] = await as<{ id: string }>(U.stu2, "insert into applications(post_id,student_id,message) values($1,$2,'두 번째 지원') returning id", [postId, U.stu2]);
+    await rpc(U.owner, "select_applicant", [selected.id, snapshotFor("DESIGN")]);
+    const statuses = (await db.query<{ id: string; status: string }>("select id,status from applications where id in ($1,$2)", [selected.id, unselected.id])).rows;
+    expect(statuses.find((application) => application.id === selected.id)?.status).toBe("accepted");
+    expect(statuses.find((application) => application.id === unselected.id)?.status).toBe("rejected");
+    expect(await as(U.stu2, "select id from notifications where kind='APPLICATION_REJECTED' and post_id=$1", [postId])).toHaveLength(1);
   });
   it("다른 점주는 선정할 수 없다", async () => {
     const postId = await newPost("x");
@@ -309,12 +320,12 @@ describe("SQL: Notion 저장 잠금과 사용자 격리", () => {
 });
 
 describe("SQL: 새 DB 에 번호 순서대로", () => {
-  it("0001 → 0002 → 0003 → 0004 → 0005 가 오류 없이 적용된다", async () => {
+  it("0001부터 0014까지 오류 없이 적용된다", async () => {
     const fresh = new PGlite();
     await fresh.exec(STUBS);
-    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql"]) await fresh.exec(sql(f));
+    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_individual_applicant_decision.sql"]) await fresh.exec(sql(f));
     const t = await fresh.query<{ n: number }>("select count(*)::int n from information_schema.tables where table_schema = 'public'");
-    expect(t.rows[0].n).toBe(26);
+    expect(t.rows[0].n).toBe(27);
     await fresh.close();
   });
 });
