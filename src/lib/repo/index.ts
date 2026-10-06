@@ -1,6 +1,6 @@
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
-  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, RankRow, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims,
+  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, RankRow, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, TicketKind,
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
 
@@ -65,6 +65,18 @@ export interface Repo {
   listPortfolioDocs(studentId: string): Promise<{ edit: PortfolioEditedVersion; post: Post; project: Project }[]>;
   getPortfolioDoc(projectId: string, studentId: string): Promise<PortfolioDoc | undefined>;
   trustSummary(studentId: string): Promise<TrustSummary>;
+
+  // ── 유지보수·인수인계 (계속 운영되는 결과물) ──────────────────────────────
+  getOperations(projectId: string): Promise<OperationsBundle | null>;
+  saveHandover(projectId: string, actorId: string, data: HandoverInput): Promise<void>;
+  generateHandoverDoc(projectId: string, actorId: string): Promise<HandoverDoc>;
+  openHandover(projectId: string, actorId: string): Promise<void>;          // 담당 학생이 인계 요청
+  takeOver(projectId: string, actorId: string): Promise<void>;              // 다른 학생이 이어받기
+  listHandoverOpenings(): Promise<{ operations: Operations; post: Post; project: Project }[]>;
+  createTicket(projectId: string, actorId: string, kind: TicketKind, body: string): Promise<MaintenanceTicket>;
+  closeTicket(ticketId: string, actorId: string): Promise<void>;
+  recordUptime(projectId: string, ok: boolean): Promise<void>;              // '지금 점검하기'
+  listOperatingProjects(userId: string): Promise<{ operations: Operations; post: Post; project: Project }[]>;
   /** mock 전용: 데모 데이터 초기화 */
   resetDemo?(): Promise<void>;
 }

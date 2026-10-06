@@ -22,6 +22,8 @@ export default function NewPost() {
   const [f, setF] = useState({ title: "", category: "디자인" as Category, description: "", reward: "", durationDays: 7, difficulty: 2 as 1 | 2 | 3, isTeam: false });
   const [l, setL] = useState({ problem: "", deliverables: "", completionCriteria: "", deadline: "", revisionLimit: 2, compensationType: "NON_MONETARY" as CompensationType, paidAmount: "", domain: null as DomainKey | null });
   const [slots, setSlots] = useState<RoleSlot[]>([{ label: "디자이너", category: "디자인", count: 1, filled: [] }]);
+  // 계속 운영되는 결과물(웹사이트 등)이면 완료 후 유지보수·인수인계가 따라붙는다
+  const [ops, setOps] = useState({ ongoing: false, touched: false, requestDays: 30, requestCount: 3, defectDays: 90, clientBilling: true });
   const [urgent, setUrgent] = useState({ on: false, colleges: [] as string[], open: null as string | null });
   const [memo, setMemo] = useState("");
   const [draft, setDraft] = useState<PostDraft | null>(null);
@@ -29,6 +31,7 @@ export default function NewPost() {
   const act = useAction();
   if (user?.role !== "resident") return <><TopBar title="공고 등록" back /><p className="sub p-6 text-center text-sm">주민·상인 계정으로 전환하면 공고를 등록할 수 있어요. (나 › 계정 전환)</p></>;
   const domain = l.domain ?? domainForCategory(f.category);
+  const ongoing = ops.touched ? ops.ongoing : f.category === "웹/앱";
 
   async function submit() {
     await act.run(async () => {
@@ -47,6 +50,7 @@ export default function NewPost() {
         problem: l.problem.trim(), domain, expectedDeliverables: l.deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria: l.completionCriteria.trim(),
         deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: l.compensationType, compensationDescription: f.reward.trim(), paidAmount: paid,
         urgent: urgent.on, urgentColleges: urgent.on ? urgent.colleges : [],
+        ongoing, warrantyRequestDays: ops.requestDays, warrantyRequestCount: ops.requestCount, warrantyDefectDays: ops.defectDays, clientOwnedBilling: ops.clientBilling,
       });
       router.replace(`/posts/detail?id=${p.id}`);
     });
@@ -121,6 +125,35 @@ export default function NewPost() {
                 </div>
               ))}
               <button onClick={() => setSlots([...slots, { label: "", category: "영상", count: 1, filled: [] }])} className="text-[var(--primary)]">+ 역할 추가</button>
+            </div>
+          )}
+        </div>
+        {/* 유지보수: 만들고 끝나는 일인지, 계속 운영되는 결과물인지 */}
+        <div className="card flex flex-col gap-3">
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" checked={ongoing} onChange={(e) => setOps({ ...ops, ongoing: e.target.checked, touched: true })} />
+            <span><b>🔧 만든 뒤에도 계속 운영되는 결과물이에요</b>
+              <span className="sub block text-xs">웹사이트, QR 메뉴판, 예약·주문 시스템처럼 계속 돌아가는 것. 포스터·사진·영상처럼 파일을 받고 끝나는 일은 체크하지 않아요.</span>
+            </span>
+          </label>
+          {ongoing && (
+            <div className="flex flex-col gap-3 rounded-xl bg-[var(--line)] p-3 text-sm">
+              <p className="sub text-xs leading-5">완료되면 학생이 인수인계 정보(저장소·배포 주소·관리자 계정·월 비용)를 남기고, 사장님 화면에서 보증 기간과 담당자를 볼 수 있어요. 담당 학생이 빠지면 다른 학생이 이어받아요.</p>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-xs">내용 수정 무상 기간(일)
+                  <input type="number" min={0} className={`${inputCls} mt-1`} value={ops.requestDays || ""} onChange={(e) => setOps({ ...ops, requestDays: +e.target.value, touched: true })} /></label>
+                <label className="text-xs">무상 횟수
+                  <input type="number" min={0} className={`${inputCls} mt-1`} value={ops.requestCount || ""} onChange={(e) => setOps({ ...ops, requestCount: +e.target.value, touched: true })} /></label>
+              </div>
+              <label className="text-xs">오류·버그 무상 기간(일)
+                <input type="number" min={0} className={`${inputCls} mt-1`} value={ops.defectDays || ""} onChange={(e) => setOps({ ...ops, defectDays: +e.target.value, touched: true })} />
+                <span className="sub mt-1 block">학생 작업 자체의 문제는 더 길게 잡는 게 보통이에요. 이 기간이 지나면 새 공고로 올려서 다시 맡길 수 있어요.</span>
+              </label>
+              <label className="flex items-start gap-2 text-xs">
+                <input type="checkbox" className="mt-0.5" checked={ops.clientBilling} onChange={(e) => setOps({ ...ops, clientBilling: e.target.checked, touched: true })} />
+                <span>도메인·호스팅은 <b>내(사장님) 명의와 결제 수단</b>으로 가입할게요
+                  <span className="sub block">학생 계정으로 가입하면 나중에 학생이 떠났을 때 아무도 손댈 수 없어요.</span></span>
+              </label>
             </div>
           )}
         </div>

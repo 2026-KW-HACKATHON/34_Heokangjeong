@@ -68,6 +68,12 @@ export interface Post {
   createdAt: string;         // ISO
   urgent?: boolean;          // 긴급 공고. 올리는 즉시 아래 단과대학 학생에게 알림이 간다
   urgentColleges?: string[]; // 단과대학 key 목록 (비어 있으면 전체 학생)
+  // 유지보수: 만들고 끝나는 일인지, 계속 운영되는 결과물인지
+  ongoing?: boolean;                 // 웹사이트·예약 시스템처럼 완료 후에도 운영이 필요한가
+  warrantyRequestDays?: number;      // 점주 요청(내용 수정) 무상 기간
+  warrantyRequestCount?: number;     // 그 기간의 무상 횟수
+  warrantyDefectDays?: number;       // 학생 작업 하자(버그) 무상 기간
+  clientOwnedBilling?: boolean;      // 도메인·호스팅 명의와 결제를 점주가 보유
   // ── 구조화된 공고 정보 (검증형 포트폴리오 파이프라인). 예전 공고에는 없을 수 있어 listingOf() 로 기본값을 채운다
   problem?: string;                  // 의뢰인이 겪는 문제
   domain?: DomainKey;                // 분야 모듈. 없으면 category 로 정한다
@@ -171,3 +177,42 @@ export interface TeamPeerReview {
 export interface TrustSummary { verifiedCount: number; points: number; temperature: number; tier: { key: string; label: string }; paidEligible: boolean; badges: Badge[]; events: TierScoreEvent[] }
 /** 공개 포트폴리오 한 건: 최신 편집본 + 잠긴 원본(검증·평가·증빙) */
 export interface PortfolioDoc { edit: PortfolioEditedVersion; bundle: ProjectBundle }
+
+// ── 유지보수·인수인계 (계속 운영되는 결과물: 웹사이트, 예약 시스템 등) ────────────
+export type OperationStatus = "WARRANTY" | "OPERATING" | "HANDOVER_OPEN" | "ARCHIVED";
+export type TicketKind = "BUG" | "CONTENT" | "FEATURE" | "OTHER";
+export type TicketCoverage = "FREE_DEFECT" | "FREE_REQUEST" | "NEW_POST" | "EXPIRED";
+
+/** 완료된 프로젝트의 운영 상태 + 인수인계 정보 */
+export interface Operations {
+  projectId: string;
+  status: OperationStatus;
+  maintainerId?: string;           // 현재 담당 학생 (바뀐다)
+  repoUrl?: string;
+  deployUrl?: string;
+  adminHanded: boolean;            // 관리자 계정 전달 완료
+  envList?: string;                // 외부 서비스·환경값
+  monthlyCost?: string;            // 월 비용·결제일
+  billingOwner?: "CLIENT" | "STUDENT";
+  expiresOn?: string;              // 가장 먼저 만료되는 날 (도메인·인증서·키)
+  backupNote?: string;
+  knownIssues?: string;
+  warrantyRequestUntil?: string;   // 점주 요청 무상 기간
+  warrantyDefectUntil?: string;    // 하자(버그) 무상 기간
+  requestUsed: number;
+  lastCheckAt?: string;
+  lastCheckOk?: boolean;
+}
+
+export interface MaintainerTerm { id: string; projectId: string; studentId: string; startedOn: string; endedOn?: string; ticketsClosed: number }
+export interface MaintenanceTicket {
+  id: string; projectId: string; authorId: string; kind: TicketKind; body: string;
+  coverage: TicketCoverage; assigneeId?: string; status: "OPEN" | "DONE"; createdAt: string; closedAt?: string;
+}
+export interface HandoverDoc { id: string; projectId: string; markdown: string; model?: string; generatedAt: string }
+/** 운영 화면이 한 번에 받는 묶음 */
+export interface OperationsBundle { operations: Operations; history: MaintainerTerm[]; tickets: MaintenanceTicket[]; doc: HandoverDoc | null }
+export interface HandoverInput {
+  repoUrl?: string; deployUrl?: string; adminHanded?: boolean; envList?: string;
+  monthlyCost?: string; billingOwner?: "CLIENT" | "STUDENT"; expiresOn?: string; backupNote?: string; knownIssues?: string;
+}

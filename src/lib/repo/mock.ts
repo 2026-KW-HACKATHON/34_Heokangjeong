@@ -1,4 +1,6 @@
-import type { Application, ChatMessage, Notification, Post, PortfolioCard, PortfolioDoc, RankRow, Review, User } from "@/types";
+import type {
+  Application, ChatMessage, HandoverDoc, MaintenanceTicket, Notification, Post, PortfolioCard, PortfolioDoc, RankRow, Review, User,
+} from "@/types";
 import type { Repo } from "./index";
 import { distanceM } from "../geo";
 import { guessCollege } from "../colleges";
@@ -231,6 +233,108 @@ export const mockRepo: Repo = {
     const edit = db.edits.filter((e) => e.projectId === projectId && e.studentId === studentId).sort((a, b) => b.version - a.version)[0];
     return wait<PortfolioDoc | undefined>(edit ? { edit, bundle: wf.getBundle(db, projectId) } : undefined);
   },
+  // ── 유지보수·인수인계 (DB 의 0018 마이그레이션과 같은 규칙) ────────────────
+  async getOperations(projectId) {
+    ensure();
+    const operations = db.operations.find((o) => o.projectId === projectId);
+    if (!operations) return wait(null);
+    return wait({
+      operations,
+      history: db.terms.filter((t) => t.projectId === projectId),
+      tickets: db.tickets.filter((t) => t.projectId === projectId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      doc: db.handoverDocs.filter((d) => d.projectId === projectId).at(-1) ?? null,
+    });
+  },
+  async saveHandover(projectId, actorId, data) { return tx(() => {
+    const o = db.operations.find((x) => x.projectId === projectId);
+    if (!o) throw new Error("운영 중인 프로젝트가 아니에요");
+    if (o.maintainerId !== actorId) throw new Error("현재 담당자만 인수인계 정보를 저장할 수 있어요");
+    Object.assign(o, Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined)));
+  }); },
+  async generateHandoverDoc(projectId) { return tx(() => {
+    const o = db.operations.find((x) => x.projectId === projectId)!;
+    const post = db.posts.find((p) => p.id === db.projects.find((x) => x.id === projectId)?.postId);
+    // 가짜 데이터 모드에는 AI 가 없으므로 입력한 값으로 문서를 만든다 (서버 연결 시 Gemini 가 대신 쓴다)
+    const doc: HandoverDoc = {
+      id: `hd${Date.now()}`, projectId, generatedAt: new Date().toISOString(), model: "TEMPLATE",
+      markdown: [`# ${post?.title ?? "프로젝트"} 인수인계서`, "",
+        `- 저장소: ${o.repoUrl ?? "미입력"}`, `- 배포 주소: ${o.deployUrl ?? "미입력"}`,
+        `- 관리자 계정 전달: ${o.adminHanded ? "완료" : "미완료"}`, `- 월 비용: ${o.monthlyCost ?? "미입력"}`,
+        `- 결제 명의: ${o.billingOwner === "CLIENT" ? "사장님" : o.billingOwner === "STUDENT" ? "학생(이관 필요)" : "미입력"}`,
+        `- 외부 서비스: ${o.envList ?? "미입력"}`, `- 만료 예정일: ${o.expiresOn ?? "미입력"}`,
+        `- 백업: ${o.backupNote ?? "미입력"}`, "", "## 알려진 문제", o.knownIssues || "없음"].join("\n"),
+    };
+    db.handoverDocs.push(doc);
+    return doc;
+  }); },
+  async openHandover(projectId, actorId) { return tx(() => {
+    const o = db.operations.find((x) => x.projectId === projectId);
+    if (!o || o.maintainerId !== actorId) throw new Error("현재 담당자만 인계를 요청할 수 있어요");
+    if (!o.repoUrl) throw new Error("인수인계 정보(저장소 주소)를 먼저 채워 주세요");
+    o.status = "HANDOVER_OPEN";
+    const term = db.terms.find((t) => t.projectId === projectId && t.studentId === actorId && !t.endedOn);
+    if (term) term.endedOn = new Date().toISOString().slice(0, 10);
+    const project = db.projects.find((p) => p.id === projectId)!;
+    pushNotification({ userId: project.ownerId, kind: "HANDOVER_OPEN", href: `/projects/detail?id=${projectId}`, text: "담당 학생이 인계를 요청했어요. 다음 담당자를 모집합니다." });
+  }); },
+  async takeOver(projectId, actorId) { return tx(() => {
+    const o = db.operations.find((x) => x.projectId === projectId);
+    if (!o) throw new Error("운영 중인 프로젝트가 아니에요");
+    if (o.status !== "HANDOVER_OPEN") throw new Error("지금은 이어받을 수 있는 상태가 아니에요");
+    o.status = "OPERATING"; o.maintainerId = actorId;
+    db.terms.push({ id: `mt${Date.now()}`, projectId, studentId: actorId, startedOn: new Date().toISOString().slice(0, 10), ticketsClosed: 0 });
+  }); },
+  async listHandoverOpenings() {
+    ensure();
+    return wait(db.operations.filter((o) => o.status === "HANDOVER_OPEN").flatMap((operations) => {
+      const project = db.projects.find((p) => p.id === operations.projectId);
+      const post = db.posts.find((p) => p.id === project?.postId);
+      return project && post ? [{ operations, project, post }] : [];
+    }));
+  },
+  async createTicket(projectId, actorId, kind, body) { return tx(() => {
+    const o = db.operations.find((x) => x.projectId === projectId);
+    const project = db.projects.find((p) => p.id === projectId);
+    if (!o || !project) throw new Error("운영 중인 프로젝트가 아니에요");
+    if (project.ownerId !== actorId) throw new Error("의뢰인만 유지보수를 요청할 수 있어요");
+    const post = db.posts.find((p) => p.id === project.postId);
+    const today = new Date().toISOString().slice(0, 10);
+    const coverage: MaintenanceTicket["coverage"] =
+      kind === "FEATURE" ? "NEW_POST"
+      : kind === "BUG" && (o.warrantyDefectUntil ?? "") >= today ? "FREE_DEFECT"
+      : kind !== "BUG" && (o.warrantyRequestUntil ?? "") >= today && o.requestUsed < (post?.warrantyRequestCount ?? 3) ? "FREE_REQUEST"
+      : "EXPIRED";
+    const ticket: MaintenanceTicket = {
+      id: `mt${Date.now()}`, projectId, authorId: actorId, kind, body, coverage,
+      assigneeId: coverage.startsWith("FREE") ? o.maintainerId : undefined, status: "OPEN", createdAt: new Date().toISOString(),
+    };
+    db.tickets.push(ticket);
+    if (coverage === "FREE_REQUEST") o.requestUsed += 1;
+    if (ticket.assigneeId) pushNotification({ userId: ticket.assigneeId, kind: "MAINTENANCE", href: `/projects/detail?id=${projectId}`, text: "유지보수 요청이 도착했어요." });
+    return ticket;
+  }); },
+  async closeTicket(ticketId, actorId) { return tx(() => {
+    const t = db.tickets.find((x) => x.id === ticketId);
+    if (!t) throw new Error("요청을 찾을 수 없어요");
+    if (t.assigneeId !== actorId && t.authorId !== actorId) throw new Error("담당자나 요청한 분만 처리할 수 있어요");
+    t.status = "DONE"; t.closedAt = new Date().toISOString();
+    const term = db.terms.find((x) => x.projectId === t.projectId && x.studentId === t.assigneeId && !x.endedOn);
+    if (term) term.ticketsClosed += 1;
+  }); },
+  async recordUptime(projectId, okFlag) { return tx(() => {
+    const o = db.operations.find((x) => x.projectId === projectId);
+    if (o) { o.lastCheckAt = new Date().toISOString(); o.lastCheckOk = okFlag; }
+  }); },
+  async listOperatingProjects(userId) {
+    ensure();
+    return wait(db.operations.flatMap((operations) => {
+      const project = db.projects.find((p) => p.id === operations.projectId);
+      const post = db.posts.find((p) => p.id === project?.postId);
+      if (!project || !post || (operations.maintainerId !== userId && project.ownerId !== userId)) return [];
+      return [{ operations, project, post }];
+    }));
+  },
+
   async trustSummary(studentId) {
     ensure();
     const events = db.tierEvents.filter((e) => e.studentId === studentId);

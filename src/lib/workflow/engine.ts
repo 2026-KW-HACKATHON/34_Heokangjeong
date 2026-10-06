@@ -3,7 +3,7 @@
 import type {
   ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, MemberVerification, Outcome, PortfolioCard,
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
-  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport,
+  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations,
 } from "@/types";
 import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
@@ -34,6 +34,10 @@ export interface WorkflowDB {
   edits: PortfolioEditedVersion[];
   tierEvents: TierScoreEvent[];
   badges: Badge[];
+  operations: Operations[];
+  terms: MaintainerTerm[];
+  tickets: MaintenanceTicket[];
+  handoverDocs: HandoverDoc[];
   peerReviews: TeamPeerReview[];
   legacyReviews: Review[];      // 예전 화면(랭킹·포트폴리오 카드)이 읽는 테이블
   legacyCards: PortfolioCard[];
@@ -41,6 +45,7 @@ export interface WorkflowDB {
 export const emptyDB = (): WorkflowDB => ({
   users: [], posts: [], applications: [], projects: [], members: [], answers: [], logs: [], evidence: [], versions: [], verifications: [], memberVerifications: [],
   reviews: [], outcomes: [], snapshots: [], drafts: [], edits: [], tierEvents: [], badges: [], peerReviews: [], legacyReviews: [], legacyCards: [],
+  operations: [], terms: [], tickets: [], handoverDocs: [],
 });
 export interface Ctx { now: () => string; id: () => string }
 export const defaultCtx: Ctx = {
@@ -296,6 +301,16 @@ export function approveVersion(db: WorkflowDB, a: { versionId: string; actorId: 
   const post = must(db.posts.find((p) => p.id === project.postId), "공고");
   post.status = "done";
   const members = db.members.filter((x) => x.projectId === project.id);
+  // 계속 운영되는 결과물(웹사이트 등)이면 완료와 동시에 운영·보증이 시작된다 (DB 0018 의 start_operations 와 같은 규칙)
+  if (post.ongoing && !db.operations.some((o) => o.projectId === project.id)) {
+    const day = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+    const maintainer = members[0]?.studentId;
+    db.operations.push({
+      projectId: project.id, status: "WARRANTY", maintainerId: maintainer, adminHanded: false, requestUsed: 0,
+      warrantyRequestUntil: day(post.warrantyRequestDays ?? 30), warrantyDefectUntil: day(post.warrantyDefectDays ?? 90),
+    });
+    if (maintainer) db.terms.push({ id: ctx.id(), projectId: project.id, studentId: maintainer, startedOn: now.slice(0, 10), ticketsClosed: 0 });
+  }
   const verifiedIds = project.mode === "TEAM" ? new Set(a.verifiedMemberIds ?? []) : new Set(members.map((m) => m.studentId));
   if (verifiedIds.size === 0) fail("INVALID_INPUT", "실제 참여를 확인한 팀원을 한 명 이상 선택해 주세요");
   for (const m of members) {

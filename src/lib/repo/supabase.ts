@@ -4,7 +4,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
   ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, MemberVerification, Notification, Outcome, PortfolioCard,
   PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review, TeamPeerReview,
-  SubmissionVersion, TierScoreEvent, User,
+  SubmissionVersion, TierScoreEvent, User, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
 import { DOMAINS, QUESTION_SET_VERSION, domainForCategory } from "@shared/portfolio/domains";
@@ -37,6 +37,24 @@ const toPost = (r: Row): Post => ({
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount),
 });
 const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
+/** Edge Function 이 보낸 한국어 에러 메시지를 꺼낸다 */
+const fnError = async (error: unknown) =>
+  (await (error as { context?: Response }).context?.json?.().then((b: { error?: string }) => b.error).catch(() => undefined)) ?? (error as Error).message;
+
+const toOperations = (r: Row): Operations => ({
+  projectId: r.project_id, status: r.status, maintainerId: u(r.maintainer_id), repoUrl: u(r.repo_url), deployUrl: u(r.deploy_url),
+  adminHanded: r.admin_handed, envList: u(r.env_list), monthlyCost: u(r.monthly_cost), billingOwner: u(r.billing_owner),
+  expiresOn: u(r.expires_on), backupNote: u(r.backup_note), knownIssues: u(r.known_issues),
+  warrantyRequestUntil: u(r.warranty_request_until), warrantyDefectUntil: u(r.warranty_defect_until), requestUsed: r.request_used ?? 0,
+  lastCheckAt: u(r.last_check_at), lastCheckOk: u(r.last_check_ok),
+});
+const toTicket = (r: Row): MaintenanceTicket => ({
+  id: r.id, projectId: r.project_id, authorId: r.author_id, kind: r.kind, body: r.body, coverage: r.coverage,
+  assigneeId: u(r.assignee_id), status: r.status, createdAt: r.created_at, closedAt: u(r.closed_at),
+});
+const toTerm = (r: Row): MaintainerTerm => ({ id: r.id, projectId: r.project_id, studentId: r.student_id, startedOn: r.started_on, endedOn: u(r.ended_on), ticketsClosed: r.tickets_closed ?? 0 });
+const toDoc = (r: Row): HandoverDoc => ({ id: r.id, projectId: r.project_id, markdown: r.markdown, model: u(r.model), generatedAt: r.generated_at });
+
 const toMsg = (r: Row): ChatMessage => ({ id: r.id, applicationId: r.application_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
 const toProject = (r: Row): Project => ({
   id: r.id, postId: r.post_id, ownerId: r.owner_id, domain: r.domain, mode: r.mode, status: r.status, questionSnapshot: r.question_snapshot,
@@ -347,6 +365,42 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const r = maybe(await db.from("portfolio_edits").select("*").eq("project_id", projectId).eq("student_id", studentId).order("version", { ascending: false }).limit(1).maybeSingle());
       return r ? { edit: toEdit(r), bundle: await repo.getBundle(projectId) } : undefined;
     },
+    // ── 유지보수·인수인계 ─────────────────────────────────────────────────
+    async getOperations(projectId) {
+      const o = maybe(await db.from("operations").select("*").eq("project_id", projectId).maybeSingle());
+      if (!o) return null;
+      const [history, tickets, docs] = await Promise.all([
+        db.from("maintainer_history").select("*").eq("project_id", projectId).order("started_on").then(ok),
+        db.from("maintenance_tickets").select("*").eq("project_id", projectId).order("created_at", { ascending: false }).then(ok),
+        db.from("handover_docs").select("*").eq("project_id", projectId).order("generated_at", { ascending: false }).limit(1).then(ok),
+      ]);
+      return { operations: toOperations(o), history: (history as Row[]).map(toTerm), tickets: (tickets as Row[]).map(toTicket), doc: (docs as Row[])[0] ? toDoc((docs as Row[])[0]) : null };
+    },
+    async saveHandover(projectId, _actorId, data) { done(await db.rpc("save_handover", { p_project: projectId, p_data: data })); },
+    async generateHandoverDoc(projectId) {
+      const { data, error } = await db.functions.invoke<HandoverDoc>("handover-ai", { body: { projectId } });
+      if (error) throw new Error(await fnError(error));
+      return data!;
+    },
+    async openHandover(projectId) { done(await db.rpc("open_handover", { p_project: projectId })); },
+    async takeOver(projectId) { done(await db.rpc("take_over", { p_project: projectId })); },
+    async listHandoverOpenings() {
+      const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts(*))").eq("status", "HANDOVER_OPEN")) as Row[];
+      return rows.filter((r) => r.project?.post).map((r) => ({ operations: toOperations(r), post: toPost(r.project.post), project: toProject(r.project) }));
+    },
+    async createTicket(projectId, _actorId, kind, body) {
+      const id: string = ok(await db.rpc("create_ticket", { p_project: projectId, p_kind: kind, p_body: body }));
+      return toTicket(ok(await db.from("maintenance_tickets").select("*").eq("id", id).single()));
+    },
+    async closeTicket(ticketId) { done(await db.rpc("close_ticket", { p_ticket: ticketId })); },
+    async recordUptime(projectId, okFlag) { done(await db.rpc("record_uptime", { p_project: projectId, p_ok: okFlag })); },
+    async listOperatingProjects(userId) {
+      const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts(*))")) as Row[];
+      return rows
+        .filter((r) => r.project?.post && (r.maintainer_id === userId || r.project.owner_id === userId))
+        .map((r) => ({ operations: toOperations(r), post: toPost(r.project.post), project: toProject(r.project) }));
+    },
+
     async trustSummary(studentId) {
       const [events, badges, peerReviewsResult] = await Promise.all([
         db.from("tier_score_events").select("*").eq("student_id", studentId).then(ok),

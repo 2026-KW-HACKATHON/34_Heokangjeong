@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import EvidenceItem from "@/components/EvidenceItem";
 import Verification from "@/components/Verification";
+import OperationsCard from "@/components/OperationsCard";
 import Readiness from "@/components/Readiness";
 import MissingRequired from "@/components/MissingRequired";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
@@ -177,6 +178,9 @@ function Project() {
             {b.review && <p className="mt-3 rounded-xl bg-[var(--line)] px-3 py-2 text-sm">“{b.review.comment || "평가 코멘트 없음"}” <span className="sub text-xs">· 만족도 {b.review.satisfaction}/5</span></p>}
           </div>
         )}
+
+        {/* 계속 운영되는 결과물이면 완료 후 운영·유지보수·인수인계가 이어진다 */}
+        {status === "COMPLETED" && <OperationsCard projectId={id} post={b.post} users={users} />}
 
         {status !== "RECRUITING" && (
           <div className="card">
