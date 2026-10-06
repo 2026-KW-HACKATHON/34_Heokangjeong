@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
+import Markdown from "@/components/Markdown";
 import { ErrorText, inputCls, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
@@ -96,7 +97,7 @@ function Handover() {
           <h3 className="font-bold">📄 인수인계서</h3>
           <p className="sub text-xs">입력한 정보와 활동 기록만으로 만들어요. 없는 내용은 지어내지 않아요.</p>
           {b.doc ? (
-            <article className="whitespace-pre-line rounded-xl bg-[var(--line)] p-3 text-sm leading-6">{b.doc.markdown}</article>
+            <article className="rounded-xl bg-[var(--line)] p-4 text-sm"><Markdown text={b.doc.markdown} /></article>
           ) : <p className="sub text-sm">아직 만들지 않았어요.</p>}
           <ErrorText text={gen.error} />
           {isMaintainer && (
