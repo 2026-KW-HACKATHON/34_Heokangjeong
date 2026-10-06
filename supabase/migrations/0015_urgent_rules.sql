@@ -7,7 +7,7 @@
 -- ── (2) 난이도별 최소 사례비 ────────────────────────────────────────────────
 create or replace function public.urgent_min_reward(p_difficulty int) returns int
 language sql immutable set search_path = public as $$
-  select case coalesce(p_difficulty, 2) when 1 then 20000 when 2 then 30000 else 50000 end
+  select case coalesce(p_difficulty, 2) when 1 then 10000 when 2 then 30000 else 50000 end
 $$;
 grant execute on function public.urgent_min_reward(int) to authenticated;
 

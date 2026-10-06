@@ -127,6 +127,11 @@ describe("긴급 공고 최소 보상", () => {
     await expect(insert("긴급 2만원", 2, "PAID", 20000)).rejects.toThrow();
   });
 
+  it("쉬움은 1만원부터 가능하다 (난이도 ★ → 1만원)", async () => {
+    await expect(insert("긴급 5천원 쉬움", 1, "PAID", 5000)).rejects.toThrow();
+    await insert("긴급 1만원 쉬움", 1, "PAID", 10000);
+  });
+
   it("난이도가 높으면 기준도 올라간다 (★★★ → 5만원)", async () => {
     await expect(insert("긴급 3만원 어려움", 3, "PAID", 30000)).rejects.toThrow();
     await insert("긴급 5만원 어려움", 3, "PAID", 50000);

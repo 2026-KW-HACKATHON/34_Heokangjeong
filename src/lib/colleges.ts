@@ -38,4 +38,4 @@ export function guessCollege(department?: string): string | undefined {
 }
 
 /** 긴급 공고 최소 사례비(원). DB 의 public.urgent_min_reward() 와 같은 값이어야 한다. */
-export const urgentMinReward = (difficulty: 1 | 2 | 3) => ({ 1: 20000, 2: 30000, 3: 50000 }[difficulty] ?? 30000);
+export const urgentMinReward = (difficulty: 1 | 2 | 3) => ({ 1: 10000, 2: 30000, 3: 50000 }[difficulty] ?? 30000);
