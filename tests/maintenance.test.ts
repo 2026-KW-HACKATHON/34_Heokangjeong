@@ -148,13 +148,26 @@ describe("인수인계와 이어받기", () => {
     await expect(as(U.stu, "select open_handover($1)", [projectId])).rejects.toThrow(/HANDOVER_INCOMPLETE/);
   });
 
-  it("인계 요청 → 다른 학생이 이어받으면 담당자가 바뀌고 이력이 이어진다", async () => {
+  it("인계를 요청하면 이어받기 공고가 홈 피드에 올라간다", async () => {
     const { projectId } = await completedProject(true);
     await as(U.stu, `select save_handover($1, '{"repoUrl":"https://github.com/x/y"}'::jsonb)`, [projectId]);
-    await as(U.stu, "select open_handover($1)", [projectId]);
+    const [{ open_handover: postId }] = await as<{ open_handover: string }>(U.stu, "select open_handover($1)", [projectId]);
     expect((await ops(projectId)).status).toBe("HANDOVER_OPEN");
 
-    await as(U.stu2, "select take_over($1)", [projectId]);
+    const post = (await db.query<{ title: string; status: string; ongoing: boolean }>("select * from posts where id = $1", [postId])).rows[0];
+    expect(post.title).toContain("[이어받기]");
+    expect(post.status).toBe("open");       // 다른 공고와 똑같이 모집 중으로 보인다
+    expect(post.ongoing).toBe(true);
+  });
+
+  it("이어받기 공고에 지원한 학생을 사장님이 선정하면 담당자가 바뀐다", async () => {
+    const { projectId } = await completedProject(true);
+    await as(U.stu, `select save_handover($1, '{"repoUrl":"https://github.com/x/y"}'::jsonb)`, [projectId]);
+    const [{ open_handover: postId }] = await as<{ open_handover: string }>(U.stu, "select open_handover($1)", [projectId]);
+
+    const [app] = await as<{ id: string }>(U.stu2, "insert into applications (post_id, student_id, message) values ($1,$2,'이어받고 싶어요') returning id", [postId, U.stu2]);
+    await as(U.owner, "select select_applicant($1, $2::jsonb)", [app.id, JSON.stringify({ domain: "DEVELOPMENT", version: 1, questions: [], takenAt: "2026-10-07T00:00:00Z" })]);
+
     const o = await ops(projectId);
     expect(o.status).toBe("OPERATING");
     expect(o.maintainer_id).toBe(U.stu2);
@@ -165,9 +178,9 @@ describe("인수인계와 이어받기", () => {
     expect(h.find((x) => x.student_id === U.stu2)?.ended_on).toBeNull();
   });
 
-  it("모집 중이 아닌 프로젝트는 이어받을 수 없다", async () => {
+  it("학생이 혼자 즉시 이어받을 수는 없다 (사장님 선정 필요)", async () => {
     const { projectId } = await completedProject(true);
-    await expect(as(U.stu2, "select take_over($1)", [projectId])).rejects.toThrow(/INVALID_STATE/);
+    await expect(as(U.stu2, "select take_over($1)", [projectId])).rejects.toThrow(/DEPRECATED/);
   });
 
   it("가동 점검 실패는 담당자에게 알림이 간다", async () => {

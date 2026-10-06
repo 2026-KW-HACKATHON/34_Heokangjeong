@@ -32,6 +32,7 @@ const toPost = (r: Row): Post => ({
   teamSlots: r.roles?.length ? r.roles.map((x: Row) => ({ id: x.id, label: x.label, category: x.category, domain: x.domain, count: x.capacity, filled: [], filledCount: x.filled_count })) : r.team_slots ?? undefined,
   createdAt: r.created_at,
   urgent: r.urgent ?? false, urgentColleges: r.urgent_colleges ?? [],
+  ongoing: r.ongoing ?? false, warrantyRequestCount: r.warranty_request_count ?? 3, handoverOfProject: u(r.handover_of_project),
   problem: r.problem ?? "", domain: u(r.domain), expectedDeliverables: r.expected_deliverables ?? [], completionCriteria: r.completion_criteria ?? "",
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount),
@@ -406,7 +407,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return toDoc(saved);
     },
     async openHandover(projectId) { done(await db.rpc("open_handover", { p_project: projectId })); },
-    async takeOver(projectId) { done(await db.rpc("take_over", { p_project: projectId })); },
+    async takeOver() { throw new Error("이어받기 공고에 지원하면 사장님이 선정해요"); },
     async listHandoverOpenings() {
       const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts(*))").eq("status", "HANDOVER_OPEN")) as Row[];
       return rows.filter((r) => r.project?.post).map((r) => ({ operations: toOperations(r), post: toPost(r.project.post), project: toProject(r.project) }));

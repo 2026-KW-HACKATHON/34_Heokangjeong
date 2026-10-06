@@ -10,6 +10,7 @@ export default function PostCard({ post, authorName, distance }: { post: Post; a
       <div className="mb-2 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs font-medium">
           {post.urgent && <span className="rounded-full bg-[var(--red)] px-2 py-0.5 font-bold text-white">긴급</span>}
+          {post.handoverOfProject && <span className="rounded-full bg-[var(--primary)] px-2 py-0.5 font-bold text-white">이어받기</span>}
           <span className="sub">{post.category}{post.isTeam ? " · 팀" : ""}</span>
         </span>
         <StatusBadge status={post.status} />

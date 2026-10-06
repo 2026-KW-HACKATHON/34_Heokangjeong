@@ -64,10 +64,14 @@ function PostDetail() {
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="flex flex-wrap items-center gap-1.5">
               {post.urgent && <span className="chip bg-[var(--red)] font-bold text-white">🚨 긴급</span>}
+              {post.handoverOfProject && <span className="chip bg-[var(--primary)] font-bold text-white">🔧 이어받기</span>}
               <span className="chip chip-on">{post.category}{post.isTeam ? " · 팀 프로젝트" : ""}</span>
             </span>
             <StatusBadge status={post.status} />
           </div>
+          {post.handoverOfProject && (
+            <p className="sub mb-1 text-xs">이미 운영 중인 서비스예요. 선정되면 인수인계서를 받고 바로 이어받아요.</p>
+          )}
           {post.urgent && post.urgentColleges && post.urgentColleges.length > 0 && (
             <p className="sub mb-1 text-xs">{post.urgentColleges.map(collegeLabel).filter(Boolean).join(", ")} 학생에게 알림이 갔어요</p>
           )}

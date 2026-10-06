@@ -194,7 +194,16 @@ export const mockRepo: Repo = {
   },
 
   // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
-  async selectApplicant(applicationId, actorId) { return tx(() => { const project = wf.selectApplicant(db, { applicationId, actorId }); const application = db.applications.find((a) => a.id === applicationId)!; const post = db.posts.find((p) => p.id === application.postId)!; pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_ACCEPTED", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 프로젝트에 선정됐어요.` }); return project; }); },
+  async selectApplicant(applicationId, actorId) { return tx(() => { const project = wf.selectApplicant(db, { applicationId, actorId });
+    // 이어받기 공고로 선정되면 원래 프로젝트의 담당자가 바뀐다
+    const selectedPost = db.posts.find((p) => p.id === project.postId);
+    const student = db.applications.find((a) => a.id === applicationId)!.studentId;
+    if (selectedPost?.handoverOfProject) {
+      const o = db.operations.find((x) => x.projectId === selectedPost.handoverOfProject);
+      if (o) { o.status = "OPERATING"; o.maintainerId = student; }
+      db.terms.push({ id: `mt${Date.now()}`, projectId: selectedPost.handoverOfProject, studentId: student, startedOn: new Date().toISOString().slice(0, 10), ticketsClosed: 0 });
+      pushNotification({ userId: student, kind: "HANDOVER_TAKEN", href: `/projects/handover?id=${selectedPost.handoverOfProject}`, text: "프로젝트를 이어받았어요. 인수인계서를 먼저 확인해 주세요." });
+    } const application = db.applications.find((a) => a.id === applicationId)!; const post = db.posts.find((p) => p.id === application.postId)!; pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_ACCEPTED", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 프로젝트에 선정됐어요.` }); return project; }); },
   async startTeamProject(projectId, actorId, leaderId) { return tx(() => { const project = wf.startTeamProject(db, { projectId, actorId, leaderId }); const post = db.posts.find((p) => p.id === project.postId)!; for (const member of db.members.filter((m) => m.projectId === projectId)) pushNotification({ userId: member.studentId, postId: post.id, kind: "PROJECT_STARTED", href: `/projects/detail?id=${projectId}`, text: `'${post.title}' 팀 프로젝트가 시작됐어요.` }); return project; }); },
   async getProjectByPost(postId) { ensure(); return wait(db.projects.find((p) => p.postId === postId)); },
   async listMyProjects(userId) {
@@ -275,15 +284,18 @@ export const mockRepo: Repo = {
     const term = db.terms.find((t) => t.projectId === projectId && t.studentId === actorId && !t.endedOn);
     if (term) term.endedOn = new Date().toISOString().slice(0, 10);
     const project = db.projects.find((p) => p.id === projectId)!;
-    pushNotification({ userId: project.ownerId, kind: "HANDOVER_OPEN", href: `/projects/detail?id=${projectId}`, text: "담당 학생이 인계를 요청했어요. 다음 담당자를 모집합니다." });
+    const origin = db.posts.find((p) => p.id === project.postId)!;
+    if (!db.posts.some((p) => p.handoverOfProject === projectId && p.status === "open")) {
+      db.posts.unshift({
+        ...origin, id: `p${Date.now()}`, title: `[이어받기] ${origin.title}`, status: "open", createdAt: new Date().toISOString(),
+        description: "이미 운영 중인 서비스를 이어받아 관리할 학생을 찾습니다. 인수인계서가 준비되어 있어 바로 시작할 수 있어요.",
+        problem: "담당 학생이 빠져 유지보수할 사람이 필요해요", durationDays: 30, isTeam: false, teamSlots: undefined,
+        urgent: false, urgentColleges: [], handoverOfProject: projectId,
+      });
+    }
+    pushNotification({ userId: project.ownerId, kind: "HANDOVER_OPEN", href: "/", text: "담당 학생이 인계를 요청해 이어받기 공고를 올렸어요." });
   }); },
-  async takeOver(projectId, actorId) { return tx(() => {
-    const o = db.operations.find((x) => x.projectId === projectId);
-    if (!o) throw new Error("운영 중인 프로젝트가 아니에요");
-    if (o.status !== "HANDOVER_OPEN") throw new Error("지금은 이어받을 수 있는 상태가 아니에요");
-    o.status = "OPERATING"; o.maintainerId = actorId;
-    db.terms.push({ id: `mt${Date.now()}`, projectId, studentId: actorId, startedOn: new Date().toISOString().slice(0, 10), ticketsClosed: 0 });
-  }); },
+  async takeOver() { throw new Error("이어받기 공고에 지원하면 사장님이 선정해요"); },
   async listHandoverOpenings() {
     ensure();
     return wait(db.operations.filter((o) => o.status === "HANDOVER_OPEN").flatMap((operations) => {

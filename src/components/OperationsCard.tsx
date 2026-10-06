@@ -84,11 +84,11 @@ export default function OperationsCard({ projectId, post, users }: { projectId: 
         </div>
       )}
 
-      {/* 다른 학생: 이어받기 */}
-      {user?.role === "student" && !isMaintainer && o.status === "HANDOVER_OPEN" && (
-        <button onClick={() => run(() => repo.takeOver(projectId, user.id))} disabled={act.busy} className="btn btn-primary w-full">
-          이 프로젝트 이어받기
-        </button>
+      {/* 인계 모집 중이면 다른 공고처럼 홈·지도에 '[이어받기] ...' 공고가 올라간다 */}
+      {o.status === "HANDOVER_OPEN" && (
+        <p className="rounded-xl bg-[var(--primary-weak)] p-3 text-xs leading-5">
+          다음 담당자를 모집 중이에요. 홈 피드에 <b>[이어받기]</b> 공고로 올라가 있고, 학생이 지원하면 사장님이 선정해요.
+        </p>
       )}
 
       {/* 점주: 유지보수 요청 */}

@@ -74,6 +74,7 @@ export interface Post {
   warrantyRequestCount?: number;     // 그 기간의 무상 횟수
   warrantyDefectDays?: number;       // 학생 작업 하자(버그) 무상 기간
   clientOwnedBilling?: boolean;      // 도메인·호스팅 명의와 결제를 점주가 보유
+  handoverOfProject?: string;        // 이어받기 공고면 원래 프로젝트 id (담당 학생이 빠져 다음 담당자를 모집)
   // ── 구조화된 공고 정보 (검증형 포트폴리오 파이프라인). 예전 공고에는 없을 수 있어 listingOf() 로 기본값을 채운다
   problem?: string;                  // 의뢰인이 겪는 문제
   domain?: DomainKey;                // 분야 모듈. 없으면 category 로 정한다
