@@ -68,8 +68,7 @@ function templateHandover(title: string, o: Operations) {
     `- 월 비용·결제일: ${v(o.monthlyCost)}`,
     `- 결제 명의: ${o.billingOwner === "CLIENT" ? "사장님" : o.billingOwner === "STUDENT" ? "학생 (사장님 명의로 이관 필요)" : "확인 필요"}`,
     `- 가장 먼저 만료되는 날: ${v(o.expiresOn)}`, `- 백업: ${v(o.backupNote)}`, "",
-    "## 알려진 문제", o.knownIssues?.trim() || "기록된 문제 없음", "",
-    "_AI 서버에 연결하지 못해 입력한 정보만으로 정리한 문서예요._",
+    "## 알려진 문제", o.knownIssues?.trim() || "기록된 문제 없음",
   ].join("\n");
 }
 
