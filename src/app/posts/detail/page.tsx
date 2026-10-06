@@ -41,6 +41,9 @@ function PostDetail() {
   const listing = listingOf(post);
   const paidLocked = listing.compensationType === "PAID" && trust !== null && !trust.paidEligible;
   const recruiting = post.status === "open";
+  const selectedApplication = apps.find((a) => a.status === "accepted");
+  const selectedStudent = users.find((u) => u.id === selectedApplication?.studentId);
+  const individualDecisionComplete = !post.isTeam && !!project;
 
   async function submit() {
     if (!user || user.role !== "student") return;
@@ -145,6 +148,9 @@ function PostDetail() {
         {isOwner && (
           <div className="card">
             <h3 className="mb-2 font-bold">지원자 {apps.length}명</h3>
+            {individualDecisionComplete && <p className="mb-3 rounded-xl bg-[var(--primary-weak)] px-3 py-2 text-sm">
+              <b>{selectedStudent?.name ?? "지원자"} 학생 선정 완료</b><br />나머지 지원자에게는 미선정 안내가 자동으로 전달됐어요.
+            </p>}
             <ul className="flex flex-col gap-2 text-sm">
               {apps.map((a) => { const s = users.find((u) => u.id === a.studentId) as Extract<User, { role: "student" }> | undefined; const role = post.teamSlots?.find((x) => x.id === a.roleId); return (
                 <li key={a.id} className="rounded-xl bg-[var(--line)] px-3 py-2">
@@ -153,15 +159,18 @@ function PostDetail() {
                   {s && s.skills.length > 0 && <p className="sub mt-0.5 text-xs">{s.skills.join(" · ")}</p>}
                   {role && <p className="mt-1 text-xs font-semibold text-[var(--primary)]">지원 역할 · {role.label ?? role.category}</p>}
                   <p className="mt-1">{a.message}</p>
-                  <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
+                  {a.status === "pending" && !individualDecisionComplete ? <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
                     <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
-                    <button onClick={() => select(a)} disabled={act.busy || a.status !== "pending" || (!!project && !post.isTeam)} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
-                    <button onClick={() => reject(a)} disabled={act.busy || a.status !== "pending"} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
-                  </div>
+                    <button onClick={() => select(a)} disabled={act.busy} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
+                    <button onClick={() => reject(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
+                  </div> : <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                    <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
+                    <span className={`btn cursor-default px-2 py-2 ${a.status === "accepted" ? "btn-primary" : "bg-white sub"}`}>{a.status === "accepted" ? "선정 완료" : "미선정 안내 완료"}</span>
+                  </div>}
                 </li>); })}
               {apps.length === 0 && <li className="sub">아직 지원자가 없어요</li>}
             </ul>
-            <p className="sub mt-2 text-xs">선정하면 프로젝트가 시작되고, 학생이 분야별 질문에 답하며 과정을 기록해요. 완료는 학생의 제출을 검토·승인할 때 기록됩니다.</p>
+            <p className="sub mt-2 text-xs">채팅은 선택 사항이에요. 바로 선정하거나 거절할 수 있으며, 선정하면 프로젝트가 시작됩니다.{individualDecisionComplete && " 다시 시험하려면 ‘나 → 데모 데이터 초기화’를 이용하세요."}</p>
             <ErrorText text={act.error} />
           </div>
         )}

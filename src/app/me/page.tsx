@@ -14,11 +14,23 @@ export default function Me() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [trust, setTrust] = useState<TrustSummary | null>(null);
+  const [resetting, setResetting] = useState(false);
   useEffect(() => {
     let active = true; setTrust(null);
     if (user?.role === "student") repo.trustSummary(user.id).then(t => { if (active) setTrust(t); }).catch(() => {});
     return () => { active = false; };
   }, [user?.id, user?.role]);
+  async function resetDemo() {
+    if (!repo.resetDemo) return;
+    setResetting(true);
+    try {
+      await repo.resetDemo();
+      setUserId("s1");
+      window.location.assign("/");
+    } finally {
+      setResetting(false);
+    }
+  }
   useEffect(() => {
     let active = true;
     setWorks([]); setError(false); setLoading(true);
@@ -61,6 +73,11 @@ export default function Me() {
           <li><Link href="/projects" className="flex min-h-14 items-center justify-between px-4 py-3.5"><span className="inline-flex items-center gap-3"><Icon name="folder" width={19} height={19} />내 진행 프로젝트</span><Icon name="arrow" width={16} height={16} /></Link></li>
           <li><Link href="/portfolio" className="flex min-h-14 items-center justify-between px-4 py-3.5"><span className="inline-flex items-center gap-3"><Icon name="folder" width={19} height={19} />내 포트폴리오</span><Icon name="arrow" width={16} height={16} className="sub" /></Link></li>
         </ul>
+        {mode === "mock" && <div className="card text-sm">
+          <h3 className="font-bold">데모 다시 시작</h3>
+          <p className="sub mt-2">지원·선정·채팅·알림 기록을 처음 상태로 되돌려 같은 흐름을 다시 시험할 수 있어요.</p>
+          <button onClick={resetDemo} disabled={resetting} className="btn btn-ghost mt-3 w-full disabled:opacity-50">{resetting ? "초기화 중…" : "데모 데이터 초기화"}</button>
+        </div>}
         {mode === "supabase" && <button onClick={signOut} className="btn btn-ghost w-full">로그아웃</button>}
       </section>
     </>
