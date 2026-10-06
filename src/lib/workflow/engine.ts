@@ -3,7 +3,7 @@
 import type {
   ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, MemberVerification, Outcome, PortfolioCard,
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
-  ProjectMember, Review, Stage, SubmissionVersion, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport,
+  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport,
 } from "@/types";
 import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
@@ -34,12 +34,13 @@ export interface WorkflowDB {
   edits: PortfolioEditedVersion[];
   tierEvents: TierScoreEvent[];
   badges: Badge[];
+  peerReviews: TeamPeerReview[];
   legacyReviews: Review[];      // 예전 화면(랭킹·포트폴리오 카드)이 읽는 테이블
   legacyCards: PortfolioCard[];
 }
 export const emptyDB = (): WorkflowDB => ({
   users: [], posts: [], applications: [], projects: [], members: [], answers: [], logs: [], evidence: [], versions: [], verifications: [], memberVerifications: [],
-  reviews: [], outcomes: [], snapshots: [], drafts: [], edits: [], tierEvents: [], badges: [], legacyReviews: [], legacyCards: [],
+  reviews: [], outcomes: [], snapshots: [], drafts: [], edits: [], tierEvents: [], badges: [], peerReviews: [], legacyReviews: [], legacyCards: [],
 });
 export interface Ctx { now: () => string; id: () => string }
 export const defaultCtx: Ctx = {
@@ -79,7 +80,21 @@ export function getBundle(db: WorkflowDB, projectId: string): ProjectBundle {
     snapshots: by(db.snapshots),
     drafts: by(db.drafts).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     edits: by(db.edits).sort((a, b) => a.version - b.version),
+    peerReviews: by(db.peerReviews),
   };
+}
+
+export function savePeerReview(db: WorkflowDB, a: { projectId: string; reviewerId: string; revieweeId: string; communication: number; collaboration: number; responsibility: number; comment: string }, ctx: Ctx = defaultCtx): TeamPeerReview {
+  const project = getProject(db, a.projectId);
+  if (project.mode !== "TEAM" || project.status !== "COMPLETED") fail("INVALID_STATE", "완료된 팀 프로젝트에서만 상호평가할 수 있어요");
+  if (a.reviewerId === a.revieweeId) fail("SELF_REVIEW", "자신은 평가할 수 없어요");
+  const verified = (studentId: string) => db.memberVerifications.some((v) => v.projectId === a.projectId && v.studentId === studentId && v.verified);
+  if (!verified(a.reviewerId) || !verified(a.revieweeId)) fail("FORBIDDEN", "실제 참여가 확인된 팀원끼리만 평가할 수 있어요");
+  const score = (value: number) => Number.isInteger(value) && value >= 1 && value <= 5 ? value : fail("INVALID_INPUT", "평가는 1점부터 5점까지 선택해 주세요");
+  const previous = db.peerReviews.find((r) => r.projectId === a.projectId && r.reviewerId === a.reviewerId && r.revieweeId === a.revieweeId);
+  const review: TeamPeerReview = { id: previous?.id ?? ctx.id(), projectId: a.projectId, reviewerId: a.reviewerId, revieweeId: a.revieweeId, communication: score(a.communication), collaboration: score(a.collaboration), responsibility: score(a.responsibility), comment: a.comment.trim().slice(0, 1000), createdAt: previous?.createdAt ?? ctx.now() };
+  if (previous) Object.assign(previous, review); else db.peerReviews.push(review);
+  return review;
 }
 
 // ── 지원 ────────────────────────────────────────────────────────────────────
@@ -122,6 +137,7 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   if (role && db.members.filter((m) => m.projectId === project!.id && m.roleId === role.id).length >= role.count)
     fail("ROLE_FULL", "이 역할의 모집 인원이 이미 찼어요");
   project.status = nextStatus(project.status, "SELECT", project.mode);
+  if (project.status === "IN_PROGRESS" && !project.startedAt) project.startedAt = now;
   const memberDomain = role?.domain ?? listing.domain;
   db.members.push({
     projectId: project.id, studentId: app.studentId, roleId: role?.id,
@@ -136,7 +152,7 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   return project;
 }
 
-export function startTeamProject(db: WorkflowDB, a: { projectId: string; actorId: string; leaderId: string }): Project {
+export function startTeamProject(db: WorkflowDB, a: { projectId: string; actorId: string; leaderId: string }, ctx: Ctx = defaultCtx): Project {
   const project = getProject(db, a.projectId);
   assertOwner(db, project, a.actorId);
   if (project.mode !== "TEAM") fail("INVALID_STATE", "팀 프로젝트가 아니에요");
@@ -146,6 +162,7 @@ export function startTeamProject(db: WorkflowDB, a: { projectId: string; actorId
   if (missing.length) fail("TEAM_INCOMPLETE", `아직 인원이 부족한 역할이 있어요: ${missing.map((s) => s.label ?? s.category).join(", ")}`);
   if (!members.some((m) => m.studentId === a.leaderId)) fail("INVALID_LEADER", "선발된 팀원 중에서 팀장을 선택해 주세요");
   project.status = nextStatus(project.status, "START", project.mode);
+  project.startedAt ??= ctx.now();
   members.forEach((m) => { m.isLead = m.studentId === a.leaderId; });
   post.status = "in_progress";
   return project;

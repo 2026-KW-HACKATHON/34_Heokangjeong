@@ -1,6 +1,7 @@
 import type { SVGProps } from "react";
 
 const paths = {
+  store: "M4 3h16l2 6H2ZM2 9v2a3 3 0 0 0 5 2 3 3 0 0 0 5 0 3 3 0 0 0 5 0 3 3 0 0 0 5-2V9M4 14v7h16v-7M9 21v-6h6v6M8 3 7 9m9-6 1 6",
   home: "m3 10 9-7 9 7v11h-6v-7H9v7H3Z",
   map: "m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2Zm6-2v16m6-14v16",
   plus: "M12 4v16M4 12h16",

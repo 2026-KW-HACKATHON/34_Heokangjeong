@@ -39,7 +39,7 @@ function View() {
     const role = b.answers.find((a) => a.authorId === studentId && a.field === "role" && a.origin === "SCHEMA" && a.status === "ANSWERED");
     return buildDocument({
       domain: b.project.domain, content: doc.edit.content,
-      info: { period: periodText(b.project.createdAt, b.project.completedAt), roleLabel: role ? [...role.choices, role.value].filter(Boolean).join(", ") : member?.roleLabel ?? "", clientName: client?.name ?? "의뢰인", clientType: client?.role === "resident" ? client.kind : "주민", approvedVersion: approved?.version ?? null },
+      info: { period: periodText(b.project.startedAt ?? b.project.createdAt, b.project.completedAt), roleLabel: role ? [...role.choices, role.value].filter(Boolean).join(", ") : member?.roleLabel ?? "", clientName: client?.name ?? "의뢰인", clientType: client?.role === "resident" ? client.kind : "주민", approvedVersion: approved?.version ?? null },
       verification: b.verification, review: b.review, evidence: b.evidence, outcomes: b.outcomes,
     });
   }, [doc, users, studentId]);

@@ -4,18 +4,11 @@ import type { ReadinessLevel } from "./types.ts";
 /** 포트폴리오 자료 준비도 가중치 (합 100). 실력 점수가 아니라 "자료가 얼마나 갖춰졌나" 이다. */
 export const READINESS_WEIGHTS: Record<ReadinessLevel, number> = { REQUIRED: 70, RECOMMENDED: 25, OPTIONAL: 5 };
 
-/** 검증된 프로젝트 수 기준 티어. 유료 공고는 MIN_VERIFIED_FOR_PAID 이상만 지원할 수 있다. */
+/** 협업 온도 기준 티어. 유료 공고 자격은 별도의 검증 활동 조건을 쓴다. */
 export const TIERS = [
-  { key: "UNRANKED", label: "언랭크", minVerified: 0 },
-  { key: "BRONZE", label: "브론즈", minVerified: 1 },
-  { key: "SILVER", label: "실버", minVerified: 3 },
-  { key: "GOLD", label: "골드", minVerified: 6 },
-  { key: "PLATINUM", label: "플래티넘", minVerified: 10 },
-  { key: "EMERALD", label: "에메랄드", minVerified: 15 },
-  { key: "DIAMOND", label: "다이아", minVerified: 22 },
-  { key: "MASTER", label: "마스터", minVerified: 32 },
-  { key: "GRANDMASTER", label: "그랜드 마스터", minVerified: 45 },
-  { key: "CHALLENGER", label: "챌린저", minVerified: 60 },
+  { key: "SEED", label: "새싹", minTemperature: 30 },
+  { key: "TRUST", label: "신뢰", minTemperature: 40 },
+  { key: "RECOMMENDED", label: "추천", minTemperature: 50 },
 ] as const;
 export const MIN_VERIFIED_FOR_PAID = 1;
 
@@ -25,12 +18,25 @@ export const POINTS = {
   clientUsed: 5,
 };
 
-/** 협업 온도: 36.5 에서 시작, 의뢰인 평가(기한·소통·인계, 1~5) 평균이 3 보다 높으면 오르고 낮으면 내린다 */
+/** 협업 온도: 의뢰인 평가와 팀원 상호평가를 프로젝트별 평균으로 반영한다. */
 export const TEMPERATURE = { base: 36.5, perPointAboveThree: 0.8, min: 30, max: 99 };
 
-export const tierFor = (verifiedCount: number) => [...TIERS].reverse().find((t) => verifiedCount >= t.minVerified)!;
-export function temperatureFor(reviews: { deadline: number; communication: number; handoff: number }[]) {
+export const tierForTemperature = (temperature: number) => [...TIERS].reverse().find((t) => temperature >= t.minTemperature)!;
+export function temperatureFor(
+  reviews: { deadline: number; communication: number; handoff: number }[],
+  peerReviews: { projectId: string; communication: number; collaboration: number; responsibility: number }[] = [],
+) {
   let t = TEMPERATURE.base;
   for (const r of reviews) t += ((r.deadline + r.communication + r.handoff) / 3 - 3) * TEMPERATURE.perPointAboveThree;
+  const byProject = new Map<string, number[]>();
+  for (const r of peerReviews) {
+    const scores = byProject.get(r.projectId) ?? [];
+    scores.push((r.communication + r.collaboration + r.responsibility) / 3);
+    byProject.set(r.projectId, scores);
+  }
+  for (const scores of byProject.values()) {
+    const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    t += (average - 3) * TEMPERATURE.perPointAboveThree;
+  }
   return Math.round(Math.min(TEMPERATURE.max, Math.max(TEMPERATURE.min, t)) * 10) / 10;
 }

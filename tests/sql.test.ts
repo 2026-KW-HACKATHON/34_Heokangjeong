@@ -78,12 +78,17 @@ beforeAll(async () => {
   await db.exec(sql("0007_team_projects.sql"));
   await db.exec(sql("0008_team_member_work.sql"));
   await db.exec(sql("0009_team_record_privacy.sql"));
+  await db.exec(sql("0010_profile_details.sql"));
+  await db.exec(sql("0011_team_peer_reviews.sql"));
+  await db.exec(sql("0012_project_started_at.sql"));
+  await db.exec(sql("0013_notification_automation.sql"));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
     const student = k.startsWith("stu");
     await db.query("insert into profiles (id, role, name, kind) values ($1, $2, $3, $4)", [id, student ? "student" : "resident", k, student ? null : "상인"]);
   }
+  await db.query("update profiles set interests = array['디자인'], max_distance_m = 10000 where id in ($1, $2)", [U.stu, U.stu2]);
 });
 
 describe("SQL: 선정·제출·검토 (DB 함수)", () => {
@@ -92,6 +97,20 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     expect(await status(projectId)).toBe("IN_PROGRESS");
     const [p] = (await db.query<{ status: string }>("select status from posts where id = $1", [postId])).rows;
     expect(p.status).toBe("in_progress");
+    const [project] = (await db.query<{ started_at: string | null }>("select started_at from projects where id = $1", [projectId])).rows;
+    expect(project.started_at).not.toBeNull();
+  });
+  it("맞춤 공고·지원·채팅 알림을 만들고 당사자만 읽는다", async () => {
+    const postId = await newPost("알림 흐름");
+    const [matched] = await as<{ id: string; href: string }>(U.stu, "select id,href from notifications where kind='MATCHED_POST' and post_id=$1", [postId]);
+    expect(matched.href).toBe(`/posts/detail?id=${postId}`);
+    expect(await as(U.owner2, "select id from notifications where id=$1", [matched.id])).toHaveLength(0);
+    expect(await as(U.stu, "update notifications set read=true where id=$1 returning id", [matched.id])).toHaveLength(1);
+    const [application] = await as<{ id: string }>(U.stu, "insert into applications(post_id,student_id,message) values($1,$2,'지원') returning id", [postId, U.stu]);
+    expect(await as(U.owner, "select id from notifications where kind='APPLICATION' and post_id=$1", [postId])).toHaveLength(1);
+    await as(U.stu, "insert into messages(application_id,sender_id,body) values($1,$2,'안녕하세요')", [application.id, U.stu]);
+    const [chat] = await as<{ href: string }>(U.owner, "select href from notifications where kind='CHAT' and post_id=$1", [postId]);
+    expect(chat.href).toBe(`/chats/room?id=${application.id}`);
   });
   it("다른 점주는 선정할 수 없다", async () => {
     const postId = await newPost("x");
@@ -164,10 +183,12 @@ describe("SQL: 팀 프로젝트 전체 흐름", () => {
     const [selected] = await rpc<{ select_applicant: string }>(U.owner, "select_applicant", [a1.id, snapshotFor("DESIGN")]);
     const projectId = selected.select_applicant;
     expect(await status(projectId)).toBe("RECRUITING");
+    expect((await db.query<{ started_at: string | null }>("select started_at from projects where id=$1", [projectId])).rows[0].started_at).toBeNull();
     await expect(rpc(U.owner, "start_team_project", [projectId, U.stu])).rejects.toThrow(/TEAM_INCOMPLETE/);
     await rpc(U.owner, "select_applicant", [a2.id, snapshotFor("DEVELOPMENT")]);
     await rpc(U.owner, "start_team_project", [projectId, U.stu]);
     expect(await status(projectId)).toBe("IN_PROGRESS");
+    expect((await db.query<{ started_at: string | null }>("select started_at from projects where id=$1", [projectId])).rows[0].started_at).not.toBeNull();
 
     const dq = DOMAINS.DESIGN.questions[0], wq = DOMAINS.DEVELOPMENT.questions[0];
     await as(U.stu, "insert into project_answers(project_id,author_id,question_id,field,stage,status,value) values($1,$2,$3,$4,$5,'ANSWERED','디자인 문제 분석')", [projectId, U.stu, dq.id, dq.field, dq.stage]);
@@ -187,6 +208,15 @@ describe("SQL: 팀 프로젝트 전체 흐름", () => {
     expect((await db.query("select * from tier_score_events where project_id=$1 and student_id=$2", [projectId, U.stu2])).rows).toHaveLength(0);
     await expect(as(U.stu2, "insert into portfolio_snapshots(project_id,student_id,hash,data) values($1,$2,'team-unverified','{}')", [projectId, U.stu2])).rejects.toThrow(/NOT_VERIFIED/);
     expect(await as(U.stu, "insert into portfolio_snapshots(project_id,student_id,hash,data) values($1,$2,'team-verified','{}') returning id", [projectId, U.stu])).toHaveLength(1);
+
+    await expect(as(U.stu, `insert into team_peer_reviews(project_id,reviewer_id,reviewee_id,communication,collaboration,responsibility)
+      values($1,$2,$3,5,5,5)`, [projectId, U.stu, U.stu2])).rejects.toThrow(/row-level security/);
+    await db.query("update member_verifications set verified = true where project_id = $1 and student_id = $2", [projectId, U.stu2]);
+    expect(await as(U.stu, `insert into team_peer_reviews(project_id,reviewer_id,reviewee_id,communication,collaboration,responsibility,comment)
+      values($1,$2,$3,5,4,5,'협업과 소통이 원활했습니다') returning id`, [projectId, U.stu, U.stu2])).toHaveLength(1);
+    await expect(as(U.stu, `insert into team_peer_reviews(project_id,reviewer_id,reviewee_id,communication,collaboration,responsibility)
+      values($1,$2,$2,5,5,5)`, [projectId, U.stu])).rejects.toThrow(/check constraint|row-level security/);
+    expect(await as(U.stu2, "select * from team_peer_reviews where project_id = $1", [projectId])).toHaveLength(1);
   });
 });
 

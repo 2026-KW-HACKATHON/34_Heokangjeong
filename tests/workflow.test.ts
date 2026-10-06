@@ -40,6 +40,7 @@ describe("지원·선정", () => {
   it("선정하면 프로젝트가 생기고 질문 목록이 고정된다", () => {
     const { db, project } = started();
     expect(project.status).toBe("IN_PROGRESS");
+    expect(project.startedAt).toBeTruthy();
     expect(project.questionSnapshot.questions.length).toBeGreaterThan(5);
     expect(db.posts[0].status).toBe("in_progress");
     expect(db.members).toHaveLength(1);
@@ -78,10 +79,12 @@ describe("팀 구성", () => {
     const a2 = wf.apply(db, { postId: "post", studentId: "stu2", message: "", roleId: "dev" }, c);
     const project = wf.selectApplicant(db, { applicationId: a1.id, actorId: "owner" }, c);
     expect(project.status).toBe("RECRUITING");
+    expect(project.startedAt).toBeUndefined();
     expect(() => wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" })).toThrow(/인원이 부족/);
     wf.selectApplicant(db, { applicationId: a2.id, actorId: "owner" }, c);
     wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" });
     expect(project.status).toBe("IN_PROGRESS");
+    expect(project.startedAt).toBeTruthy();
     expect(db.posts[0].status).toBe("in_progress");
     expect(db.members.find((m) => m.studentId === "stu")?.isLead).toBe(true);
     expect(db.members.find((m) => m.studentId === "stu2")?.domain).toBe("DEVELOPMENT");
@@ -108,6 +111,20 @@ describe("팀 구성", () => {
     expect(db.memberVerifications.find((v) => v.studentId === "stu2")?.verified).toBe(false);
     expect(() => wf.createSnapshot(db, { projectId: project.id, actorId: "stu2" }, c)).toThrow(/확인한 팀원/);
     expect(wf.createSnapshot(db, { projectId: project.id, actorId: "stu" }, c).studentId).toBe("stu");
+  });
+  it("검증된 팀원은 자신을 제외한 팀원을 평가한다", () => {
+    const db = teamDB(); const c = ctx();
+    const a1 = wf.apply(db, { postId: "post", studentId: "stu", message: "", roleId: "design" }, c);
+    const a2 = wf.apply(db, { postId: "post", studentId: "stu2", message: "", roleId: "dev" }, c);
+    const project = wf.selectApplicant(db, { applicationId: a1.id, actorId: "owner" }, c);
+    wf.selectApplicant(db, { applicationId: a2.id, actorId: "owner" }, c);
+    wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" });
+    const ev = wf.addEvidence(db, { projectId: project.id, actorId: "stu", type: "DELIVERABLE_FILE", description: "최종" }, c);
+    const version = wf.submitVersion(db, { projectId: project.id, actorId: "stu", note: "", evidenceIds: [ev.id] }, c);
+    wf.approveVersion(db, { versionId: version.id, actorId: "owner", claims, review, verifiedMemberIds: ["stu", "stu2"] }, c);
+    expect(() => wf.savePeerReview(db, { projectId: project.id, reviewerId: "stu", revieweeId: "stu", communication: 5, collaboration: 5, responsibility: 5, comment: "" }, c)).toThrow(/자신/);
+    expect(wf.savePeerReview(db, { projectId: project.id, reviewerId: "stu", revieweeId: "stu2", communication: 5, collaboration: 4, responsibility: 5, comment: "좋은 협업" }, c).revieweeId).toBe("stu2");
+    expect(db.peerReviews).toHaveLength(1);
   });
 });
 

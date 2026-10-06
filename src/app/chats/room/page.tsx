@@ -15,18 +15,29 @@ export default function ChatRoomPage() {
 function Room() {
   const id = useSearchParams().get("id") ?? "";
   const { user, users } = useSession();
-  const [app, setApp] = useState<Application | null>(null);
-  const [post, setPost] = useState<Post | null>(null);
+  const [app, setApp] = useState<Application | null | undefined>(undefined);
+  const [post, setPost] = useState<Post | null | undefined>(undefined);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    repo.getApplication(id).then(async (a) => { setApp(a ?? null); if (a) setPost((await repo.getPost(a.postId)) ?? null); });
-    repo.listMessages(id).then(setMsgs);
+    let active = true;
+    repo.getApplication(id).then(async (a) => {
+      if (!active) return;
+      setApp(a ?? null);
+      if (!a) return setPost(null);
+      const p = await repo.getPost(a.postId);
+      if (active) setPost(p ?? null);
+    }).catch(() => { if (active) { setApp(null); setPost(null); } });
+    repo.listMessages(id).then((value) => { if (active) setMsgs(value); }).catch(() => { if (active) setMsgs([]); });
+    return () => { active = false; };
+  }, [id]);
+  useEffect(() => {
+    if (!user || !app || !post || (user.id !== app.studentId && user.id !== post.authorId)) return;
     // 새 메시지: 내가 보낸 것도 구독으로 한 번 더 올 수 있어 id 로 중복 제거
     return repo.onMessage(id, (m) => setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])));
-  }, [id]);
+  }, [id, user, app, post]);
   useEffect(() => { bottom.current?.scrollIntoView({ block: "end" }); }, [msgs]);
   useEffect(() => {
     if (!user || !app || !post || (user.id !== app.studentId && user.id !== post.authorId)) return;
@@ -50,6 +61,16 @@ function Room() {
   const otherId = app && post ? (user?.id === app.studentId ? post.authorId : app.studentId) : null;
   const other = users.find((u) => u.id === otherId);
   const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit" });
+
+  if (app === undefined || post === undefined) {
+    return <><TopBar title="채팅" back /><p className="sub p-6 text-center text-sm">채팅방을 불러오는 중…</p></>;
+  }
+  if (!app || !post) {
+    return <><TopBar title="채팅" back /><p className="card mx-4 text-sm">이 채팅방을 찾을 수 없거나 볼 권한이 없어요.</p></>;
+  }
+  if (user && app && post && user.id !== app.studentId && user.id !== post.authorId) {
+    return <><TopBar title="채팅" back /><p className="card mx-4 text-sm">이 채팅방은 공고 작성자와 지원자만 볼 수 있어요.</p></>;
+  }
 
   return (
     <>

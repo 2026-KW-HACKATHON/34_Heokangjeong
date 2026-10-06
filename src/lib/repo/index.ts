@@ -1,6 +1,6 @@
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
-  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, RankRow, Review, SubmissionVersion, TrustSummary, User, VerificationClaims,
+  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, RankRow, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims,
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
 
@@ -34,6 +34,8 @@ export interface Repo {
   listReviews(studentId?: string): Promise<Review[]>;
   listPortfolio(studentId: string): Promise<PortfolioCard[]>;
   listNotifications(userId: string): Promise<Notification[]>;
+  markNotificationRead(id: string, userId: string): Promise<void>;
+  onNotification(userId: string, cb: (notification: Notification) => void): () => void;
   ranking(kind: "individual" | "team" | "department"): Promise<RankRow[]>;
 
   // ── 검증형 포트폴리오 파이프라인 ───────────────────────────────────────────
@@ -53,6 +55,7 @@ export interface Repo {
   requestRevision(versionId: string, actorId: string, comment: string): Promise<void>;
   /** 승인 + Claim 단위 검증 + 평가를 한 번에 */
   approveVersion(a: { versionId: string; actorId: string; claims: VerificationClaims; note?: string; review: ReviewInput; verifiedMemberIds?: string[] }): Promise<void>;
+  savePeerReview(a: { projectId: string; reviewerId: string; revieweeId: string; communication: number; collaboration: number; responsibility: number; comment: string }): Promise<TeamPeerReview>;
   addOutcome(a: OutcomeInput): Promise<Outcome>;
   verifyOutcome(outcomeId: string, actorId: string): Promise<void>;
   /** 스냅샷 → 초안. 같은 자료로는 기존 초안을 돌려준다(regenerate 면 새 초안). 학생 편집본은 건드리지 않는다 */

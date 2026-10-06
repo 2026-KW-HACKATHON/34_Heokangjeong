@@ -52,7 +52,7 @@ export function buildSource(i: SnapshotInput): PortfolioSource {
     domain: i.project.domain,
     builtAt: i.now,
     listing: { ...i.listing, clientName: i.client.name, clientType: i.client.kind, projectMode: i.project.mode },
-    period: { start: i.project.createdAt, end: i.project.completedAt ?? null },
+    period: { start: i.project.startedAt ?? i.project.createdAt, end: i.project.completedAt ?? null },
     member: { name: i.member.name, department: i.member.department, roleLabel: i.member.roleLabel },
     fields,
     omitted,

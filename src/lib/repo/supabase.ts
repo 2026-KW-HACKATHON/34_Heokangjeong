@@ -3,7 +3,7 @@ import { chatReads } from "./chatReads";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
   ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, MemberVerification, Notification, Outcome, PortfolioCard,
-  PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review,
+  PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review, TeamPeerReview,
   SubmissionVersion, TierScoreEvent, User,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
@@ -19,9 +19,10 @@ import { summarizeTrust } from "../trust";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
 const u = <T,>(v: T | null | undefined) => v ?? undefined;
+let realtimeChannelSequence = 0;
 
 export const toUser = (r: Row): User => r.role === "student"
-  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
+  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), age: u(r.age), phone: u(r.phone), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
   : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
@@ -38,7 +39,7 @@ const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId
 const toMsg = (r: Row): ChatMessage => ({ id: r.id, applicationId: r.application_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
 const toProject = (r: Row): Project => ({
   id: r.id, postId: r.post_id, ownerId: r.owner_id, domain: r.domain, mode: r.mode, status: r.status, questionSnapshot: r.question_snapshot,
-  approvedVersionId: u(r.approved_version_id), createdAt: r.created_at, completedAt: u(r.completed_at),
+  approvedVersionId: u(r.approved_version_id), createdAt: r.created_at, startedAt: u(r.started_at), completedAt: u(r.completed_at),
 });
 const toMember = (r: Row): ProjectMember => ({
   projectId: r.project_id, studentId: r.student_id, roleLabel: r.role_label, roleId: u(r.role_id), domain: u(r.domain),
@@ -76,6 +77,8 @@ const toDraft = (r: Row): PortfolioDraft => ({
 const toEdit = (r: Row): PortfolioEditedVersion => ({ id: r.id, draftId: r.draft_id, projectId: r.project_id, studentId: r.student_id, version: r.version, content: r.content, createdAt: r.created_at });
 const toEvent = (r: Row): TierScoreEvent => ({ id: r.id, studentId: r.student_id, projectId: r.project_id, kind: r.kind, points: r.points, createdAt: r.created_at });
 const toBadge = (r: Row): Badge => ({ studentId: r.student_id, code: r.code, label: r.label, projectId: r.project_id, createdAt: r.created_at });
+const toPeerReview = (r: Row): TeamPeerReview => ({ id: r.id, projectId: r.project_id, reviewerId: r.reviewer_id, revieweeId: r.reviewee_id, communication: r.communication, collaboration: r.collaboration, responsibility: r.responsibility, comment: r.comment, createdAt: r.created_at });
+const toNotification = (r: Row): Notification => ({ id: r.id, userId: r.user_id, postId: u(r.post_id), kind: u(r.kind), href: u(r.href), text: r.text, distanceM: u(r.distance_m), read: r.read, createdAt: r.created_at });
 
 /** DB 에러 → 화면용 문장. DB 함수는 'CODE: 설명' 으로 던진다 */
 export function friendly(message: string) {
@@ -158,7 +161,10 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async listMessages(applicationId) { return ok(await db.from("messages").select("*").eq("application_id", applicationId).order("created_at")).map(toMsg); },
     async sendMessage(applicationId, senderId, body) { return toMsg(ok(await db.from("messages").insert({ application_id: applicationId, sender_id: senderId, body }).select().single())); },
     onMessage(applicationId, cb) {
-      const ch = db.channel(`messages:${applicationId}`)
+      // The room screen and the global unread counter can subscribe to the same
+      // application at once. Supabase reuses channels by topic, so every local
+      // subscriber needs its own topic before handlers are registered.
+      const ch = db.channel(`messages:${applicationId}:${++realtimeChannelSequence}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `application_id=eq.${applicationId}` }, (e) => cb(toMsg(e.new)))
         // 연결까지 몇 초 걸린다. 그 사이 온 메시지를 놓치지 않게 연결되면 한 번 다시 불러온다 (화면에서 id 로 중복 제거)
         .subscribe((status) => { if (status === "SUBSCRIBED") repo.listMessages(applicationId).then((ms) => ms.forEach(cb)); });
@@ -176,9 +182,14 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       }));
     },
     async listNotifications(userId) {
-      return ok(await db.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false })).map((r: Row): Notification => ({
-        id: r.id, userId: r.user_id, postId: r.post_id ?? undefined, text: r.text, distanceM: r.distance_m ?? undefined, read: r.read, createdAt: r.created_at,
-      }));
+      return ok(await db.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false })).map(toNotification);
+    },
+    async markNotificationRead(id, userId) { done(await db.from("notifications").update({ read: true }).eq("id", id).eq("user_id", userId)); },
+    onNotification(userId, cb) {
+      const ch = db.channel(`notifications:${userId}:${++realtimeChannelSequence}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (e) => cb(toNotification(e.new)))
+        .subscribe();
+      return () => { db.removeChannel(ch); };
     },
     async ranking(kind) {
       // mock 과 같은 임시 공식: 해결 수×10 + 평가 평균×4 + 난이도 합×3
@@ -215,28 +226,32 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async getProjectByPost(postId) { const r = maybe(await db.from("projects").select("*").eq("post_id", postId).maybeSingle()); return r ? toProject(r) : undefined; },
     async listMyProjects(userId) {
       const memberOf = ok(await db.from("project_members").select("project_id").eq("student_id", userId)).map((r: Row) => r.project_id);
-      let q = db.from("projects").select("*, post:posts(*)").order("created_at", { ascending: false });
+      let q = db.from("projects").select("*, post:posts(*, roles:post_roles(*))").order("created_at", { ascending: false });
       q = memberOf.length ? q.or(`owner_id.eq.${userId},id.in.(${memberOf.join(",")})`) : q.eq("owner_id", userId);
       return ok(await q).map((r: Row) => ({ project: toProject(r), post: toPost(r.post) }));
     },
     async getBundle(projectId) {
-      const p = maybe(await db.from("projects").select("*, post:posts(*)").eq("id", projectId).maybeSingle());
+      const p = maybe(await db.from("projects").select("*, post:posts(*, roles:post_roles(*))").eq("id", projectId).maybeSingle());
       if (!p) throw new Error("프로젝트를 찾을 수 없거나 볼 권한이 없어요 (선정된 학생과 의뢰인만 볼 수 있어요)");
       const by = (t: string, order = "created_at") => db.from(t).select("*").eq("project_id", projectId).order(order);
       const optionalMemberVerifications = async () => {
         const result = await db.from("member_verifications").select("*").eq("project_id", projectId).order("created_at");
         return result.error && /member_verifications|schema cache/i.test(result.error.message) ? { data: [], error: null } : result;
       };
-      const [members, memberVerifications, answers, logs, evidence, versions, verification, review, outcomes, snapshots, drafts, edits] = await Promise.all([
+      const optionalPeerReviews = async () => {
+        const result = await db.from("team_peer_reviews").select("*").eq("project_id", projectId).order("created_at");
+        return result.error && /team_peer_reviews|schema cache/i.test(result.error.message) ? { data: [], error: null } : result;
+      };
+      const [members, memberVerifications, answers, logs, evidence, versions, verification, review, outcomes, snapshots, drafts, edits, peerReviews] = await Promise.all([
         by("project_members", "joined_at"), optionalMemberVerifications(), by("project_answers", "updated_at"), by("activity_logs"), by("evidence"), by("submission_versions", "version"),
         db.from("client_verifications").select("*").eq("project_id", projectId).maybeSingle(), db.from("client_reviews").select("*").eq("project_id", projectId).maybeSingle(),
-        by("outcomes"), by("portfolio_snapshots"), by("portfolio_drafts"), by("portfolio_edits", "version"),
+        by("outcomes"), by("portfolio_snapshots"), by("portfolio_drafts"), by("portfolio_edits", "version"), optionalPeerReviews(),
       ]);
       const bundle: ProjectBundle = {
         project: toProject(p), post: toPost(p.post),
         members: ok(members).map(toMember), memberVerifications: ok(memberVerifications).map(toMemberVerification), answers: ok(answers).map(toAnswer), logs: ok(logs).map(toLog), evidence: ok(evidence).map(toEvidence),
         versions: ok(versions).map(toVersion), verification: maybe(verification) && toVerification(maybe(verification)!), review: maybe(review) && toReview(maybe(review)!),
-        outcomes: ok(outcomes).map(toOutcome), snapshots: ok(snapshots).map(toSnapshot), drafts: ok(drafts).map(toDraft), edits: ok(edits).map(toEdit),
+        outcomes: ok(outcomes).map(toOutcome), snapshots: ok(snapshots).map(toSnapshot), drafts: ok(drafts).map(toDraft), edits: ok(edits).map(toEdit), peerReviews: ok(peerReviews).map(toPeerReview),
       };
       return bundle;
     },
@@ -284,6 +299,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       if (a.verifiedMemberIds) args.p_verified_members = a.verifiedMemberIds;
       done(await db.rpc(fn, args));
     },
+    async savePeerReview(a) {
+      return toPeerReview(ok(await db.from("team_peer_reviews").upsert({
+        project_id: a.projectId, reviewer_id: a.reviewerId, reviewee_id: a.revieweeId,
+        communication: a.communication, collaboration: a.collaboration, responsibility: a.responsibility, comment: a.comment.trim(),
+      }, { onConflict: "project_id,reviewer_id,reviewee_id" }).select().single()));
+    },
     async addOutcome(a) {
       return toOutcome(ok(await db.from("outcomes").insert({
         project_id: a.projectId, author_id: a.actorId, metric_name: a.metricName.trim(), measured: a.measured, value: a.measured ? a.value : null, unit: a.unit,
@@ -318,13 +339,15 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return r ? { edit: toEdit(r), bundle: await repo.getBundle(projectId) } : undefined;
     },
     async trustSummary(studentId) {
-      const [events, badges] = await Promise.all([
+      const [events, badges, peerReviewsResult] = await Promise.all([
         db.from("tier_score_events").select("*").eq("student_id", studentId).then(ok),
         db.from("badges").select("*").eq("student_id", studentId).then(ok),
+        db.from("team_peer_reviews").select("*").eq("reviewee_id", studentId),
       ]);
       const ids = [...new Set((events as Row[]).map((e) => e.project_id))];
       const reviews = ids.length ? ok(await db.from("client_reviews").select("*").in("project_id", ids)).map(toReview) : [];
-      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge));
+      const peerReviews = peerReviewsResult.error && /team_peer_reviews|schema cache/i.test(peerReviewsResult.error.message) ? [] : ok(peerReviewsResult).map(toPeerReview);
+      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge), peerReviews);
     },
   };
 

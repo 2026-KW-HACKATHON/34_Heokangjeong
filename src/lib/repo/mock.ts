@@ -52,7 +52,7 @@ const portfolio: PortfolioCard[] = [
   { id: "c2", studentId: "s3", postId: "p7", title: "행복분식 사진 촬영", roleLabel: "촬영·보정", tasks: ["외관·메뉴 사진 20장 촬영", "네이버 플레이스용 보정"], durationDays: 3, rating: 5, verified: true },
 ];
 
-const notifications: Notification[] = [
+const seedNotifications: Notification[] = [
   { id: "n1", userId: "s1", postId: "p1", text: "월계 커피에서 '카페 신메뉴 포스터 디자인' 프로젝트가 등록되었습니다.", distanceM: 580, read: false, createdAt: "2026-09-14T09:01:00Z" },
   { id: "n2", userId: "s1", postId: "p5", text: "삼거리 정육점 팀 프로젝트에 디자인 1명이 필요합니다.", distanceM: 1200, read: true, createdAt: "2026-09-12T07:05:00Z" },
   { id: "n3", userId: "r1", postId: "p1", text: "김하늘 학생이 포스터 공고에 지원했습니다.", read: false, createdAt: "2026-09-14T12:00:00Z" },
@@ -67,11 +67,12 @@ const fresh = (): wf.WorkflowDB => ({
 });
 let db: wf.WorkflowDB = fresh();
 let msgs: ChatMessage[] = structuredClone(messages);
+let demoNotifications: Notification[] = structuredClone(seedNotifications);
 function load() {
   if (typeof window === "undefined") return;
   try {
     const s = localStorage.getItem(KEY);
-    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; }
+    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; }
     else {
       const legacy = localStorage.getItem("wolgye-mock-v1");
       if (legacy) {
@@ -86,11 +87,17 @@ function load() {
 }
 function save() {
   if (typeof window === "undefined") return;
-  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs })); }
+  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications })); }
   catch { throw new Error("브라우저 저장 공간이 가득 찼어요. 나 › 데모 데이터 초기화 후 다시 시도해 주세요"); }
 }
 let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; } };
 const listeners = new Set<(m: ChatMessage) => void>();
+const notificationListeners = new Set<(n: Notification) => void>();
+const pushNotification = (n: Omit<Notification, "id" | "createdAt" | "read">) => {
+  const notification: Notification = { ...n, id: `n${Date.now()}${Math.random().toString(36).slice(2, 7)}`, read: false, createdAt: new Date().toISOString() };
+  demoNotifications.unshift(notification);
+  notificationListeners.forEach((listener) => listener(structuredClone(notification)));
+};
 const wait = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v === undefined ? v : structuredClone(v)), 60));
 /** 엔진 호출 → 저장. 엔진이 던진 에러는 그대로 화면에 간다 (실패하면 저장하지 않는다) */
 const tx = <T,>(f: () => T): Promise<T> => {
@@ -117,12 +124,27 @@ export const mockRepo: Repo = {
   async getUser(id) { return wait(users.find((u) => u.id === id)); },
   async listPosts() { ensure(); return wait([...db.posts].map(withRoleIds).sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },
   async getPost(id) { ensure(); const post = db.posts.find((p) => p.id === id); return wait(post ? withRoleIds(post) : undefined); },
-  async createPost(p) { return tx(() => { const post = withRoleIds({ ...p, id: `p${Date.now()}`, status: "open", createdAt: new Date().toISOString() }); db.posts.unshift(post); return post; }); },
+  async createPost(p) { return tx(() => {
+    const post = withRoleIds({ ...p, id: `p${Date.now()}`, status: "open", createdAt: new Date().toISOString() }); db.posts.unshift(post);
+    for (const student of users.filter((u): u is Extract<User, { role: "student" }> => u.role === "student" && u.interests.includes(post.category))) {
+      const distance = distanceM(student.location, post.location);
+      if (distance <= student.maxDistanceM) pushNotification({ userId: student.id, postId: post.id, kind: "MATCHED_POST", href: `/posts/detail?id=${post.id}`, text: `${post.title} 공고가 등록됐어요.`, distanceM: Math.round(distance) });
+    }
+    return post;
+  }); },
   async updatePostStatus(id, status) { return tx(() => { const p = db.posts.find((x) => x.id === id); if (p) p.status = status; }); },
   async listApplications(postId) { ensure(); return wait(db.applications.filter((a) => !postId || a.postId === postId)); },
-  async apply(postId, studentId, message, roleId) { return tx(() => wf.apply(db, { postId, studentId, message, roleId })); },
+  async apply(postId, studentId, message, roleId) { return tx(() => {
+    const application = wf.apply(db, { postId, studentId, message, roleId }); const post = db.posts.find((p) => p.id === postId)!; const student = users.find((u) => u.id === studentId);
+    pushNotification({ userId: post.authorId, postId, kind: "APPLICATION", href: `/posts/detail?id=${postId}`, text: `${student?.name ?? "학생"}님이 '${post.title}' 공고에 지원했어요.` });
+    return application;
+  }); },
   async getApplication(id) { ensure(); return wait(db.applications.find((a) => a.id === id)); },
-  async updateApplicationStatus(id, status) { return tx(() => { const a = db.applications.find((x) => x.id === id); if (a) a.status = status; }); },
+  async updateApplicationStatus(id, status) { return tx(() => {
+    const application = db.applications.find((x) => x.id === id); if (!application) return;
+    application.status = status;
+    if (status === "rejected") { const post = db.posts.find((p) => p.id === application.postId)!; pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_REJECTED", href: `/posts/detail?id=${post.id}`, text: `'${post.title}' 지원 결과를 확인해 주세요.` }); }
+  }); },
   async listChatRooms(userId) {
     ensure();
     const rooms = db.applications.flatMap((a) => {
@@ -136,12 +158,16 @@ export const mockRepo: Repo = {
   async listMessages(applicationId) { ensure(); return wait(msgs.filter((m) => m.applicationId === applicationId)); },
   async sendMessage(applicationId, senderId, body) {
     ensure(); const m: ChatMessage = { id: `m${Date.now()}`, applicationId, senderId, body, createdAt: new Date().toISOString() };
-    msgs.push(m); save(); listeners.forEach((l) => l(m)); return wait(m);
+    msgs.push(m); const application = db.applications.find((a) => a.id === applicationId); const post = application && db.posts.find((p) => p.id === application.postId);
+    if (application && post) pushNotification({ userId: senderId === application.studentId ? post.authorId : application.studentId, postId: post.id, kind: "CHAT", href: `/chats/room?id=${applicationId}`, text: `${users.find((u) => u.id === senderId)?.name ?? "상대방"}님이 새 메시지를 보냈어요.` });
+    save(); listeners.forEach((l) => l(m)); return wait(m);
   },
   onMessage(applicationId, cb) { const l = (m: ChatMessage) => { if (m.applicationId === applicationId) cb(m); }; listeners.add(l); return () => { listeners.delete(l); }; },
   async listReviews(studentId) { ensure(); return wait(db.legacyReviews.filter((r) => !studentId || r.studentId === studentId)); },
   async listPortfolio(studentId) { ensure(); return wait(db.legacyCards.filter((c) => c.studentId === studentId)); },
-  async listNotifications(userId) { return wait(notifications.filter((n) => n.userId === userId)); },
+  async listNotifications(userId) { ensure(); return wait(demoNotifications.filter((n) => n.userId === userId)); },
+  async markNotificationRead(id, userId) { ensure(); const notification = demoNotifications.find((n) => n.id === id && n.userId === userId); if (notification) notification.read = true; save(); },
+  onNotification(userId, cb) { const listener = (n: Notification) => { if (n.userId === userId) cb(n); }; notificationListeners.add(listener); return () => { notificationListeners.delete(listener); }; },
   async ranking(kind) {
     ensure();
     // 지역 기여 점수 = 해결 수×10 + 평가 평균×4 + 난이도 합×3 (임시 공식, 나중에 조정)
@@ -163,8 +189,8 @@ export const mockRepo: Repo = {
   },
 
   // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
-  async selectApplicant(applicationId, actorId) { return tx(() => wf.selectApplicant(db, { applicationId, actorId })); },
-  async startTeamProject(projectId, actorId, leaderId) { return tx(() => wf.startTeamProject(db, { projectId, actorId, leaderId })); },
+  async selectApplicant(applicationId, actorId) { return tx(() => { const project = wf.selectApplicant(db, { applicationId, actorId }); const application = db.applications.find((a) => a.id === applicationId)!; const post = db.posts.find((p) => p.id === application.postId)!; pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_ACCEPTED", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 프로젝트에 선정됐어요.` }); return project; }); },
+  async startTeamProject(projectId, actorId, leaderId) { return tx(() => { const project = wf.startTeamProject(db, { projectId, actorId, leaderId }); const post = db.posts.find((p) => p.id === project.postId)!; for (const member of db.members.filter((m) => m.projectId === projectId)) pushNotification({ userId: member.studentId, postId: post.id, kind: "PROJECT_STARTED", href: `/projects/detail?id=${projectId}`, text: `'${post.title}' 팀 프로젝트가 시작됐어요.` }); return project; }); },
   async getProjectByPost(postId) { ensure(); return wait(db.projects.find((p) => p.postId === postId)); },
   async listMyProjects(userId) {
     ensure();
@@ -176,9 +202,10 @@ export const mockRepo: Repo = {
   async addLog(a) { return tx(() => wf.addLog(db, a)); },
   async uploadEvidenceFile(_projectId, file) { return { url: await fileToDataUrl(file), fileName: file.name, mimeType: file.type.startsWith("image/") && file.type !== "image/gif" ? "image/jpeg" : file.type }; },
   async addEvidence(a) { return tx(() => wf.addEvidence(db, a)); },
-  async submitVersion(a) { return tx(() => wf.submitVersion(db, a).id); },
-  async requestRevision(versionId, actorId, comment) { return tx(() => { wf.requestRevision(db, { versionId, actorId, comment }); }); },
-  async approveVersion(a) { return tx(() => { wf.approveVersion(db, a); }); },
+  async submitVersion(a) { return tx(() => { const version = wf.submitVersion(db, a); const project = wf.getProject(db, a.projectId); const post = db.posts.find((p) => p.id === project.postId)!; pushNotification({ userId: project.ownerId, postId: post.id, kind: "SUBMISSION", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 결과물이 제출됐어요.` }); return version.id; }); },
+  async requestRevision(versionId, actorId, comment) { return tx(() => { wf.requestRevision(db, { versionId, actorId, comment }); const version = db.versions.find((v) => v.id === versionId)!; const project = wf.getProject(db, version.projectId); pushNotification({ userId: version.submittedBy, postId: project.postId, kind: "REVISION", href: `/projects/detail?id=${project.id}`, text: "결과물 보완 요청이 도착했어요." }); }); },
+  async approveVersion(a) { return tx(() => { wf.approveVersion(db, a); const version = db.versions.find((v) => v.id === a.versionId)!; const project = wf.getProject(db, version.projectId); for (const member of db.members.filter((m) => m.projectId === project.id)) pushNotification({ userId: member.studentId, postId: project.postId, kind: "COMPLETED", href: `/projects/detail?id=${project.id}`, text: "프로젝트가 승인·완료됐어요." }); }); },
+  async savePeerReview(a) { return tx(() => { const review = wf.savePeerReview(db, a); const project = wf.getProject(db, a.projectId); pushNotification({ userId: a.revieweeId, postId: project.postId, kind: "PEER_REVIEW", href: `/projects/peer-review?id=${project.id}`, text: "팀원 상호평가가 등록됐어요." }); return review; }); },
   async addOutcome(a) { return tx(() => wf.addOutcome(db, a)); },
   async verifyOutcome(outcomeId, actorId) { return tx(() => { wf.verifyOutcome(db, { outcomeId, actorId }); }); },
   async generatePortfolio(projectId, actorId, opts) {
@@ -205,9 +232,9 @@ export const mockRepo: Repo = {
     ensure();
     const events = db.tierEvents.filter((e) => e.studentId === studentId);
     const projectIds = new Set(events.map((e) => e.projectId));
-    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId)));
+    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId)));
   },
-  async resetDemo() { db = fresh(); msgs = structuredClone(messages); loaded = true; save(); },
+  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); loaded = true; save(); },
 };
 
 export { distanceM };

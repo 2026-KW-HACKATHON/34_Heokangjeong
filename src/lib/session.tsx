@@ -60,12 +60,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     },
     async signOut() { await supabase?.auth.signOut(); },
     async saveProfile(p) {
-      const { error } = await supabase!.from("profiles").upsert({
+      const base: Record<string, unknown> = {
         id, role: p.role, name: p.name, lat: p.location.lat, lng: p.location.lng,
         ...(p.role === "student"
           ? { department: p.department, skills: p.skills, interests: p.interests, available_hours: p.availableHours, max_distance_m: p.maxDistanceM }
           : { kind: p.kind, address: p.address }),
-      });
+      };
+      const details: Record<string, unknown> = p.role === "student" ? { school: p.school ?? null, age: p.age ?? null, phone: p.phone ?? null } : {};
+      let { error } = await supabase!.from("profiles").upsert({ ...base, ...details });
+      // 새 프로필 컬럼 배포 전에도 가입 자체는 막히지 않게 기존 스키마로 한 번 재시도한다.
+      if (error && /school|age|phone|schema cache/i.test(error.message)) ({ error } = await supabase!.from("profiles").upsert(base));
       if (error) throw new Error(error.message);
       await refresh();
     },
