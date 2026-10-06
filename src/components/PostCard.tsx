@@ -6,11 +6,11 @@ import Icon from "./Icon";
 import { TIERS } from "@shared/portfolio/policy";
 import { TierMark } from "./TierCard";
 
-export default function PostCard({ post, authorName, distance, recommendation }: { post: Post; authorName?: string; distance?: number; recommendation?: string }) {
+export default function PostCard({ post, authorName, distance }: { post: Post; authorName?: string; distance?: number }) {
   return (
-    <Link href={`/posts/detail?id=${post.id}`} className="card block active:opacity-80">
+    <Link href={`/posts/detail?id=${post.id}`} className="card post-card block active:opacity-80">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-semibold text-[var(--primary)]">{post.category}{post.isTeam ? " · 팀" : ""}</span>
+        <span className="sub text-xs font-medium">{post.category}{post.isTeam ? " · 팀" : ""}</span>
         <StatusBadge status={post.status} />
       </div>
       <h3 className="mt-3 text-lg font-semibold leading-snug tracking-tight">{post.title}</h3>
@@ -28,7 +28,6 @@ export default function PostCard({ post, authorName, distance, recommendation }:
         </div>
         <span aria-hidden="true" className="post-card-arrow"><Icon name="arrow" width={17} height={17} /></span>
       </div>
-      <div className="mt-5 flex items-center justify-between border-t border-[var(--line)] pt-4"><span className="sub text-xs">{recommendation ?? "이웃과 함께 만드는 변화"}</span><span className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--primary)]">자세히<Icon name="arrow" width={16} height={16} /></span></div>
     </Link>
   );
 }
