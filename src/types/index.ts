@@ -25,6 +25,7 @@ export interface Student {
   maxDistanceM: number;      // 활동 가능 거리(m)
   location: GeoPoint;        // 기준 위치(집/학교)
   school?: string;
+  college?: string;          // 단과대학 key (src/lib/colleges.ts). 긴급 공고 알림 대상 선정에 쓴다
   age?: number;
   phone?: string;
 }
@@ -65,6 +66,8 @@ export interface Post {
   isTeam: boolean;
   teamSlots?: RoleSlot[];    // isTeam 일 때
   createdAt: string;         // ISO
+  urgent?: boolean;          // 긴급 공고. 올리는 즉시 아래 단과대학 학생에게 알림이 간다
+  urgentColleges?: string[]; // 단과대학 key 목록 (비어 있으면 전체 학생)
   // ── 구조화된 공고 정보 (검증형 포트폴리오 파이프라인). 예전 공고에는 없을 수 있어 listingOf() 로 기본값을 채운다
   problem?: string;                  // 의뢰인이 겪는 문제
   domain?: DomainKey;                // 분야 모듈. 없으면 category 로 정한다

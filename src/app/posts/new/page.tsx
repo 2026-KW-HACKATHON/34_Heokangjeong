@@ -8,6 +8,7 @@ import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
 import { draftPost, type PostDraft } from "@/lib/ai/draft";
 import { COMPENSATION_LABEL } from "@/lib/listing";
+import { COLLEGES } from "@/lib/colleges";
 import { DOMAINS, DOMAIN_KEYS, domainForCategory } from "@shared/portfolio/domains";
 import type { Category, CompensationType, DomainKey, RoleSlot } from "@/types";
 
@@ -21,6 +22,7 @@ export default function NewPost() {
   const [f, setF] = useState({ title: "", category: "디자인" as Category, description: "", reward: "", durationDays: 7, difficulty: 2 as 1 | 2 | 3, isTeam: false });
   const [l, setL] = useState({ problem: "", deliverables: "", completionCriteria: "", deadline: "", revisionLimit: 2, compensationType: "NON_MONETARY" as CompensationType, paidAmount: "", domain: null as DomainKey | null });
   const [slots, setSlots] = useState<RoleSlot[]>([{ label: "디자이너", category: "디자인", count: 1, filled: [] }]);
+  const [urgent, setUrgent] = useState({ on: false, colleges: [] as string[], open: null as string | null });
   const [memo, setMemo] = useState("");
   const [draft, setDraft] = useState<PostDraft | null>(null);
   const [drafting, setDrafting] = useState(false);
@@ -40,6 +42,7 @@ export default function NewPost() {
         ...f, authorId: user!.id, location: user!.location ?? WOLGYE_CENTER, address: (user as { address?: string }).address ?? "월계1동", teamSlots: f.isTeam ? slots : undefined,
         problem: l.problem.trim(), domain, expectedDeliverables: l.deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria: l.completionCriteria.trim(),
         deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: l.compensationType, compensationDescription: f.reward.trim(), paidAmount: paid,
+        urgent: urgent.on, urgentColleges: urgent.on ? urgent.colleges : [],
       });
       router.replace(`/posts/detail?id=${p.id}`);
     });
@@ -117,9 +120,41 @@ export default function NewPost() {
             </div>
           )}
         </div>
+        {/* 긴급 공고: 평소 공고는 알림이 가지 않는다. 급할 때만 고른 단과대학 학생에게 즉시 알림 */}
+        <div className="card flex flex-col gap-3">
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" checked={urgent.on} onChange={(e) => setUrgent({ ...urgent, on: e.target.checked })} />
+            <span><b>🚨 긴급 공고로 올릴게요</b><span className="sub block text-xs">지금 바로 사람이 필요할 때만 선택하세요. 고른 단과대학 학생에게 즉시 알림이 갑니다.</span></span>
+          </label>
+          {urgent.on && (
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-semibold">어느 쪽 학생이 필요하세요?</legend>
+              <p className="sub mb-2 text-xs">무엇을 배우는 곳인지 보고 고르세요. 여러 개 고를 수 있어요. 고르지 않으면 모든 학생에게 알림이 갑니다.</p>
+              <ul className="flex flex-col gap-1.5">
+                {COLLEGES.map((c) => {
+                  const on = urgent.colleges.includes(c.key);
+                  return (
+                    <li key={c.key} className={`rounded-xl border p-2.5 ${on ? "border-[var(--primary)] bg-[var(--primary-weak)]" : "border-[var(--line)] bg-[var(--line)]"}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <button type="button" aria-pressed={on} onClick={() => setUrgent({ ...urgent, colleges: on ? urgent.colleges.filter((x) => x !== c.key) : [...urgent.colleges, c.key] })} className="flex-1 text-left text-sm font-semibold">
+                          {on ? "✓ " : ""}{c.label}
+                        </button>
+                        <button type="button" aria-expanded={urgent.open === c.key} onClick={() => setUrgent({ ...urgent, open: urgent.open === c.key ? null : c.key })} className="sub shrink-0 text-xs underline">
+                          {urgent.open === c.key ? "접기" : "어떤 곳?"}
+                        </button>
+                      </div>
+                      <p className="sub mt-0.5 text-xs">{c.what}</p>
+                      {urgent.open === c.key && <p className="mt-1.5 border-t border-white/60 pt-1.5 text-xs leading-5">{c.departments.join(" · ")}</p>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </fieldset>
+          )}
+        </div>
         <ErrorText text={act.error} />
-        <button onClick={submit} disabled={act.busy} className="btn btn-primary w-full disabled:opacity-50">등록하기</button>
-        <p className="sub text-center text-xs">등록되면 관심 분야·거리가 맞는 학생에게 알림이 갑니다.</p>
+        <button onClick={submit} disabled={act.busy} className="btn btn-primary w-full disabled:opacity-50">{urgent.on ? "🚨 긴급 공고 등록하기" : "등록하기"}</button>
+        <p className="sub text-center text-xs">{urgent.on ? "등록 즉시 선택한 단과대학 학생에게 알림이 갑니다." : "평소 공고는 알림 없이 올라가고, 학생이 홈·지도에서 찾아봅니다."}</p>
       </section>
     </>
   );

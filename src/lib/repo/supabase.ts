@@ -22,7 +22,7 @@ const u = <T,>(v: T | null | undefined) => v ?? undefined;
 let realtimeChannelSequence = 0;
 
 export const toUser = (r: Row): User => r.role === "student"
-  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), age: u(r.age), phone: u(r.phone), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
+  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
   : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
@@ -31,6 +31,7 @@ const toPost = (r: Row): Post => ({
   durationDays: r.duration_days, difficulty: r.difficulty, isTeam: r.is_team,
   teamSlots: r.roles?.length ? r.roles.map((x: Row) => ({ id: x.id, label: x.label, category: x.category, domain: x.domain, count: x.capacity, filled: [], filledCount: x.filled_count })) : r.team_slots ?? undefined,
   createdAt: r.created_at,
+  urgent: r.urgent ?? false, urgentColleges: r.urgent_colleges ?? [],
   problem: r.problem ?? "", domain: u(r.domain), expectedDeliverables: r.expected_deliverables ?? [], completionCriteria: r.completion_criteria ?? "",
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount),
@@ -120,13 +121,21 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async listPosts() { return (await postsWithRoles()).map(toPost); },
     async getPost(id) { const r = await postWithRoles(id); return r ? toPost(r) : undefined; },
     async createPost(p) {
-      const r = ok(await db.from("posts").insert({
+      const row = {
         title: p.title, category: p.category, description: p.description, author_id: p.authorId, lat: p.location.lat, lng: p.location.lng,
         address: p.address, reward: p.reward || null, duration_days: p.durationDays, difficulty: p.difficulty, is_team: p.isTeam, team_slots: p.teamSlots ?? null,
+        urgent: p.urgent ?? false, urgent_colleges: p.urgentColleges ?? [],
         problem: p.problem ?? "", domain: p.domain ?? null, expected_deliverables: p.expectedDeliverables ?? [], completion_criteria: p.completionCriteria ?? "",
         deadline: p.deadline || null, revision_limit: p.revisionLimit ?? 2, compensation_type: p.compensationType ?? "VOLUNTEER",
         compensation_description: p.compensationDescription ?? "", paid_amount: p.compensationType === "PAID" ? p.paidAmount ?? null : null,
-      }).select().single());
+      };
+      // 0014 를 아직 실행하지 않은 DB 에서도 등록 자체는 되게 한다 (긴급 공고 기능만 빠진다)
+      let res = await db.from("posts").insert(row).select().single();
+      if (res.error && /urgent|schema cache/i.test(res.error.message)) {
+        const { urgent, urgent_colleges, ...legacy } = row; void urgent; void urgent_colleges;
+        res = await db.from("posts").insert(legacy).select().single();
+      }
+      const r = ok(res);
       if (p.isTeam && p.teamSlots?.length) {
         done(await db.from("post_roles").insert(p.teamSlots.map((slot, index) => ({
           post_id: r.id, label: slot.label?.trim() || slot.category, category: slot.category,

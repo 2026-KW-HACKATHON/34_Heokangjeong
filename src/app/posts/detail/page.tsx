@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
+import { collegeLabel } from "@/lib/colleges";
 import Icon from "@/components/Icon";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
@@ -60,7 +61,16 @@ function PostDetail() {
       <TopBar title="공고" back />
       <section className="flex flex-col gap-5 px-5 pb-6">
         <div className="card">
-          <div className="mb-2 flex items-center justify-between"><span className="chip chip-on">{post.category}{post.isTeam ? " · 팀 프로젝트" : ""}</span><StatusBadge status={post.status} /></div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="flex flex-wrap items-center gap-1.5">
+              {post.urgent && <span className="chip bg-[var(--red)] font-bold text-white">🚨 긴급</span>}
+              <span className="chip chip-on">{post.category}{post.isTeam ? " · 팀 프로젝트" : ""}</span>
+            </span>
+            <StatusBadge status={post.status} />
+          </div>
+          {post.urgent && post.urgentColleges && post.urgentColleges.length > 0 && (
+            <p className="sub mb-1 text-xs">{post.urgentColleges.map(collegeLabel).filter(Boolean).join(", ")} 학생에게 알림이 갔어요</p>
+          )}
           <div className="silver-badge mb-5 mt-4"><Icon name="folder" width={22} height={22} /></div>
           <h2 className="page-title">{post.title}</h2>
           <p className="sub mt-1 text-sm">{author?.name} · {post.address}{user && <> · 📍 {formatDistance(distanceM(user.location, post.location))}</>}</p>

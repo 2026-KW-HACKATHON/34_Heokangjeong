@@ -1,6 +1,7 @@
 import type { Application, ChatMessage, Notification, Post, PortfolioCard, PortfolioDoc, RankRow, Review, User } from "@/types";
 import type { Repo } from "./index";
 import { distanceM } from "../geo";
+import { guessCollege } from "../colleges";
 import * as wf from "../workflow/engine";
 import { templateDraft } from "@shared/portfolio/narrative";
 import { summarizeTrust } from "../trust";
@@ -126,9 +127,13 @@ export const mockRepo: Repo = {
   async getPost(id) { ensure(); const post = db.posts.find((p) => p.id === id); return wait(post ? withRoleIds(post) : undefined); },
   async createPost(p) { return tx(() => {
     const post = withRoleIds({ ...p, id: `p${Date.now()}`, status: "open", createdAt: new Date().toISOString() }); db.posts.unshift(post);
-    for (const student of users.filter((u): u is Extract<User, { role: "student" }> => u.role === "student" && u.interests.includes(post.category))) {
-      const distance = distanceM(student.location, post.location);
-      if (distance <= student.maxDistanceM) pushNotification({ userId: student.id, postId: post.id, kind: "MATCHED_POST", href: `/posts/detail?id=${post.id}`, text: `${post.title} 공고가 등록됐어요.`, distanceM: Math.round(distance) });
+    // 평소 공고는 알림을 보내지 않는다. 긴급 공고만 사장님이 고른 단과대학 학생에게 즉시 알린다.
+    if (post.urgent) {
+      const targets = post.urgentColleges ?? [];
+      for (const student of users.filter((u): u is Extract<User, { role: "student" }> => u.role === "student")) {
+        if (targets.length && !targets.includes(student.college ?? guessCollege(student.department) ?? "")) continue;
+        pushNotification({ userId: student.id, postId: post.id, kind: "URGENT_POST", href: `/posts/detail?id=${post.id}`, text: `긴급 공고: ${post.title}`, distanceM: Math.round(distanceM(student.location, post.location)) });
+      }
     }
     return post;
   }); },
