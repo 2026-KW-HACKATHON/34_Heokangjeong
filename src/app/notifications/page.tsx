@@ -8,7 +8,7 @@ import { useSession } from "@/lib/session";
 import type { Notification } from "@/types";
 import { NOTIFICATION_READ_EVENT } from "@/lib/useUnreadNotifications";
 
-/** ⑥ 알림: 관심 분야·거리에 맞는 새 공고, 내 공고의 지원자. 푸시 연동은 TODO. */
+/** ⑥ 알림: 긴급 공고, 내 공고의 지원자, 내 프로젝트 진행 상황. 평소 공고는 알림을 보내지 않는다. 푸시 연동은 TODO. */
 export default function Notifications() {
   const { user } = useSession();
   const [list, setList] = useState<Notification[]>([]);

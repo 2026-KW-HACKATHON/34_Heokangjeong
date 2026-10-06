@@ -101,7 +101,7 @@ export default function NewPost() {
             <div className="flex gap-2">{(Object.keys(COMPENSATION_LABEL) as CompensationType[]).map((c) => <button key={c} type="button" aria-pressed={l.compensationType === c} onClick={() => setL({ ...l, compensationType: c })} className={`chip ${l.compensationType === c ? "chip-on" : ""}`}>{COMPENSATION_LABEL[c]}</button>)}</div>
             {l.compensationType !== "VOLUNTEER" && <input className={`${inputCls} mt-2`} aria-label="보상 내용" placeholder={l.compensationType === "PAID" ? "보상 설명 (선택)" : "예: 식사권 5장, 음료 쿠폰"} value={f.reward} onChange={(e) => setF({ ...f, reward: e.target.value })} />}
             {l.compensationType === "PAID" && <input inputMode="numeric" className={`${inputCls} mt-2`} aria-label="금액(원)" placeholder="금액(원)" value={l.paidAmount} onChange={(e) => setL({ ...l, paidAmount: e.target.value })} />}
-            {l.compensationType === "PAID" && <p className="sub mt-1 text-xs">유료 의뢰는 검증된 프로젝트 경험이 있는 학생만 지원할 수 있어요.</p>}
+            {l.compensationType === "PAID" && <p className="sub mt-1 text-xs">{urgent.on ? "긴급 공고는 유료여도 모든 학생이 지원할 수 있어요." : "유료 의뢰는 검증된 프로젝트 경험이 있는 학생만 지원할 수 있어요."}</p>}
           </fieldset>
           <Field label="포트폴리오 기록 방식" hint="학생이 이 분야의 질문에 답하며 과정을 기록해요.">
             <select className={inputCls} value={domain} onChange={(e) => setL({ ...l, domain: e.target.value as DomainKey })}>{DOMAIN_KEYS.map((k) => <option key={k} value={k}>{DOMAINS[k].label}</option>)}</select>
@@ -131,11 +131,11 @@ export default function NewPost() {
             <span><b>🚨 긴급 공고로 올릴게요</b><span className="sub block text-xs">지금 바로 사람이 필요할 때만 선택하세요. 고른 단과대학 학생과 관심 분야가 맞는 학생에게 즉시 알림이 갑니다.</span></span>
           </label>
           {urgent.on && (
-            <p className="rounded-xl bg-[var(--primary-weak)] p-3 text-xs leading-5">
-              긴급 공고는 사례비 <b>{urgentMinReward(f.difficulty).toLocaleString()}원 이상</b>이 필요해요 (난이도 {"★".repeat(f.difficulty)}).
-              급하게 와 주는 학생에게 최소한의 보상을 보장하고, 긴급 알림이 남용되지 않게 하려는 기준이에요.
-              {l.compensationType !== "PAID" && <span className="mt-1 block font-semibold text-[var(--red)]">위 보상에서 ‘사례비’를 고르고 금액을 적어 주세요.</span>}
-            </p>
+            <div className="rounded-xl bg-[var(--primary-weak)] p-3 text-xs leading-5">
+              <p>긴급 공고는 사례비 <b>{urgentMinReward(f.difficulty).toLocaleString()}원 이상</b>이 필요해요 (난이도 {"★".repeat(f.difficulty)}).</p>
+              <p className="mt-1.5">급하게 와 주는 학생에게 최소한의 보상을 보장하고, 긴급 알림이 남용되지 않게 하려는 기준이에요.</p>
+              {l.compensationType !== "PAID" && <p className="mt-1.5 font-semibold text-[var(--red)]">위 보상에서 ‘사례비’를 고르고 금액을 적어 주세요.</p>}
+            </div>
           )}
           {urgent.on && (
             <fieldset>
@@ -151,7 +151,7 @@ export default function NewPost() {
                           {on ? "✓ " : ""}{c.label}
                         </button>
                         <button type="button" aria-expanded={urgent.open === c.key} onClick={() => setUrgent({ ...urgent, open: urgent.open === c.key ? null : c.key })} className="sub shrink-0 text-xs underline">
-                          {urgent.open === c.key ? "접기" : "어떤 곳?"}
+                          {urgent.open === c.key ? "접기" : "세부 학과"}
                         </button>
                       </div>
                       <p className="sub mt-0.5 text-xs">{c.what}</p>

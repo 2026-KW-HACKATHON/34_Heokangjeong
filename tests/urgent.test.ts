@@ -90,6 +90,30 @@ describe("긴급 공고 알림", () => {
   });
 });
 
+describe("긴급 공고 지원 자격", () => {
+  // 평소 유료 공고는 검증된 프로젝트가 1개 이상이어야 지원할 수 있다 (앞으로 들어올 등급 제도 1단계)
+  const newPost = async (title: string, urgent: boolean) => {
+    const [{ id }] = (await db.query<{ id: string }>(
+      `insert into posts (title, category, description, author_id, lat, lng, urgent, difficulty, compensation_type, paid_amount)
+       values ($1,'웹/앱','급해요',$2,37.625,127.060,$3,2,'PAID',30000) returning id`, [title, U.owner, urgent])).rows;
+    return id;
+  };
+  const apply = (postId: string, student: string) =>
+    db.query("insert into applications (post_id, student_id, message) values ($1,$2,'지원')", [postId, student]);
+
+  it("평소 유료 공고는 검증 경험이 없으면 지원할 수 없다", async () => {
+    const id = await newPost("평소 유료 공고", false);
+    await expect(apply(id, U.ai)).rejects.toThrow(/PAID_NOT_ELIGIBLE/);
+  });
+
+  it("긴급 공고는 유료여도 검증 경험 없이 지원할 수 있다", async () => {
+    const id = await newPost("긴급 유료 공고", true);
+    await apply(id, U.ai);
+    const n = (await db.query<{ n: number }>("select count(*)::int n from applications where post_id = $1", [id])).rows[0].n;
+    expect(n).toBe(1);
+  });
+});
+
 describe("긴급 공고 최소 보상", () => {
   const insert = (title: string, difficulty: number, type: string, amount: number | null) =>
     db.query(`insert into posts (title, category, description, author_id, lat, lng, urgent, difficulty, compensation_type, paid_amount)

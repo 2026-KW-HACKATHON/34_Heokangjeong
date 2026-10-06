@@ -107,7 +107,8 @@ export function apply(db: WorkflowDB, a: { postId: string; studentId: string; me
   const role = post.teamSlots?.find((slot) => slot.id === a.roleId);
   if (post.isTeam && !role) fail("ROLE_REQUIRED", "지원할 역할을 선택해 주세요");
   if (!post.isTeam && a.roleId) fail("INVALID_ROLE", "개인 프로젝트에는 역할을 선택할 수 없어요");
-  if (listingOf(post).compensationType === "PAID" && verifiedCount(db, a.studentId) < MIN_VERIFIED_FOR_PAID)
+  // 긴급 공고는 유료여도 누구나 지원할 수 있다 (급한 일이라 지원 문턱을 두지 않는다)
+  if (!post.urgent && listingOf(post).compensationType === "PAID" && verifiedCount(db, a.studentId) < MIN_VERIFIED_FOR_PAID)
     fail("PAID_NOT_ELIGIBLE", `유료 의뢰는 검증된 프로젝트가 ${MIN_VERIFIED_FOR_PAID}개 이상일 때 지원할 수 있어요`);
   const app: Application = { id: ctx.id(), postId: a.postId, studentId: a.studentId, message: a.message, roleId: a.roleId, status: "pending", createdAt: ctx.now() };
   db.applications.push(app);
