@@ -69,6 +69,7 @@ export interface Repo {
   listPortfolioDocs(studentId: string): Promise<{ edit: PortfolioEditedVersion; post: Post; project: Project }[]>;
   getPortfolioDoc(projectId: string, studentId: string): Promise<PortfolioDoc | undefined>;
   trustSummary(studentId: string): Promise<TrustSummary>;
+  disputeReview(projectId: string, studentId: string, reason: string): Promise<void>;
   /** mock 전용: 데모 데이터 초기화 */
   resetDemo?(): Promise<void>;
 }

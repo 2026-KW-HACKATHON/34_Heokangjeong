@@ -20,15 +20,27 @@ export default function WorkFieldSummary({ studentId, detailed = false }: { stud
   const normalizedRating = data?.trust.normalizedRating ?? null;
   const reviewCount = data?.trust.reviewCount ?? 0;
   const anomalyCount = data?.trust.anomalyCount ?? 0;
+  const heldReviewCount = data?.trust.heldReviewCount ?? 0;
+  const verifiedCount = data?.trust.verifiedCount ?? 0;
+  const reputationScore = data?.trust.reputationScore ?? 0;
+  const completionRate = data?.trust.completionRate ?? 0;
+  const deadlineReliability = data?.trust.deadlineReliability ?? 0;
+  const handoverReliability = data?.trust.handoverReliability ?? 0;
   return <section className="card" aria-label="분야별 작업 기록">
     <h2 className="text-base font-bold">분야별 작업 기록</h2>
     {!summary ? <p role="status" className="sub mt-3 text-sm">{error ? "작업 기록을 불러오지 못했어요." : "작업 기록을 불러오는 중…"}</p> : <>
       <dl className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">제일 많이 한 분야</dt><dd className="mt-1 font-bold">{summary.mostFrequent.length ? summary.mostFrequent.join(" · ") : "아직 없음"}</dd></div>
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">보정 평균 별점</dt><dd className="mt-1 font-bold">{normalizedRating === null ? "평가 전" : `★ ${normalizedRating.toFixed(1)} / 5`}</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">검증 프로젝트</dt><dd className="mt-1 font-bold">{verifiedCount}건</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">평판 점수</dt><dd className="mt-1 font-bold">{reputationScore} / 100</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">프로젝트 완료율</dt><dd className="mt-1 font-bold">{completionRate}%</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">기한 준수율</dt><dd className="mt-1 font-bold">{deadlineReliability}%</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">인수인계 완료율</dt><dd className="mt-1 font-bold">{handoverReliability}%</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">협업 평가</dt><dd className="mt-1 font-bold">{normalizedRating === null ? "평가 전" : `${normalizedRating.toFixed(1)} / 5`}</dd></div>
+        <div className="col-span-2 rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">제일 많이 한 분야</dt><dd className="mt-1 font-bold">{summary.mostFrequent.length ? summary.mostFrequent.join(" · ") : "아직 없음"}</dd></div>
       </dl>
       <p className="sub mt-3 text-xs">의뢰인이 완료를 인증한 작업 {summary.total}건 기준</p>
-      {reviewCount > 0 && <p className="sub mt-1 text-xs">평가 {reviewCount}건에 사전 평균·평가자 이력·이상치 완화를 적용했어요{anomalyCount ? ` · 이상 평가 ${anomalyCount}건 완화` : ""}.</p>}
+      {reviewCount > 0 && <p className="sub mt-1 text-xs">별점 하나가 평판을 결정하지 않도록 평가 {reviewCount}건에 Bayesian 보정·평가자 신뢰도·증빙 일치도를 적용했어요{anomalyCount ? ` · 통계 이상치 ${anomalyCount}건 완화` : ""}.</p>}
+      {heldReviewCount > 0 && <p className="mt-1 text-xs text-[#9a3412]">검토 중인 평가 {heldReviewCount}건은 현재 점수에서 제외했어요.</p>}
       {detailed && (summary.byField.length ? <ul className="mt-4 divide-y divide-[var(--line)]">
         {summary.byField.map(field => <li key={field.category} className="py-3">
           <div className="flex items-center justify-between"><h3 className="font-semibold">{field.category}</h3><span className="sub text-sm">{field.count}건 · {field.averageRating === null ? "평가 전" : `★ ${field.averageRating.toFixed(1)}`}</span></div>

@@ -1,6 +1,6 @@
 // 정책 값. 준비도 가중치·티어 기준·점수는 여기서만 바꾼다.
 import type { ReadinessLevel } from "./types.ts";
-import { robustRating } from "./reputation.ts";
+import { robustRating, type ReviewStatus } from "./reputation.ts";
 
 /** 포트폴리오 자료 준비도 가중치 (합 100). 실력 점수가 아니라 "자료가 얼마나 갖춰졌나" 이다. */
 export const READINESS_WEIGHTS: Record<ReadinessLevel, number> = { REQUIRED: 70, RECOMMENDED: 25, OPTIONAL: 5 };
@@ -22,15 +22,15 @@ export const TEMPERATURE = { base: 36.5, perPointAboveThree: 0.8, min: 30, max: 
 
 export const tierForTemperature = (temperature: number) => [...TIERS].reverse().find((t) => temperature >= t.minTemperature)!;
 export function temperatureFor(
-  reviews: { reviewerId?: string; deadline: number; communication: number; handoff: number; satisfaction?: number }[],
+  reviews: { reviewerId?: string; deadline: number; communication: number; handoff: number; satisfaction?: number; status?: ReviewStatus; reviewerReliability?: number; evidenceConsistency?: number }[],
   peerReviews: { projectId: string; reviewerId?: string; communication: number; collaboration: number; responsibility: number }[] = [],
   allReviews = reviews,
   allPeerReviews = peerReviews,
 ) {
   let t = TEMPERATURE.base;
   const client = robustRating(
-    reviews.map(r => ({ reviewerId: r.reviewerId ?? "unknown", values: [r.satisfaction ?? r.deadline, r.deadline, r.communication, r.handoff] })),
-    allReviews.map(r => ({ reviewerId: r.reviewerId ?? "unknown", values: [r.satisfaction ?? r.deadline, r.deadline, r.communication, r.handoff] })),
+    reviews.map(r => ({ reviewerId: r.reviewerId ?? "unknown", values: [r.satisfaction ?? r.deadline, r.deadline, r.communication, r.handoff], status: r.status, reviewerReliability: r.reviewerReliability, evidenceConsistency: r.evidenceConsistency })),
+    allReviews.map(r => ({ reviewerId: r.reviewerId ?? "unknown", values: [r.satisfaction ?? r.deadline, r.deadline, r.communication, r.handoff], status: r.status, reviewerReliability: r.reviewerReliability, evidenceConsistency: r.evidenceConsistency })),
   );
   if (client.score !== null) t += (client.score - 3) * TEMPERATURE.perPointAboveThree * client.reviewCount;
   const byProject = new Map<string, typeof peerReviews>();

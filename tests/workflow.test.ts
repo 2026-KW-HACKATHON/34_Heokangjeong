@@ -4,7 +4,7 @@ import { nextStatus, canTransition } from "@shared/portfolio/stateMachine";
 import { seed, ctx } from "./fixtures";
 
 const claims = { workPerformed: true, roleConfirmed: true, deliverableReceived: true, completionCriteriaMet: true, actuallyUsed: true };
-const review = { satisfaction: 5, deadline: 4, communication: 5, handoff: 4, comment: "손님들이 메뉴를 빨리 찾아요" };
+const review = { satisfaction: 5, deadline: 4, communication: 5, handoff: 4, deliverableQuality: 5, comment: "손님들이 메뉴를 빨리 찾아요" };
 
 function started() {
   const db = seed(); const c = ctx();

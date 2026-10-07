@@ -11,6 +11,7 @@ import { sourceHash } from "@shared/portfolio/snapshot";
 import { POINTS } from "@shared/portfolio/policy";
 import { listingOf } from "../listing";
 import { sourceFromBundle } from "../portfolio/source";
+import { assessReview } from "@shared/portfolio/reputation";
 export { roleLabelOf } from "../portfolio/source";
 
 export { WorkflowError };
@@ -272,7 +273,7 @@ export function requestRevision(db: WorkflowDB, a: { versionId: string; actorId:
   return v;
 }
 
-export interface ReviewInput { satisfaction: number; deadline: number; communication: number; handoff: number; comment: string }
+export interface ReviewInput { satisfaction: number; deadline: number; communication: number; handoff: number; deliverableQuality: number; comment: string }
 const rating = (n: number, what: string) => (Number.isInteger(n) && n >= 1 && n <= 5 ? n : fail("INVALID_INPUT", `${what}은(는) 1~5 로 골라 주세요`));
 
 /** 승인 = 제출 버전 승인 + Claim 단위 검증 + 평가를 한 번에 (원자적으로) 기록 */
@@ -280,10 +281,11 @@ export function approveVersion(db: WorkflowDB, a: { versionId: string; actorId: 
   const { v, project } = reviewable(db, a.versionId, a.actorId);
   if (!a.claims.workPerformed) fail("INVALID_INPUT", "학생이 실제로 작업했음을 확인해야 승인할 수 있어요");
   const r = a.review;
-  const review: ClientReview = {
-    projectId: project.id, reviewerId: a.actorId, satisfaction: rating(r.satisfaction, "만족도"), deadline: rating(r.deadline, "기한 준수"),
-    communication: rating(r.communication, "소통"), handoff: rating(r.handoff, "인계"), comment: r.comment.trim().slice(0, 1000), createdAt: ctx.now(),
-  };
+  const values = { satisfaction: rating(r.satisfaction, "만족도"), deadline: rating(r.deadline, "기한 준수"), communication: rating(r.communication, "소통"), handoff: rating(r.handoff, "인계"), deliverableQuality: rating(r.deliverableQuality, "결과물 품질") };
+  const deadline = listingOf(must(db.posts.find((p) => p.id === project.postId), "공고")).deadline;
+  const evidence = { submissionExists: true, approvedSubmissionVersion: true, deadlineMet: deadline ? ctx.now().slice(0, 10) <= deadline : null, revisionCount: db.versions.filter(v => v.projectId === project.id && v.status === "REVISION_REQUESTED").length, handoverCompleted: !!a.claims.deliverableReceived, deliverableReceived: !!a.claims.deliverableReceived, completionCriteriaMet: !!a.claims.completionCriteriaMet, actuallyUsed: !!a.claims.actuallyUsed };
+  const assessment = assessReview(values, a.actorId, evidence, db.reviews.map(row => ({ reviewerId: row.reviewerId, values: [row.satisfaction, row.deadline, row.communication, row.handoff, row.deliverableQuality], status: row.status, evidenceConsistency: row.evidenceConsistency, reviewerReliability: row.reviewerReliability })));
+  const review: ClientReview = { projectId: project.id, reviewerId: a.actorId, ...values, comment: r.comment.trim().slice(0, 1000), createdAt: ctx.now(), ...assessment };
   const status = nextStatus(project.status, "APPROVE", project.mode);
   const now = ctx.now();
   Object.assign(v, { status: "APPROVED", reviewedAt: now, reviewedBy: a.actorId });

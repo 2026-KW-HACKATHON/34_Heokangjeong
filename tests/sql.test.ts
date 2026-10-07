@@ -47,7 +47,7 @@ const rpc = <T = Record<string, unknown>>(uid: string, fn: string, args: unknown
   as<T>(uid, `select * from public.${fn}(${args.map((_, i) => `$${i + 1}`).join(", ")})`, args);
 const snapshotFor = (domain: keyof typeof DOMAINS) => JSON.stringify({ domain, version: QUESTION_SET_VERSION, questions: DOMAINS[domain].questions, takenAt: "2026-09-10T00:00:00Z" });
 const claims = JSON.stringify({ workPerformed: true, roleConfirmed: true, deliverableReceived: true, completionCriteriaMet: true, actuallyUsed: true });
-const review = JSON.stringify({ satisfaction: 5, deadline: 4, communication: 5, handoff: 4, comment: "손님들이 좋아해요" });
+const review = JSON.stringify({ satisfaction: 5, deadline: 4, communication: 5, handoff: 4, deliverableQuality: 5, comment: "손님들이 좋아해요" });
 
 async function newPost(title: string, extra = "") {
   const [p] = await as<{ id: string }>(U.owner, `insert into posts (title, category, description, author_id, lat, lng, domain, revision_limit ${extra ? ", compensation_type" : ""})
@@ -84,6 +84,7 @@ beforeAll(async () => {
   await db.exec(sql("0013_notification_automation.sql"));
   await db.exec(sql("0014_individual_applicant_decision.sql"));
   for (const file of ["0015_portfolio_publications.sql", "0016_personal_rankings.sql", "0017_post_minimum_tier.sql", "0018_work_fields_instead_of_rank.sql", "0019_portfolio_profile_feed.sql"]) await db.exec(sql(file));
+  await db.exec(sql("0020_evidence_based_reputation.sql"));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -174,6 +175,17 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     await rpc(U.owner, "request_revision", [v1, "a"]);
     const v2 = await submit(projectId, ev);
     await expect(rpc(U.owner, "request_revision", [v2, "b"])).rejects.toThrow(/REVISION_LIMIT/);
+  });
+  it("학생 이의제기 시 평가를 보류하고 감사 로그를 남긴다", async () => {
+    const { projectId } = await startProject("dispute");
+    const evidenceId = await addEvidence(projectId);
+    const versionId = await submit(projectId, evidenceId);
+    await rpc(U.owner, "approve_version", [versionId, claims, review, ""]);
+    await rpc(U.stu, "dispute_client_review", [projectId, "승인된 제출 결과물과 평가 내용이 일치하지 않습니다."]);
+    const [clientReview] = (await db.query<{ status: string }>("select status from client_reviews where project_id=$1", [projectId])).rows;
+    expect(clientReview.status).toBe("DISPUTED");
+    const events = await as(U.stu, "select reason from reputation_events where project_id=$1", [projectId]);
+    expect(events.length).toBeGreaterThanOrEqual(2);
   });
   it("이전 유료 공고도 순위·등급·검증 이력과 무관하게 지원 가능", async () => {
     const paid = await newPost("paid", "PAID");
@@ -327,12 +339,12 @@ describe("SQL: Notion 저장 잠금과 사용자 격리", () => {
 });
 
 describe("SQL: 새 DB 에 번호 순서대로", () => {
-  it("0001부터 0019까지 오류 없이 적용된다", async () => {
+  it("0001부터 0020까지 오류 없이 적용된다", async () => {
     const fresh = new PGlite();
     await fresh.exec(STUBS);
-    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_individual_applicant_decision.sql"]) await fresh.exec(sql(f));
+    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_individual_applicant_decision.sql", "0015_portfolio_publications.sql", "0016_personal_rankings.sql", "0017_post_minimum_tier.sql", "0018_work_fields_instead_of_rank.sql", "0019_portfolio_profile_feed.sql", "0020_evidence_based_reputation.sql"]) await fresh.exec(sql(f));
     const t = await fresh.query<{ n: number }>("select count(*)::int n from information_schema.tables where table_schema = 'public'");
-    expect(t.rows[0].n).toBe(27);
+    expect(t.rows[0].n).toBe(31);
     await fresh.close();
   });
 });

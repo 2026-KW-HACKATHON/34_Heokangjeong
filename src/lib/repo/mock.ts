@@ -362,8 +362,17 @@ export const mockRepo: Repo = {
     ensure();
     const events = db.tierEvents.filter((e) => e.studentId === studentId);
     const projectIds = new Set(events.map((e) => e.projectId));
-    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId), db.reviews, db.peerReviews));
+    const projectCount = new Set(db.members.filter(m => m.studentId === studentId).map(m => m.projectId)).size;
+    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId), db.reviews, db.peerReviews, projectCount));
   },
+  async disputeReview(projectId, studentId, reason) { return tx(() => {
+    const member = db.members.find(m => m.projectId === projectId && m.studentId === studentId);
+    if (!member) throw new Error("프로젝트에 참여한 학생만 이의를 제기할 수 있어요.");
+    const review = db.reviews.find(r => r.projectId === projectId);
+    if (!review) throw new Error("평가를 찾을 수 없어요.");
+    review.status = "DISPUTED";
+    review.disputeReason = reason.trim().slice(0, 1000);
+  }); },
   async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; loaded = true; save(); },
 };
 
