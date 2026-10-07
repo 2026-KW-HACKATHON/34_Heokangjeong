@@ -22,10 +22,14 @@ export function workFieldSummary(cards: PortfolioCard[], posts: Post[]) {
   const byField: WorkField[] = [...fields].map(([category, works]) => ({
     category, count: works.length, averageRating: average(works), works,
   })).sort((a, b) => b.count - a.count || a.category.localeCompare(b.category, "ko"));
+  const mostFrequentCount = byField[0]?.count ?? 0;
+  const mostFrequent = mostFrequentCount
+    ? byField.filter(field => field.count === mostFrequentCount).map(field => field.category)
+    : [];
   return {
     total: verified.length,
     averageRating: average(verified),
-    mostFrequent: byField[0]?.category ?? null,
+    mostFrequent,
     byField,
   };
 }
