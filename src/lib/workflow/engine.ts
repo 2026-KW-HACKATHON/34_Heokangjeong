@@ -105,7 +105,7 @@ export function savePeerReview(db: WorkflowDB, a: { projectId: string; reviewerI
 }
 
 // ── 지원 ────────────────────────────────────────────────────────────────────
-export function apply(db: WorkflowDB, a: { postId: string; studentId: string; message: string; roleId?: string }, ctx: Ctx = defaultCtx): Application {
+export function apply(db: WorkflowDB, a: { postId: string; studentId: string; message: string; roleId?: string; clubId?: string }, ctx: Ctx = defaultCtx): Application {
   const post = must(db.posts.find((p) => p.id === a.postId), "공고");
   const student = db.users.find((u) => u.id === a.studentId);
   if (student?.role !== "student") fail("FORBIDDEN", "학생만 지원할 수 있어요");
@@ -114,6 +114,10 @@ export function apply(db: WorkflowDB, a: { postId: string; studentId: string; me
   const role = post.teamSlots?.find((slot) => slot.id === a.roleId);
   if (post.isTeam && !role) fail("ROLE_REQUIRED", "지원할 역할을 선택해 주세요");
   if (!post.isTeam && a.roleId) fail("INVALID_ROLE", "개인 프로젝트에는 역할을 선택할 수 없어요");
+  // 지원 대상 (개인만 / 단체만)
+  const scope = post.applicantScope ?? "ANY";
+  if (scope === "CLUB" && !a.clubId) fail("CLUB_ONLY", "단체 이름으로만 지원할 수 있는 공고예요");
+  if (scope === "INDIVIDUAL" && a.clubId) fail("INDIVIDUAL_ONLY", "개인으로만 지원할 수 있는 공고예요");
   // 긴급 공고와 이어받기 공고는 유료여도 누구나 지원할 수 있다 (급하거나, 방치되면 안 되는 자리라서)
   if (!post.urgent && !post.handoverOfProject && listingOf(post).compensationType === "PAID" && verifiedCount(db, a.studentId) < MIN_VERIFIED_FOR_PAID)
     fail("PAID_NOT_ELIGIBLE", `유료 의뢰는 검증된 프로젝트가 ${MIN_VERIFIED_FOR_PAID}개 이상일 때 지원할 수 있어요`);

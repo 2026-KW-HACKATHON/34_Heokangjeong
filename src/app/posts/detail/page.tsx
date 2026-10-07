@@ -43,6 +43,7 @@ function PostDetail() {
   if (!post) return <><TopBar title="공고" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const author = users.find((u) => u.id === post.authorId) as Extract<User, { role: "resident" }> | undefined;
   const mine = apps.find((a) => a.studentId === user?.id);
+  const scope = post.applicantScope ?? "ANY";
   const isOwner = user?.id === post.authorId;
   const listing = listingOf(post);
   const paidLocked = listing.compensationType === "PAID" && trust !== null && !trust.paidEligible;
@@ -70,6 +71,7 @@ function PostDetail() {
             <span className="flex flex-wrap items-center gap-1.5">
               {post.urgent && <span className="chip bg-[var(--red)] font-bold text-white">🚨 긴급</span>}
               {post.handoverOfProject && <span className="chip bg-[var(--primary)] font-bold text-white">🔧 이어받기</span>}
+              {(post.applicantScope ?? "ANY") !== "ANY" && <span className="chip">{post.applicantScope === "CLUB" ? "단체만 지원" : "개인만 지원"}</span>}
               <span className="chip chip-on">{post.category}{post.isTeam ? " · 팀 프로젝트" : ""}</span>
             </span>
             <StatusBadge status={post.status} />
@@ -153,20 +155,28 @@ function PostDetail() {
                     </div>
                   </fieldset>
                 )}
-                {myClubs.length > 0 && (
+                {scope !== "INDIVIDUAL" && (
                   <fieldset className="mb-2">
-                    <legend className="mb-1.5 text-sm font-semibold">누구 이름으로 지원하나요?{post.preferClub && <span className="ml-1 text-xs text-[var(--primary)]">사장님이 단체를 원해요</span>}</legend>
-                    <div className="flex flex-wrap gap-2">
-                      <button type="button" aria-pressed={clubId === ""} onClick={() => setClubId("")} className={`chip ${clubId === "" ? "chip-on" : ""}`}>개인</button>
-                      {myClubs.map(({ club }) => (
-                        <button key={club.id} type="button" aria-pressed={clubId === club.id} onClick={() => setClubId(club.id)} className={`chip ${clubId === club.id ? "chip-on" : ""}`}>{club.name}</button>
-                      ))}
-                    </div>
-                    {clubId && <p className="sub mt-1 text-xs">단체 이름으로 맡으면 담당자가 바뀌어도 단체가 계속 관리해요. ({clubKindLabel(myClubs.find((m) => m.club.id === clubId)!.club)})</p>}
+                    <legend className="mb-1.5 text-sm font-semibold">누구 이름으로 지원하나요?</legend>
+                    {myClubs.length === 0 ? (
+                      <p className="sub text-xs">{scope === "CLUB"
+                        ? "단체만 지원할 수 있는 공고예요. ‘나 › 단체’ 에서 동아리·학회에 가입한 뒤 지원해 주세요."
+                        : "소속 단체가 있으면 단체 이름으로도 지원할 수 있어요."}</p>
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          {scope === "ANY" && <button type="button" aria-pressed={clubId === ""} onClick={() => setClubId("")} className={`chip ${clubId === "" ? "chip-on" : ""}`}>개인</button>}
+                          {myClubs.map(({ club }) => (
+                            <button key={club.id} type="button" aria-pressed={clubId === club.id} onClick={() => setClubId(club.id)} className={`chip ${clubId === club.id ? "chip-on" : ""}`}>{club.name}</button>
+                          ))}
+                        </div>
+                        {clubId && <p className="sub mt-1 text-xs">단체 이름으로 맡으면 담당자가 바뀌어도 단체가 계속 관리해요. ({clubKindLabel(myClubs.find((m) => m.club.id === clubId)!.club)})</p>}
+                      </>
+                    )}
                   </fieldset>
                 )}
                 <textarea aria-label="지원 메시지" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="할 수 있는 것과 가능한 시간을 간단히 적어 주세요" className="h-24 w-full rounded-xl bg-[var(--line)] p-3 text-sm outline-none" />
-                <button onClick={submit} disabled={act.busy} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
+                <button onClick={submit} disabled={act.busy || (scope === "CLUB" && !clubId)} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
               </>
             )}
             <div className="mt-2"><ErrorText text={act.error} /></div>

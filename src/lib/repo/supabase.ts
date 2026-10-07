@@ -34,7 +34,7 @@ const toPost = (r: Row): Post => ({
   teamSlots: r.roles?.length ? r.roles.map((x: Row) => ({ id: x.id, label: x.label, category: x.category, domain: x.domain, count: x.capacity, filled: [], filledCount: x.filled_count })) : r.team_slots ?? undefined,
   createdAt: r.created_at,
   urgent: r.urgent ?? false, urgentColleges: r.urgent_colleges ?? [],
-  ongoing: r.ongoing ?? false, warrantyRequestCount: r.warranty_request_count ?? 3, handoverOfProject: u(r.handover_of_project), preferClub: r.prefer_club ?? false,
+  ongoing: r.ongoing ?? false, warrantyRequestCount: r.warranty_request_count ?? 3, handoverOfProject: u(r.handover_of_project), preferClub: r.prefer_club ?? false, applicantScope: r.applicant_scope ?? "ANY",
   problem: r.problem ?? "", domain: u(r.domain), expectedDeliverables: r.expected_deliverables ?? [], completionCriteria: r.completion_criteria ?? "",
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount),
@@ -167,7 +167,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const row = {
         title: p.title, category: p.category, description: p.description, author_id: p.authorId, lat: p.location.lat, lng: p.location.lng,
         address: p.address, reward: p.reward || null, duration_days: p.durationDays, difficulty: p.difficulty, is_team: p.isTeam, team_slots: p.teamSlots ?? null,
-        urgent: p.urgent ?? false, urgent_colleges: p.urgentColleges ?? [],
+        urgent: p.urgent ?? false, urgent_colleges: p.urgentColleges ?? [], applicant_scope: p.applicantScope ?? "ANY",
         problem: p.problem ?? "", domain: p.domain ?? null, expected_deliverables: p.expectedDeliverables ?? [], completion_criteria: p.completionCriteria ?? "",
         deadline: p.deadline || null, revision_limit: p.revisionLimit ?? 2, compensation_type: p.compensationType ?? "VOLUNTEER",
         compensation_description: p.compensationDescription ?? "", paid_amount: p.compensationType === "PAID" ? p.paidAmount ?? null : null,
@@ -175,7 +175,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       // 0014 를 아직 실행하지 않은 DB 에서도 등록 자체는 되게 한다 (긴급 공고 기능만 빠진다)
       let res = await db.from("posts").insert(row).select().single();
       if (res.error && /urgent|schema cache/i.test(res.error.message)) {
-        const { urgent, urgent_colleges, ...legacy } = row; void urgent; void urgent_colleges;
+        const { urgent, urgent_colleges, applicant_scope, ...legacy } = row; void urgent; void urgent_colleges; void applicant_scope;
         res = await db.from("posts").insert(legacy).select().single();
       }
       const r = ok(res);

@@ -134,6 +134,51 @@ describe("단체 만들기·가입", () => {
   });
 });
 
+describe("지원 대상 (개인만 / 단체만)", () => {
+  const post = async (scope: string) => (await as<{ id: string }>(U.owner,
+    `insert into posts (title, category, description, author_id, lat, lng, domain, applicant_scope)
+     values ('공고','웹/앱','x',$1,37.6,127.0,'DEVELOPMENT',$2) returning id`, [U.owner, scope]))[0].id;
+  const applyAs = (postId: string, uid: string, club: string | null) =>
+    as(uid, "insert into applications (post_id, student_id, message, club_id) values ($1,$2,'지원',$3)", [postId, uid, club]);
+
+  it("단체만 공고에는 개인으로 지원할 수 없다", async () => {
+    const p = await post("CLUB");
+    await expect(applyAs(p, U.leader, null)).rejects.toThrow(/CLUB_ONLY/);
+  });
+
+  it("단체만 공고에 단체 이름으로는 지원된다", async () => {
+    const club = await makeClub();
+    const p = await post("CLUB");
+    await applyAs(p, U.leader, club);
+    const n = (await db.query<{ n: number }>("select count(*)::int n from applications where post_id = $1", [p])).rows[0].n;
+    expect(n).toBe(1);
+  });
+
+  it("개인만 공고에는 단체 이름으로 지원할 수 없다", async () => {
+    const club = await makeClub();
+    const p = await post("INDIVIDUAL");
+    await expect(applyAs(p, U.leader, club)).rejects.toThrow(/INDIVIDUAL_ONLY/);
+  });
+
+  it("둘 다 받는 공고는 개인도 단체도 지원된다", async () => {
+    const club = await makeClub();
+    const p = await post("ANY");
+    await applyAs(p, U.leader, club);
+    await applyAs(p, U.outsider, null);
+    const n = (await db.query<{ n: number }>("select count(*)::int n from applications where post_id = $1", [p])).rows[0].n;
+    expect(n).toBe(2);
+  });
+
+  it("한 학생이 여러 단체에 소속될 수 있다", async () => {
+    const a = await makeClub();
+    const b = (await as<{ create_club: string }>(U.member, "select create_club($1,$2,$3,$4,$5)", ["광운 사진부", "CENTRAL", "사진 찍어요", "HSS", null]))[0].create_club;
+    await as(U.admin, "select review_club($1, true, null)", [b]);
+    await joinClub(a, U.member);                                   // 대표가 수락
+    const mine = (await db.query<{ club_id: string }>("select * from club_members where student_id = $1 and status = 'ACTIVE'", [U.member])).rows;
+    expect(mine.map((m) => m.club_id).sort()).toEqual([a, b].sort());
+  });
+});
+
 describe("단체가 맡은 서비스", () => {
   it("소속이 확정되지 않은 단체 이름으로는 지원할 수 없다", async () => {
     const club = await makeClub();

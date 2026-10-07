@@ -140,7 +140,7 @@ export const mockRepo: Repo = {
   async updatePostStatus(id, status) { return tx(() => { const p = db.posts.find((x) => x.id === id); if (p) p.status = status; }); },
   async listApplications(postId) { ensure(); return wait(db.applications.filter((a) => !postId || a.postId === postId)); },
   async apply(postId, studentId, message, roleId, clubId) { return tx(() => {
-    const application = wf.apply(db, { postId, studentId, message, roleId });
+    const application = wf.apply(db, { postId, studentId, message, roleId, clubId });
     if (clubId) application.clubId = clubId; const post = db.posts.find((p) => p.id === postId)!; const student = users.find((u) => u.id === studentId);
     pushNotification({ userId: post.authorId, postId, kind: "APPLICATION", href: `/posts/detail?id=${postId}`, text: `${student?.name ?? "학생"}님이 '${post.title}' 공고에 지원했어요.` });
     return application;

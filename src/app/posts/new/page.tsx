@@ -19,11 +19,13 @@ const CATS: Category[] = ["디자인", "영상", "사진", "SNS홍보", "웹/앱
 export default function NewPost() {
   const router = useRouter();
   const { user } = useSession();
+  // difficulty 는 사장님이 고르지 않는다 (주관적이라서). AI 초안이 추정하고, 없으면 보통(2)
   const [f, setF] = useState({ title: "", category: "디자인" as Category, description: "", reward: "", durationDays: 7, difficulty: 2 as 1 | 2 | 3, isTeam: false });
+  const [scope, setScope] = useState<"ANY" | "INDIVIDUAL" | "CLUB">("ANY");
   const [l, setL] = useState({ problem: "", deliverables: "", completionCriteria: "", deadline: "", revisionLimit: 2, compensationType: "NON_MONETARY" as CompensationType, paidAmount: "", domain: null as DomainKey | null });
   const [slots, setSlots] = useState<RoleSlot[]>([{ label: "디자이너", category: "디자인", count: 1, filled: [] }]);
   // 계속 운영되는 결과물(웹사이트 등)이면 완료 후 유지보수·인수인계가 따라붙는다
-  const [ops, setOps] = useState({ ongoing: false, touched: false, requestDays: 30, requestCount: 3, defectDays: 90, clientBilling: true, preferClub: true });
+  const [ops, setOps] = useState({ ongoing: false, touched: false, requestDays: 30, requestCount: 3, defectDays: 90, clientBilling: true });
   const [urgent, setUrgent] = useState({ on: false, colleges: [] as string[], open: null as string | null });
   const [memo, setMemo] = useState("");
   const [draft, setDraft] = useState<PostDraft | null>(null);
@@ -44,14 +46,14 @@ export default function NewPost() {
       // 긴급 공고는 학생에게 즉시 알림이 가므로 최소 사례비를 둔다 (DB 제약과 같은 기준)
       const min = urgentMinReward(f.difficulty);
       if (urgent.on && (l.compensationType !== "PAID" || !paid || paid < min))
-        throw new Error(`긴급 공고는 사례비가 ${min.toLocaleString()}원 이상이어야 해요 (난이도 ${"★".repeat(f.difficulty)})`);
+        throw new Error(`긴급 공고는 사례비가 ${min.toLocaleString()}원 이상이어야 해요`);
       const p = await repo.createPost({
         ...f, authorId: user!.id, location: user!.location ?? WOLGYE_CENTER, address: (user as { address?: string }).address ?? "월계1동", teamSlots: f.isTeam ? slots : undefined,
         problem: l.problem.trim(), domain, expectedDeliverables: l.deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria: l.completionCriteria.trim(),
         deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: l.compensationType, compensationDescription: f.reward.trim(), paidAmount: paid,
         urgent: urgent.on, urgentColleges: urgent.on ? urgent.colleges : [],
         ongoing, warrantyRequestDays: ops.requestDays, warrantyRequestCount: ops.requestCount, warrantyDefectDays: ops.defectDays, clientOwnedBilling: ops.clientBilling,
-        preferClub: ongoing && ops.preferClub,
+        applicantScope: scope,
       });
       router.replace(`/posts/detail?id=${p.id}`);
     });
@@ -83,7 +85,7 @@ export default function NewPost() {
                 <div className="flex gap-2"><dt className="sub w-16 shrink-0">필요 재능</dt><dd>{draft.teamSlots ? draft.teamSlots.map((s) => `${s.category} ${s.count}명`).join(", ") + " (팀 공고로 제안)" : `${draft.category} 1명`}</dd></div>
                 <div className="flex gap-2"><dt className="sub w-16 shrink-0">추천 학과</dt><dd>{draft.departments.join(", ")}</dd></div>
                 {draft.deliverables.length > 0 && <div className="flex gap-2"><dt className="sub w-16 shrink-0">결과물</dt><dd>{draft.deliverables.join(", ")}</dd></div>}
-                <div className="flex gap-2"><dt className="sub w-16 shrink-0">기간·난이도</dt><dd>{draft.durationDays % 7 === 0 ? `${draft.durationDays / 7}주` : `${draft.durationDays}일`} / {"★".repeat(draft.difficulty)}</dd></div>
+                <div className="flex gap-2"><dt className="sub w-16 shrink-0">예상 기간</dt><dd>{draft.durationDays % 7 === 0 ? `${draft.durationDays / 7}주` : `${draft.durationDays}일`}</dd></div>
               </dl>
               {draft.reasons.length > 0 && <ul className="sub mt-2 list-disc pl-4 text-xs">{draft.reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
               <p className="sub mt-2 text-xs">내용을 확인하고 필요하면 고친 뒤 등록해 주세요.</p>
@@ -111,10 +113,20 @@ export default function NewPost() {
           <Field label="포트폴리오 기록 방식" hint="학생이 이 분야의 질문에 답하며 과정을 기록해요.">
             <select className={inputCls} value={domain} onChange={(e) => setL({ ...l, domain: e.target.value as DomainKey })}>{DOMAIN_KEYS.map((k) => <option key={k} value={k}>{DOMAINS[k].label}</option>)}</select>
           </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="예상 기간(일)"><input type="number" min={1} className={inputCls} value={f.durationDays || ""} onChange={(e) => setF({ ...f, durationDays: +e.target.value })} /></Field>
-            <Field label="난이도"><select className={inputCls} value={f.difficulty} onChange={(e) => setF({ ...f, difficulty: +e.target.value as 1 | 2 | 3 })}><option value={1}>★ 쉬움</option><option value={2}>★★ 보통</option><option value={3}>★★★ 어려움</option></select></Field>
-          </div>
+          <Field label="예상 기간(일)"><input type="number" min={1} className={inputCls} value={f.durationDays || ""} onChange={(e) => setF({ ...f, durationDays: +e.target.value })} /></Field>
+          <fieldset>
+            <legend className="mb-1 text-sm font-semibold">누가 지원할 수 있나요?</legend>
+            <div className="flex flex-wrap gap-2">
+              {([["ANY", "개인·단체 모두"], ["INDIVIDUAL", "개인만"], ["CLUB", "단체만"]] as const).map(([v, label]) => (
+                <button key={v} type="button" aria-pressed={scope === v} onClick={() => setScope(v)} className={`chip ${scope === v ? "chip-on" : ""}`}>{label}</button>
+              ))}
+            </div>
+            <p className="sub mt-1 text-xs">
+              {scope === "CLUB" ? "동아리·학회 같은 단체 이름으로만 지원받아요. 담당자가 바뀌어도 단체가 계속 관리해요."
+                : scope === "INDIVIDUAL" ? "학생 개인만 지원할 수 있어요."
+                : "개인도 단체도 지원할 수 있어요. 오래 운영할 결과물이면 단체를 추천해요."}
+            </p>
+          </fieldset>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.isTeam} onChange={(e) => setF({ ...f, isTeam: e.target.checked })} /> 여러 명이 필요한 팀 프로젝트예요</label>
           {f.isTeam && (
             <div className="rounded-xl bg-[var(--line)] p-3 text-sm">
@@ -150,11 +162,7 @@ export default function NewPost() {
                 <input type="number" min={0} className={`${inputCls} mt-1`} value={ops.defectDays || ""} onChange={(e) => setOps({ ...ops, defectDays: +e.target.value, touched: true })} />
                 <span className="sub mt-1 block">학생 작업 자체의 문제는 더 길게 잡는 게 보통이에요. 이 기간이 지나면 새 공고로 올려서 다시 맡길 수 있어요.</span>
               </label>
-              <label className="flex items-start gap-2 text-xs">
-                <input type="checkbox" className="mt-0.5" checked={ops.preferClub} onChange={(e) => setOps({ ...ops, preferClub: e.target.checked, touched: true })} />
-                <span>가능하면 <b>동아리·학회 같은 단체</b>에 맡길게요
-                  <span className="sub block">학생 한 명이 졸업하거나 바빠져도 단체 안에서 다음 사람이 이어받아요. 개인 지원도 계속 받을 수 있어요.</span></span>
-              </label>
+              <p className="sub text-xs">오래 운영할 결과물이면 위의 <b>누가 지원할 수 있나요</b>에서 &lsquo;단체만&rsquo; 을 고르면, 담당자가 바뀌어도 단체가 계속 관리해요.</p>
               <label className="flex items-start gap-2 text-xs">
                 <input type="checkbox" className="mt-0.5" checked={ops.clientBilling} onChange={(e) => setOps({ ...ops, clientBilling: e.target.checked, touched: true })} />
                 <span>도메인·호스팅은 <b>내(사장님) 명의와 결제 수단</b>으로 가입할게요
@@ -171,7 +179,7 @@ export default function NewPost() {
           </label>
           {urgent.on && (
             <div className="rounded-xl bg-[var(--primary-weak)] p-3 text-xs leading-5">
-              <p>긴급 공고는 사례비 <b>{urgentMinReward(f.difficulty).toLocaleString()}원 이상</b>이 필요해요 (난이도 {"★".repeat(f.difficulty)}).</p>
+              <p>긴급 공고는 사례비 <b>{urgentMinReward(f.difficulty).toLocaleString()}원 이상</b>이 필요해요.</p>
               <p className="mt-1.5">급하게 와 주는 학생에게 최소한의 보상을 보장하고, 긴급 알림이 남용되지 않게 하려는 기준이에요.</p>
               {l.compensationType !== "PAID" && <p className="mt-1.5 font-semibold text-[var(--red)]">위 보상에서 ‘사례비’를 고르고 금액을 적어 주세요.</p>}
             </div>
