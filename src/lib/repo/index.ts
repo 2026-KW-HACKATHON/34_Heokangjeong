@@ -26,6 +26,7 @@ export interface Repo {
   getPost(id: string): Promise<Post | undefined>;
   createPost(p: Omit<Post, "id" | "createdAt" | "status">): Promise<Post>;
   updatePostStatus(id: string, status: Post["status"]): Promise<void>;
+  deletePost(postId: string, actorId: string): Promise<void>;   // 작성자만, 선정 전에만
   listApplications(postId?: string): Promise<Application[]>;
   apply(postId: string, studentId: string, message: string, roleId?: string, clubId?: string): Promise<Application>;
   getApplication(id: string): Promise<Application | undefined>;

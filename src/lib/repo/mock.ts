@@ -138,6 +138,14 @@ export const mockRepo: Repo = {
     return post;
   }); },
   async updatePostStatus(id, status) { return tx(() => { const p = db.posts.find((x) => x.id === id); if (p) p.status = status; }); },
+  async deletePost(postId, actorId) { return tx(() => {
+    const i = db.posts.findIndex((x) => x.id === postId);
+    if (i < 0) throw new Error("공고를 찾을 수 없어요");
+    if (db.posts[i].authorId !== actorId) throw new Error("내가 올린 공고만 지울 수 있어요");
+    if (db.projects.some((pr) => pr.postId === postId)) throw new Error("이미 학생이 선정된 공고예요. 학생의 활동 기록이 사라지지 않도록 지울 수 없어요");
+    db.posts.splice(i, 1);
+    db.applications = db.applications.filter((a) => a.postId !== postId);
+  }); },
   async listApplications(postId) { ensure(); return wait(db.applications.filter((a) => !postId || a.postId === postId)); },
   async apply(postId, studentId, message, roleId, clubId) { return tx(() => {
     const application = wf.apply(db, { postId, studentId, message, roleId, clubId });

@@ -134,6 +134,38 @@ describe("단체 만들기·가입", () => {
   });
 });
 
+describe("공고 삭제", () => {
+  const newPost = async () => (await as<{ id: string }>(U.owner,
+    `insert into posts (title, category, description, author_id, lat, lng, domain) values ('지울 공고','웹/앱','x',$1,37.6,127.0,'DEVELOPMENT') returning id`, [U.owner]))[0].id;
+
+  it("작성자는 자기 공고를 지운다", async () => {
+    const id = await newPost();
+    await as(U.owner, "select delete_post($1)", [id]);
+    const n = (await db.query<{ n: number }>("select count(*)::int n from posts where id = $1", [id])).rows[0].n;
+    expect(n).toBe(0);
+  });
+
+  it("남의 공고는 지울 수 없다", async () => {
+    const id = await newPost();
+    await expect(as(U.leader, "select delete_post($1)", [id])).rejects.toThrow(/FORBIDDEN/);
+  });
+
+  it("학생이 선정된 뒤에는 지울 수 없다 (활동 기록 보호)", async () => {
+    const id = await newPost();
+    const [app] = await as<{ id: string }>(U.leader, "insert into applications (post_id, student_id, message) values ($1,$2,'지원') returning id", [id, U.leader]);
+    await as(U.owner, "select select_applicant($1,$2::jsonb)", [app.id, snapshot]);
+    await expect(as(U.owner, "select delete_post($1)", [id])).rejects.toThrow(/HAS_PROJECT/);
+  });
+
+  it("지우면 받은 지원도 같이 사라진다", async () => {
+    const id = await newPost();
+    await as(U.leader, "insert into applications (post_id, student_id, message) values ($1,$2,'지원')", [id, U.leader]);
+    await as(U.owner, "select delete_post($1)", [id]);
+    const n = (await db.query<{ n: number }>("select count(*)::int n from applications where post_id = $1", [id])).rows[0].n;
+    expect(n).toBe(0);
+  });
+});
+
 describe("지원 대상 (개인만 / 단체만)", () => {
   const post = async (scope: string) => (await as<{ id: string }>(U.owner,
     `insert into posts (title, category, description, author_id, lat, lng, domain, applicant_scope)

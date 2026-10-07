@@ -206,6 +206,18 @@ function PostDetail() {
             <ErrorText text={act.error} />
           </div>
         )}
+
+        {/* 공고 삭제: 작성자만, 학생을 선정하기 전까지 */}
+        {isOwner && !project && (
+          <button
+            onClick={() => act.run(async () => {
+              if (!confirm("이 공고를 지울까요? 받은 지원도 함께 사라져요.")) return;
+              await repo.deletePost(post.id, user!.id);
+              router.replace("/");
+            })}
+            disabled={act.busy}
+            className="btn btn-ghost w-full text-[var(--red)]">공고 삭제</button>
+        )}
         <button onClick={() => router.push("/map")} className="btn btn-ghost w-full">지도에서 보기</button>
       </section>
     </>

@@ -188,6 +188,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return (await repo.getPost(r.id)) ?? toPost(r);
     },
     async updatePostStatus(id, status) { done(await db.from("posts").update({ status }).eq("id", id)); },
+    async deletePost(postId) { done(await db.rpc("delete_post", { p_post: postId })); },
     async listApplications(postId) {
       let q = db.from("applications").select("*").order("created_at");
       if (postId) q = q.eq("post_id", postId);
