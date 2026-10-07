@@ -352,15 +352,19 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return r ? { edit: toEdit(r), bundle: await repo.getBundle(projectId) } : undefined;
     },
     async trustSummary(studentId) {
-      const [events, badges, peerReviewsResult] = await Promise.all([
+      const [events, badges, peerReviewsResult, allReviewsResult, allPeerReviewsResult] = await Promise.all([
         db.from("tier_score_events").select("*").eq("student_id", studentId).then(ok),
         db.from("badges").select("*").eq("student_id", studentId).then(ok),
         db.from("team_peer_reviews").select("*").eq("reviewee_id", studentId),
+        db.from("client_reviews").select("*"),
+        db.from("team_peer_reviews").select("*"),
       ]);
       const ids = [...new Set((events as Row[]).map((e) => e.project_id))];
       const reviews = ids.length ? ok(await db.from("client_reviews").select("*").in("project_id", ids)).map(toReview) : [];
       const peerReviews = peerReviewsResult.error && /team_peer_reviews|schema cache/i.test(peerReviewsResult.error.message) ? [] : ok(peerReviewsResult).map(toPeerReview);
-      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge), peerReviews);
+      const allReviews = allReviewsResult.error ? reviews : ok(allReviewsResult).map(toReview);
+      const allPeerReviews = allPeerReviewsResult.error && /team_peer_reviews|schema cache/i.test(allPeerReviewsResult.error.message) ? peerReviews : ok(allPeerReviewsResult).map(toPeerReview);
+      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge), peerReviews, allReviews, allPeerReviews);
     },
   };
 

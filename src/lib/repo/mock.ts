@@ -362,7 +362,7 @@ export const mockRepo: Repo = {
     ensure();
     const events = db.tierEvents.filter((e) => e.studentId === studentId);
     const projectIds = new Set(events.map((e) => e.projectId));
-    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId)));
+    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId), db.reviews, db.peerReviews));
   },
   async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; loaded = true; save(); },
 };

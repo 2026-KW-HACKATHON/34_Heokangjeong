@@ -3,28 +3,32 @@
 import { useEffect, useState } from "react";
 import { repo } from "@/lib/repo";
 import { workFieldSummary } from "@/lib/workFields";
-import type { PortfolioCard, Post } from "@/types";
+import type { PortfolioCard, Post, TrustSummary } from "@/types";
 
 export default function WorkFieldSummary({ studentId, detailed = false }: { studentId: string; detailed?: boolean }) {
-  const [data, setData] = useState<{ cards: PortfolioCard[]; posts: Post[] } | null>(null);
+  const [data, setData] = useState<{ cards: PortfolioCard[]; posts: Post[]; trust: TrustSummary } | null>(null);
   const [error, setError] = useState(false);
   useEffect(() => {
     let active = true;
     setData(null); setError(false);
-    Promise.all([repo.listPortfolio(studentId), repo.listPosts()])
-      .then(([cards, posts]) => { if (active) setData({ cards, posts }); })
+    Promise.all([repo.listPortfolio(studentId), repo.listPosts(), repo.trustSummary(studentId)])
+      .then(([cards, posts, trust]) => { if (active) setData({ cards, posts, trust }); })
       .catch(() => { if (active) setError(true); });
     return () => { active = false; };
   }, [studentId]);
   const summary = data ? workFieldSummary(data.cards, data.posts) : null;
+  const normalizedRating = data?.trust.normalizedRating ?? null;
+  const reviewCount = data?.trust.reviewCount ?? 0;
+  const anomalyCount = data?.trust.anomalyCount ?? 0;
   return <section className="card" aria-label="분야별 작업 기록">
     <h2 className="text-base font-bold">분야별 작업 기록</h2>
     {!summary ? <p role="status" className="sub mt-3 text-sm">{error ? "작업 기록을 불러오지 못했어요." : "작업 기록을 불러오는 중…"}</p> : <>
       <dl className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">제일 많이 한 분야</dt><dd className="mt-1 font-bold">{summary.mostFrequent.length ? summary.mostFrequent.join(" · ") : "아직 없음"}</dd></div>
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">평균 별점</dt><dd className="mt-1 font-bold">{summary.averageRating === null ? "평가 전" : `★ ${summary.averageRating.toFixed(1)} / 5`}</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">보정 평균 별점</dt><dd className="mt-1 font-bold">{normalizedRating === null ? "평가 전" : `★ ${normalizedRating.toFixed(1)} / 5`}</dd></div>
       </dl>
       <p className="sub mt-3 text-xs">의뢰인이 완료를 인증한 작업 {summary.total}건 기준</p>
+      {reviewCount > 0 && <p className="sub mt-1 text-xs">평가 {reviewCount}건에 사전 평균·평가자 이력·이상치 완화를 적용했어요{anomalyCount ? ` · 이상 평가 ${anomalyCount}건 완화` : ""}.</p>}
       {detailed && (summary.byField.length ? <ul className="mt-4 divide-y divide-[var(--line)]">
         {summary.byField.map(field => <li key={field.category} className="py-3">
           <div className="flex items-center justify-between"><h3 className="font-semibold">{field.category}</h3><span className="sub text-sm">{field.count}건 · {field.averageRating === null ? "평가 전" : `★ ${field.averageRating.toFixed(1)}`}</span></div>

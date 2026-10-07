@@ -1,5 +1,6 @@
 // 정책 값. 준비도 가중치·티어 기준·점수는 여기서만 바꾼다.
 import type { ReadinessLevel } from "./types.ts";
+import { robustRating } from "./reputation.ts";
 
 /** 포트폴리오 자료 준비도 가중치 (합 100). 실력 점수가 아니라 "자료가 얼마나 갖춰졌나" 이다. */
 export const READINESS_WEIGHTS: Record<ReadinessLevel, number> = { REQUIRED: 70, RECOMMENDED: 25, OPTIONAL: 5 };
@@ -21,20 +22,27 @@ export const TEMPERATURE = { base: 36.5, perPointAboveThree: 0.8, min: 30, max: 
 
 export const tierForTemperature = (temperature: number) => [...TIERS].reverse().find((t) => temperature >= t.minTemperature)!;
 export function temperatureFor(
-  reviews: { deadline: number; communication: number; handoff: number }[],
-  peerReviews: { projectId: string; communication: number; collaboration: number; responsibility: number }[] = [],
+  reviews: { reviewerId?: string; deadline: number; communication: number; handoff: number; satisfaction?: number }[],
+  peerReviews: { projectId: string; reviewerId?: string; communication: number; collaboration: number; responsibility: number }[] = [],
+  allReviews = reviews,
+  allPeerReviews = peerReviews,
 ) {
   let t = TEMPERATURE.base;
-  for (const r of reviews) t += ((r.deadline + r.communication + r.handoff) / 3 - 3) * TEMPERATURE.perPointAboveThree;
-  const byProject = new Map<string, number[]>();
+  const client = robustRating(
+    reviews.map(r => ({ reviewerId: r.reviewerId ?? "unknown", values: [r.satisfaction ?? r.deadline, r.deadline, r.communication, r.handoff] })),
+    allReviews.map(r => ({ reviewerId: r.reviewerId ?? "unknown", values: [r.satisfaction ?? r.deadline, r.deadline, r.communication, r.handoff] })),
+  );
+  if (client.score !== null) t += (client.score - 3) * TEMPERATURE.perPointAboveThree * client.reviewCount;
+  const byProject = new Map<string, typeof peerReviews>();
   for (const r of peerReviews) {
-    const scores = byProject.get(r.projectId) ?? [];
-    scores.push((r.communication + r.collaboration + r.responsibility) / 3);
-    byProject.set(r.projectId, scores);
+    const rows = byProject.get(r.projectId) ?? [];
+    rows.push(r);
+    byProject.set(r.projectId, rows);
   }
-  for (const scores of byProject.values()) {
-    const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-    t += (average - 3) * TEMPERATURE.perPointAboveThree;
+  const peerHistory = allPeerReviews.map(r => ({ reviewerId: r.reviewerId ?? "unknown", values: [r.communication, r.collaboration, r.responsibility] }));
+  for (const rows of byProject.values()) {
+    const rating = robustRating(rows.map(r => ({ reviewerId: r.reviewerId ?? "unknown", values: [r.communication, r.collaboration, r.responsibility] })), peerHistory);
+    if (rating.score !== null) t += (rating.score - 3) * TEMPERATURE.perPointAboveThree;
   }
   return Math.round(Math.min(TEMPERATURE.max, Math.max(TEMPERATURE.min, t)) * 10) / 10;
 }
