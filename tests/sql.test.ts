@@ -82,7 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0019_chat_agreements.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -93,6 +93,24 @@ beforeAll(async () => {
 });
 
 describe("SQL: 선정·제출·검토 (DB 함수)", () => {
+  it("약속서는 당사자만 수정하고 같은 버전을 양쪽이 확인한 뒤 잠긴다", async () => {
+    const { appId }=await startProject("약속서");
+    const terms={startDate:"2026-10-07",endDate:"2026-10-20",scope:"디자인",deliverables:"PDF",acceptance:"점주 확인",coupon:"음료 쿠폰",handoff:"파일 전달",exclusions:"인쇄",revisions:2};
+    await rpc(U.stu,"save_chat_agreement",[appId,0,JSON.stringify(terms)]);
+    await expect(rpc(U.stu2,"confirm_chat_agreement",[appId,1])).rejects.toThrow(/당사자/);
+    expect(await as(U.stu2,"select * from chat_agreements where application_id=$1",[appId])).toHaveLength(0);
+    await expect(as(U.stu,"update chat_agreements set version=99 where application_id=$1",[appId])).rejects.toThrow(/permission denied/);
+    await rpc(U.stu,"confirm_chat_agreement",[appId,1]);
+    await rpc(U.owner,"save_chat_agreement",[appId,1,JSON.stringify({...terms,scope:"메뉴판 디자인"})]);
+    const [changed]=await as(U.stu,"select * from chat_agreements where application_id=$1",[appId]);
+    expect(changed.student_confirmed_at).toBeNull();
+    await expect(rpc(U.stu,"confirm_chat_agreement",[appId,1])).rejects.toThrow(/최신/);
+    await rpc(U.stu,"confirm_chat_agreement",[appId,2]);
+    await rpc(U.owner,"confirm_chat_agreement",[appId,2]);
+    const [final]=await as(U.stu,"select * from chat_agreements where application_id=$1",[appId]);
+    expect(final.finalized_at).toBeTruthy();
+    await expect(rpc(U.owner,"save_chat_agreement",[appId,2,JSON.stringify(terms)])).rejects.toThrow(/최종본/);
+  });
   it("선정 → IN_PROGRESS, 질문 스냅샷 저장, 공고 진행 중", async () => {
     const { projectId, postId } = await startProject();
     expect(await status(projectId)).toBe("IN_PROGRESS");

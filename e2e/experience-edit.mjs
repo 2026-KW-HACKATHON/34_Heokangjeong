@@ -1,0 +1,30 @@
+import { chromium } from 'playwright';
+import assert from 'node:assert/strict';
+const browser = await chromium.launch({channel:'msedge',headless:true});
+try {
+ const page = await browser.newPage({viewport:{width:390,height:844}});
+ const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:3000/portfolio/experience/?s=s1&kind=card&id=demo-menu');
+ await page.getByRole('button',{name:'게시물 수정',exact:true}).click();
+ await page.getByLabel('제목',{exact:true}).fill('새로운 메뉴판 경험');
+ for (const label of ['경험 소개','문제 정의','해결 방법','작성할 내용','인사이트']) await page.getByLabel(label,{exact:true}).fill(label+' 수정 확인');
+ await page.getByRole('button',{name:'변경사항 저장'}).click();
+ await page.getByRole('status').filter({hasText:'변경사항을 저장했어요.'}).waitFor();
+ await page.reload();
+ await page.getByRole('heading',{name:'새로운 메뉴판 경험',exact:true}).waitFor();
+ await page.getByText('인사이트 수정 확인',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'게시물 수정',exact:true}).click();
+ await page.getByLabel('제목',{exact:true}).fill('취소할 변경');
+ await page.getByRole('button',{name:'취소',exact:true}).click();
+ await page.getByRole('heading',{name:'새로운 메뉴판 경험',exact:true}).waitFor();
+ await page.goto('http://127.0.0.1:3000/me/');
+ await page.getByRole('link',{name:'새로운 메뉴판 경험 포트폴리오 열기',exact:true}).waitFor();
+ assert.equal(await page.getByRole('link',{name:'새로운 메뉴판 경험 포트폴리오 열기',exact:true}).count(),1);
+ assert.equal(await page.locator('.portfolio-feed-tile').count(),5);
+ await page.evaluate(()=>localStorage.setItem('wolgye-user','s2'));
+ await page.goto('http://127.0.0.1:3000/portfolio/experience/?s=s1&kind=card&id=demo-menu');
+ await page.getByRole('heading',{name:'새로운 메뉴판 경험',exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'게시물 수정',exact:true}).count(),0);
+ assert.deepEqual(errors,[]);
+ console.log('PASS: five sections, persistence, cancel, feed deduplication, owner-only editing');
+} finally { await browser.close(); }

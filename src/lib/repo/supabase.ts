@@ -15,11 +15,13 @@ import { sourceFromBundle } from "../portfolio/source";
 import { sanitizeContent } from "../workflow/engine";
 import { summarizeTrust } from "../trust";
 import { publicationFromSource } from "../portfolio/publication";
+import { validateAgreement, type WorkAgreement } from "../agreement";
 
 // ── DB 행(snake_case) ↔ 도메인 타입(camelCase) 변환 ────────────────────────────
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
 const u = <T,>(v: T | null | undefined) => v ?? undefined;
+const toAgreement = (r: Row): WorkAgreement => ({ applicationId: r.application_id, version: r.version, terms: r.terms, studentConfirmedAt: r.student_confirmed_at, ownerConfirmedAt: r.owner_confirmed_at, finalizedAt: r.finalized_at, updatedAt: r.updated_at });
 let realtimeChannelSequence = 0;
 
 export const toUser = (r: Row): User => r.role === "student"
@@ -115,6 +117,19 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     throw new Error(friendly(result.error.message));
   };
   const repo: Repo = {
+    async getAgreement(applicationId) {
+      const row = maybe(await db.from("chat_agreements").select("*").eq("application_id", applicationId).maybeSingle());
+      return row ? toAgreement(row) : null;
+    },
+    async saveAgreement(applicationId, _actorId, version, terms) {
+      validateAgreement(terms);
+      const row = ok(await db.rpc("save_chat_agreement", { p_application: applicationId, p_version: version, p_terms: terms }));
+      return toAgreement(Array.isArray(row) ? row[0] : row);
+    },
+    async confirmAgreement(applicationId, _actorId, version) {
+      const row = ok(await db.rpc("confirm_chat_agreement", { p_application: applicationId, p_version: version }));
+      return toAgreement(Array.isArray(row) ? row[0] : row);
+    },
     ...chatReads(`supabase:${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`),
     async listUsers() { return ok(await db.from("profiles").select("*")).map(toUser); },
     async getUser(id) { const r = maybe(await db.from("profiles").select("*").eq("id", id).maybeSingle()); return r ? toUser(r) : undefined; },
@@ -194,6 +209,13 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return ok(await db.from("portfolio_cards").select("*").eq("student_id", studentId)).map((r: Row): PortfolioCard => ({
         id: r.id, studentId: r.student_id, postId: r.post_id, title: r.title, roleLabel: r.role_label, tasks: r.tasks, durationDays: r.duration_days, rating: r.rating, verified: r.verified,
       }));
+    },
+    async updatePublishedPortfolio(actorId, item) {
+      const { data, error } = await db.auth.getUser();
+      if (error || data.user?.id !== actorId || actorId !== item.studentId) throw new Error("본인의 게시물만 수정할 수 있어요.");
+      if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
+      const result = await db.from("portfolio_publications").update({ title: item.title, summary: item.summary, sections: item.sections, cover_url: item.coverUrl ?? null }).eq("student_id", actorId).eq("source_id", item.sourceId).eq("source_kind", item.sourceKind).select("source_id");
+      if (!ok(result).length) throw new Error("공개된 게시물을 찾을 수 없어요.");
     },
     async listPublishedPortfolio(studentId) {
       return ok(await db.from("portfolio_publications").select("*").eq("student_id", studentId).order("published_at", { ascending: false })).map((r: Row) => ({

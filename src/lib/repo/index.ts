@@ -3,6 +3,7 @@ import type {
   PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims,
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
+import type { AgreementTerms, WorkAgreement } from "../agreement";
 
 export type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput };
 export interface GenerateResult { draft: PortfolioDraft; reused: boolean; aiError?: string }
@@ -28,6 +29,9 @@ export interface Repo {
   updateApplicationStatus(id: string, status: Application["status"]): Promise<void>; // 공고 작성자의 거절 (수락은 selectApplicant)
   // 채팅: 지원서 하나가 채팅방 하나 (공고 작성자 ↔ 지원 학생)
   listChatRooms(userId: string): Promise<ChatRoom[]>;
+  getAgreement(applicationId: string, actorId: string): Promise<WorkAgreement | null>;
+  saveAgreement(applicationId: string, actorId: string, expectedVersion: number, terms: AgreementTerms): Promise<WorkAgreement>;
+  confirmAgreement(applicationId: string, actorId: string, version: number): Promise<WorkAgreement>;
   readChatMessageIds(userId: string, roomId: string): Promise<string[]>;
   markChatRead(userId: string, roomId: string, messageIds: string[]): Promise<void>;
   listMessages(applicationId: string): Promise<ChatMessage[]>;
@@ -35,6 +39,7 @@ export interface Repo {
   onMessage(applicationId: string, cb: (m: ChatMessage) => void): () => void; // 새 메시지 구독, 반환값으로 해제
   listReviews(studentId?: string): Promise<Review[]>;
   listPortfolio(studentId: string): Promise<PortfolioCard[]>;
+  updatePublishedPortfolio(actorId: string, item: PublishedPortfolio): Promise<void>;
   listPublishedPortfolio(studentId: string): Promise<PublishedPortfolio[]>;
   publishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"], coverUrl?: string): Promise<void>;
   unpublishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"]): Promise<void>;

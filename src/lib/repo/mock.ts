@@ -8,6 +8,7 @@ import { fileToDataUrl } from "../files";
 import { domainForCategory } from "@shared/portfolio/domains";
 import type { PublishedPortfolio } from "@/types";
 import { publicationFromSource } from "../portfolio/publication";
+import { reviseAgreement, confirmAgreement, type WorkAgreement } from "../agreement";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
 const users: User[] = [
@@ -72,13 +73,14 @@ let db: wf.WorkflowDB = fresh();
 let msgs: ChatMessage[] = structuredClone(messages);
 let demoNotifications: Notification[] = structuredClone(seedNotifications);
 let publications: PublishedPortfolio[] = [];
+let agreements: Record<string, WorkAgreement> = {};
 let profileExtras: Record<string, { about: string; avatarUrl?: string }> = {};
 const withPortfolioProfile = (user: User): User => user.role === "student" ? { ...user, ...profileExtras[user.id] } : user;
 function load() {
   if (typeof window === "undefined") return;
   try {
     const s = localStorage.getItem(KEY);
-    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; publications = d.publications ?? []; profileExtras = d.profileExtras ?? {}; db.posts = db.posts.map(post => {
+    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; publications = d.publications ?? []; profileExtras = d.profileExtras ?? {}; agreements = d.agreements ?? {}; db.posts = db.posts.map(post => {
       const updatedSeed = posts.find(seed => seed.id === post.id);
       return updatedSeed && /사례비/.test(post.reward ?? "") ? { ...post, reward: updatedSeed.reward, compensationType: "NON_MONETARY", compensationDescription: updatedSeed.reward, paidAmount: undefined } : post;
     }); }
@@ -96,7 +98,7 @@ function load() {
 }
 function save() {
   if (typeof window === "undefined") return;
-  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications, publications, profileExtras })); }
+  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications, publications, profileExtras, agreements })); }
   catch { throw new Error("브라우저 저장 공간이 가득 찼어요. 나 › 데모 데이터 초기화 후 다시 시도해 주세요"); }
 }
 let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; } };
@@ -126,8 +128,34 @@ const withRoleIds = (post: Post): Post => {
   return post;
 };
 
+function agreementParty(applicationId: string, actorId: string): "student" | "owner" {
+  const application = db.applications.find(a => a.id === applicationId);
+  const post = db.posts.find(p => p.id === application?.postId);
+  if (!application || !post) throw new Error("채팅방을 찾을 수 없어요.");
+  if (actorId === application.studentId) return "student";
+  if (actorId === post.authorId) return "owner";
+  throw new Error("이 약속서는 채팅 당사자만 볼 수 있어요.");
+}
+
 import { chatReads } from "./chatReads";
 export const mockRepo: Repo = {
+  async getAgreement(applicationId, actorId) { ensure(); load(); agreementParty(applicationId, actorId); return wait(agreements[applicationId] ?? null); },
+  async saveAgreement(applicationId, actorId, expectedVersion, terms) {
+    ensure(); load(); agreementParty(applicationId, actorId);
+    const previous = agreements[applicationId];
+    const next = reviseAgreement(previous ?? null, applicationId, expectedVersion, terms);
+    agreements[applicationId] = next;
+    try { save(); } catch (e) { if (previous) agreements[applicationId] = previous; else delete agreements[applicationId]; throw e; }
+    return wait(next);
+  },
+  async confirmAgreement(applicationId, actorId, version) {
+    ensure(); load(); const side = agreementParty(applicationId, actorId);
+    const previous = agreements[applicationId];
+    if (!previous) throw new Error("먼저 약속서를 저장해 주세요.");
+    const next = confirmAgreement(previous, version, side); agreements[applicationId] = next;
+    try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
+    return wait(next);
+  },
   ...chatReads("mock"),
   async listUsers() { ensure(); return wait(users.map(withPortfolioProfile)); },
   async getUser(id) { ensure(); const user = users.find((u) => u.id === id); return wait(user ? withPortfolioProfile(user) : undefined); },
@@ -181,6 +209,16 @@ export const mockRepo: Repo = {
   onMessage(applicationId, cb) { const l = (m: ChatMessage) => { if (m.applicationId === applicationId) cb(m); }; listeners.add(l); return () => { listeners.delete(l); }; },
   async listReviews(studentId) { ensure(); return wait(db.legacyReviews.filter((r) => !studentId || r.studentId === studentId)); },
   async listPortfolio(studentId) { ensure(); return wait(db.legacyCards.filter((c) => c.studentId === studentId)); },
+  async updatePublishedPortfolio(actorId, item) {
+    ensure();
+    if (actorId !== item.studentId || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 게시물만 수정할 수 있어요.");
+    const existing = publications.find(p => p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind);
+    if (!existing && !["demo-real2sim", "demo-driving", "demo-menu", "demo-banner", "demo-cafe"].includes(item.sourceId)) throw new Error("공개된 게시물을 찾을 수 없어요.");
+    if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
+    const previous = publications;
+    publications = [structuredClone(item), ...publications.filter(p => !(p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind))];
+    try { save(); } catch(e) { publications = previous; throw e; }
+  },
   async listPublishedPortfolio(studentId) { ensure(); return wait(publications.filter(p => p.studentId === studentId)); },
   async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {
     ensure();
@@ -245,7 +283,7 @@ export const mockRepo: Repo = {
     const projectIds = new Set(events.map((e) => e.projectId));
     return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId)));
   },
-  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; loaded = true; save(); },
+  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; agreements = {}; loaded = true; save(); },
 };
 
 export { distanceM };
