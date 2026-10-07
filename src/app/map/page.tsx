@@ -6,6 +6,7 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
 import type { GeoPoint, Post } from "@/types";
+import MapErrorBoundary from "@/components/MapErrorBoundary";
 
 // Leaflet 은 브라우저 전용이라 서버 렌더링을 끈다.
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="sub p-6 text-center text-sm">지도를 불러오는 중…</div> });
@@ -65,7 +66,9 @@ export default function MapPage() {
       <p role="status" className="sub min-h-6 px-4 pb-2 text-xs">{locationMessage}</p>
       {loadError && <p role="alert" className="mx-4 mb-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
       <div className="relative isolate h-[calc(100dvh-13rem)] min-h-[240px] overflow-hidden rounded-t-3xl">
-        <MapView posts={shown} me={currentLocation ?? undefined} center={mapLocation ?? WOLGYE_CENTER} recenterRequest={recenterRequest} />
+        <MapErrorBoundary posts={shown}>
+          <MapView posts={shown} me={currentLocation ?? undefined} center={mapLocation ?? WOLGYE_CENTER} recenterRequest={recenterRequest} />
+        </MapErrorBoundary>
         <button
           type="button"
           onClick={findCurrentLocation}

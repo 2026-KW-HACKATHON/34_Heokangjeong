@@ -194,7 +194,7 @@ export interface TeamPeerReview {
   comment: string;
   createdAt: string;
 }
-export interface TrustSummary { verifiedCount: number; points: number; temperature: number; tier: { key: string; label: string }; badges: Badge[]; events: TierScoreEvent[] }
+export interface TrustSummary { verifiedCount: number; points: number; temperature: number; reputationScore: number; completionRate: number; deadlineReliability: number; handoverReliability: number; communicationScore: number; normalizedRating: number | null; rawRating: number | null; reviewCount: number; heldReviewCount: number; anomalyCount: number; tier: { key: string; label: string }; badges: Badge[]; events: TierScoreEvent[] }
 /** 공개 포트폴리오 한 건: 최신 편집본 + 잠긴 원본(검증·평가·증빙) */
 export interface PortfolioDoc { edit: PortfolioEditedVersion; bundle: ProjectBundle }
 

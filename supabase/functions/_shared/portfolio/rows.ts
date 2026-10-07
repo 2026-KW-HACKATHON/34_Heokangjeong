@@ -31,7 +31,7 @@ export const rowToVerification = (r: Row): ClientVerification => ({
   projectId: r.project_id, submissionVersionId: r.submission_version_id, verifierId: r.verifier_id, note: r.note, createdAt: r.created_at,
   workPerformed: r.work_performed, roleConfirmed: r.role_confirmed, deliverableReceived: r.deliverable_received, completionCriteriaMet: r.completion_criteria_met, actuallyUsed: r.actually_used,
 });
-export const rowToReview = (r: Row): ClientReview => ({ projectId: r.project_id, reviewerId: r.reviewer_id, satisfaction: r.satisfaction, deadline: r.deadline, communication: r.communication, handoff: r.handoff, comment: r.comment, createdAt: r.created_at });
+export const rowToReview = (r: Row): ClientReview => ({ projectId: r.project_id, reviewerId: r.reviewer_id, satisfaction: r.satisfaction, deadline: r.deadline, communication: r.communication, handoff: r.handoff, deliverableQuality: r.deliverable_quality ?? r.satisfaction, comment: r.comment, createdAt: r.created_at, status: r.status ?? "NORMAL", reviewerReliability: r.reviewer_reliability ?? 1, evidenceConsistency: r.evidence_consistency ?? 1, adjustedRating: r.adjusted_rating ?? r.satisfaction, anomalyReasons: r.anomaly_reasons ?? [], policyVersion: r.policy_version ?? "legacy" });
 export const rowToOutcome = (r: Row): Outcome => ({
   id: r.id, projectId: r.project_id, authorId: r.author_id, metricName: r.metric_name, measured: r.measured, value: num(r.value), unit: r.unit, baseline: num(r.baseline),
   measurementPeriod: r.measurement_period, source: r.source, evidenceId: u(r.evidence_id), qualitativeDescription: r.qualitative_description,

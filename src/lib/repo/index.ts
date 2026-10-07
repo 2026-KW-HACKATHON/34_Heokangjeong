@@ -107,6 +107,7 @@ export interface Repo {
   reviewClub(clubId: string, approve: boolean, reason: string | undefined, actorId: string): Promise<void>;
   adminOverview(): Promise<AdminOverview>;
   listOperatingProjects(userId: string): Promise<{ operations: Operations; post: Post; project: Project }[]>;
+  disputeReview(projectId: string, studentId: string, reason: string): Promise<void>;
   /** mock 전용: 데모 데이터 초기화 */
   resetDemo?(): Promise<void>;
 }

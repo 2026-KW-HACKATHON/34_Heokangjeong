@@ -209,7 +209,14 @@ export interface SubmissionVersion {
 /** 제출 = 프로젝트의 버전 목록 (별도 테이블 없이 submission_versions 로 표현) */
 export interface Submission { projectId: string; versions: SubmissionVersion[] }
 export interface ClientVerification extends VerificationClaims { projectId: string; submissionVersionId: string; verifierId: string; note: string; createdAt: string }
-export interface ClientReview { projectId: string; reviewerId: string; satisfaction: number; deadline: number; communication: number; handoff: number; comment: string; createdAt: string }
+export type ReviewStatus = "NORMAL" | "FLAGGED" | "DISPUTED" | "UNDER_REVIEW" | "VALID" | "PARTIALLY_VALID" | "INVALID";
+export interface ClientReview {
+  projectId: string; reviewerId: string; satisfaction: number; deadline: number; communication: number; handoff: number; deliverableQuality: number; comment: string; createdAt: string;
+  status: ReviewStatus; reviewerReliability: number; evidenceConsistency: number; adjustedRating: number; anomalyReasons: string[]; policyVersion: string;
+  disputeReason?: string;
+}
+export interface ReviewDispute { id: string; projectId: string; studentId: string; reason: string; status: "DISPUTED" | "UNDER_REVIEW" | "VALID" | "PARTIALLY_VALID" | "INVALID"; createdAt: string; resolvedAt?: string }
+export interface ReputationEvent { id: string; studentId: string; projectId: string; previousScore: number | null; newScore: number | null; delta: number | null; reason: string; policyVersion: string; createdAt: string }
 export interface Outcome {
   id: string;
   projectId: string;

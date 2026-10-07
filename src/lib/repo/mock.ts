@@ -14,39 +14,124 @@ import { publicationFromSource } from "../portfolio/publication";
 import { reviseAgreement, confirmAgreement, type WorkAgreement } from "../agreement";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
-const users: User[] = [
-  { id: "s1", role: "student", name: "김하늘", department: "디자인학과", skills: ["포스터", "일러스트", "Figma"], interests: ["디자인", "SNS홍보"], availableHours: "평일 저녁, 주말", maxDistanceM: 1500, location: { lat: 37.6196, lng: 127.0592 } },
-  { id: "s2", role: "student", name: "박도윤", department: "소프트웨어학부", skills: ["React", "웹페이지", "QR"], interests: ["웹/앱", "디지털도움"], availableHours: "주말", maxDistanceM: 2000, location: { lat: 37.6210, lng: 127.0620 } },
-  { id: "s3", role: "student", name: "이서준", department: "미디어영상학부", skills: ["숏폼", "프리미어", "촬영"], interests: ["영상", "사진"], availableHours: "평일 오후", maxDistanceM: 1200, location: { lat: 37.6230, lng: 127.0580 } },
-  { id: "s4", role: "student", name: "최지우", department: "경영학부", skills: ["인스타그램", "카피", "마케팅"], interests: ["SNS홍보", "기타"], availableHours: "평일 저녁", maxDistanceM: 1000, location: { lat: 37.6250, lng: 127.0610 } },
+export const users: User[] = [
+  { id: "s1", role: "student", name: "김하늘", department: "디자인학과", skills: ["포스터", "일러스트", "Figma"], interests: ["디자인", "SNS홍보"], availableHours: "평일 저녁, 주말", maxDistanceM: 1500, location: { lat: 37.6196, lng: 127.0592 }, school: "광운대학교", age: 22, phone: "010-0000-1001" },
+  { id: "s2", role: "student", name: "박도윤", department: "소프트웨어학부", skills: ["React", "웹페이지", "QR"], interests: ["웹/앱", "디지털도움"], availableHours: "주말", maxDistanceM: 2000, location: { lat: 37.6210, lng: 127.0620 }, school: "광운대학교", age: 24, phone: "010-0000-1002" },
+  { id: "s3", role: "student", name: "이서준", department: "미디어영상학부", skills: ["숏폼", "프리미어", "촬영"], interests: ["영상", "사진"], availableHours: "평일 오후", maxDistanceM: 1200, location: { lat: 37.6230, lng: 127.0580 }, school: "광운대학교", age: 23, phone: "010-0000-1003" },
+  { id: "s4", role: "student", name: "최지우", department: "경영학부", skills: ["인스타그램", "카피", "마케팅"], interests: ["SNS홍보", "기타"], availableHours: "평일 저녁", maxDistanceM: 1000, location: { lat: 37.6250, lng: 127.0610 }, school: "광운대학교", age: 21, phone: "010-0000-1004" },
+  { id: "s5", role: "student", name: "윤서연", department: "시각디자인학과", skills: ["브랜딩", "패키지", "Illustrator"], interests: ["디자인", "SNS홍보"], availableHours: "화·목 오후, 주말", maxDistanceM: 1800, location: { lat: 37.6207, lng: 127.0577 }, school: "광운대학교", age: 22, phone: "010-0000-1005" },
+  { id: "s6", role: "student", name: "정민재", department: "컴퓨터정보공학부", skills: ["Next.js", "Supabase", "반응형 웹"], interests: ["웹/앱", "디지털도움"], availableHours: "평일 저녁", maxDistanceM: 2200, location: { lat: 37.6218, lng: 127.0640 }, school: "광운대학교", age: 25, phone: "010-0000-1006" },
+  { id: "s7", role: "student", name: "한유진", department: "미디어커뮤니케이션학부", skills: ["인터뷰", "영상 기획", "캡컷"], interests: ["영상", "SNS홍보"], availableHours: "월·수 오후", maxDistanceM: 1600, location: { lat: 37.6241, lng: 127.0569 }, school: "광운대학교", age: 21, phone: "010-0000-1007" },
+  { id: "s8", role: "student", name: "오지훈", department: "전자통신공학과", skills: ["기기 설정", "와이파이", "키오스크"], interests: ["디지털도움", "웹/앱"], availableHours: "금요일, 주말", maxDistanceM: 2500, location: { lat: 37.6260, lng: 127.0631 }, school: "광운대학교", age: 24, phone: "010-0000-1008" },
+  { id: "s9", role: "student", name: "강민서", department: "콘텐츠융합학부", skills: ["사진 촬영", "Lightroom", "숏폼"], interests: ["사진", "영상", "SNS홍보"], availableHours: "평일 오전, 토요일", maxDistanceM: 2000, location: { lat: 37.6275, lng: 127.0590 }, school: "광운대학교", age: 23, phone: "010-0000-1009" },
+  { id: "s10", role: "student", name: "배수아", department: "경영학부", skills: ["브랜드 전략", "시장 조사", "카피라이팅"], interests: ["SNS홍보", "디자인"], availableHours: "평일 저녁, 일요일", maxDistanceM: 1700, location: { lat: 37.6280, lng: 127.0618 }, school: "광운대학교", age: 22, phone: "010-0000-1010" },
+  { id: "s11", role: "student", name: "임태현", department: "정보융합학부", skills: ["Flutter", "UX 프로토타입", "데이터 시각화"], interests: ["웹/앱", "디자인"], availableHours: "수·금 저녁", maxDistanceM: 2300, location: { lat: 37.6199, lng: 127.0645 }, school: "광운대학교", age: 24, phone: "010-0000-1011" },
+  { id: "s12", role: "student", name: "송예린", department: "국어국문학과", skills: ["인터뷰", "블로그 글쓰기", "콘텐츠 교정"], interests: ["SNS홍보", "기타"], availableHours: "평일 오후, 토요일", maxDistanceM: 1400, location: { lat: 37.6258, lng: 127.0575 }, school: "광운대학교", age: 21, phone: "010-0000-1012" },
+  { id: "s13", role: "student", name: "정만교", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 }, school: "광운대학교", age: 23, phone: "010-0000-1013" },
   { id: "r1", role: "resident", name: "월계 커피", kind: "상인", location: { lat: 37.6248, lng: 127.0598 }, address: "월계로 45길 12" },
   { id: "r2", role: "resident", name: "행복분식", kind: "상인", location: { lat: 37.6272, lng: 127.0615 }, address: "월계1동 광운로 21" },
   { id: "r3", role: "resident", name: "동네책방 소소", kind: "상인", location: { lat: 37.6285, lng: 127.0580 }, address: "석계로 7" },
   { id: "r4", role: "resident", name: "정순자 님", kind: "주민", location: { lat: 37.6238, lng: 127.0632 }, address: "월계1동 주민센터 인근" },
   { id: "r5", role: "resident", name: "삼거리 정육점", kind: "상인", location: { lat: 37.6302, lng: 127.0622 }, address: "월계로 60" },
-  { id: "s5", role: "student", name: "정만교", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 } },
+  { id: "r6", role: "resident", name: "꽃길 공방", kind: "상인", location: { lat: 37.6224, lng: 127.0568 }, address: "광운로 12길 8" },
+  { id: "r7", role: "resident", name: "월계 미용실", kind: "상인", location: { lat: 37.6264, lng: 127.0601 }, address: "월계로 53길 4" },
+  { id: "r8", role: "resident", name: "햇살 반찬", kind: "상인", location: { lat: 37.6291, lng: 127.0605 }, address: "석계로 18" },
+  { id: "r9", role: "resident", name: "깨끗한 세탁소", kind: "상인", location: { lat: 37.6246, lng: 127.0642 }, address: "광운로 33" },
+  { id: "r10", role: "resident", name: "우리동네 피아노", kind: "상인", location: { lat: 37.6215, lng: 127.0604 }, address: "월계로 42길 15" },
+  { id: "r11", role: "resident", name: "월계 과일상회", kind: "상인", location: { lat: 37.6283, lng: 127.0630 }, address: "초안산로 5길 9" },
+  { id: "r12", role: "resident", name: "별빛 베이커리", kind: "상인", location: { lat: 37.6205, lng: 127.0612 }, address: "광운로 8" },
+  { id: "r13", role: "resident", name: "다정 약국", kind: "상인", location: { lat: 37.6232, lng: 127.0650 }, address: "월계로 50길 3" },
+  { id: "r14", role: "resident", name: "바늘뜸 옷수선", kind: "상인", location: { lat: 37.6270, lng: 127.0572 }, address: "석계로 12길 6" },
 ];
 
-const posts: Post[] = [
-  { id: "p1", title: "카페 신메뉴 포스터 디자인", category: "디자인", description: "가을 신메뉴 3종 포스터(A3) 1장과 인스타용 정사각 이미지 3장이 필요해요. 사진은 저희가 드립니다.", authorId: "r1", location: users[4].location, address: "월계로 45길 12", status: "open", reward: "음료 쿠폰 10장", durationDays: 7, difficulty: 2, isTeam: false, createdAt: "2026-09-14T09:00:00Z" },
-  { id: "p2", title: "QR 메뉴판 만들어 주실 분", category: "웹/앱", description: "종이 메뉴판을 QR 로 볼 수 있게 간단한 웹 메뉴판을 만들고 싶어요. 메뉴 20개 정도.", authorId: "r2", location: users[5].location, address: "광운로 21", status: "open", reward: "식사 쿠폰 5장", durationDays: 10, difficulty: 2, isTeam: false, createdAt: "2026-09-15T02:00:00Z" },
-  { id: "p3", title: "책방 소개 숏폼 영상 1편", category: "영상", description: "30초 내외 릴스 영상. 책방 분위기와 이달의 책 소개. 촬영은 평일 오후 가능.", authorId: "r3", location: users[6].location, address: "석계로 7", status: "in_progress", reward: "도서 구매 쿠폰 2장", durationDays: 14, difficulty: 2, isTeam: false, createdAt: "2026-09-10T05:00:00Z" },
-  { id: "p4", title: "키오스크·스마트폰 사용 도움", category: "디지털도움", description: "주민센터 근처 어르신 5분께 키오스크 주문, 카카오톡 사진 보내기 등을 알려드릴 분. 주 1회 1시간, 4주.", authorId: "r4", location: users[7].location, address: "월계1동 주민센터", status: "open", reward: "동네 협력 가게 음료 쿠폰 4장", durationDays: 28, difficulty: 1, isTeam: false, createdAt: "2026-09-13T01:00:00Z" },
-  { id: "p5", title: "정육점 디지털 개선 프로젝트 (팀)", category: "웹/앱", description: "간판·메뉴판 디자인 새로 하고, 홍보 영상 1편, 네이버 예약/주문 페이지 연결까지. 팀으로 진행해요.", authorId: "r5", location: users[8].location, address: "월계로 60", status: "open", reward: "정육점 식사 쿠폰 10장", durationDays: 21, difficulty: 3, isTeam: true, teamSlots: [{ category: "디자인", count: 1, filled: [] }, { category: "영상", count: 1, filled: ["s3"] }, { category: "웹/앱", count: 1, filled: [] }], createdAt: "2026-09-12T07:00:00Z" },
-  { id: "p6", title: "인스타그램 계정 운영 도움 (2주)", category: "SNS홍보", description: "게시물 6개 기획·제작과 해시태그 정리. 사진은 함께 찍어요.", authorId: "r1", location: users[4].location, address: "월계로 45길 12", status: "done", reward: "음료 쿠폰 8장", durationDays: 14, difficulty: 2, isTeam: false, createdAt: "2026-08-20T09:00:00Z" },
-  { id: "p8", title: "분식집 메뉴판 정보 구조 개선", category: "디자인", description: "메뉴가 40개 가까이 한 판에 섞여 있어 손님들이 원하는 메뉴를 못 찾고 계속 물어보세요. 벽에 붙일 메뉴판을 새로 만들고 싶어요.", authorId: "r2", location: users[5].location, address: "광운로 21", status: "open", reward: "식사 쿠폰 5장", durationDays: 10, difficulty: 2, isTeam: false, createdAt: "2026-09-16T02:00:00Z",
-    problem: "메뉴가 한 판에 섞여 있어 손님이 원하는 메뉴를 찾기 어렵고, 주문 때마다 같은 질문을 반복해요", domain: "DESIGN", expectedDeliverables: ["벽 부착용 A2 메뉴판 인쇄 파일 1종", "원본 디자인 파일"], completionCriteria: "점주 확인 후 인쇄소에 바로 넘길 수 있는 PDF", deadline: "2026-10-10", revisionLimit: 2, compensationType: "NON_MONETARY", compensationDescription: "식사 쿠폰 5장" },
-  { id: "p7", title: "가게 외관·메뉴 사진 촬영", category: "사진", description: "네이버 플레이스에 올릴 사진 20장. 1시간 정도 촬영.", authorId: "r2", location: users[5].location, address: "광운로 21", status: "done", reward: "식사 쿠폰 1장", durationDays: 3, difficulty: 1, isTeam: false, createdAt: "2026-08-28T03:00:00Z" },
+const locationOf = (userId: string) => users.find((user) => user.id === userId)!.location;
+
+export const posts: Post[] = [
+  { id: "p1", title: "카페 신메뉴 포스터 디자인", category: "디자인", description: "가을 신메뉴 3종 포스터(A3) 1장과 인스타용 정사각 이미지 3장이 필요해요. 사진은 저희가 드립니다.", authorId: "r1", location: users[4].location, address: "월계로 45길 12", status: "open", reward: "음료 쿠폰 10장 + 사례비 5만원", durationDays: 7, difficulty: 2, isTeam: false, createdAt: "2026-09-14T09:00:00Z" },
+  { id: "p2", title: "QR 메뉴판 만들어 주실 분", category: "웹/앱", description: "종이 메뉴판을 QR 로 볼 수 있게 간단한 웹 메뉴판을 만들고 싶어요. 메뉴 20개 정도.", authorId: "r2", location: users[5].location, address: "광운로 21", status: "open", reward: "식사권 5장", durationDays: 10, difficulty: 2, isTeam: false, createdAt: "2026-09-15T02:00:00Z" },
+  { id: "p3", title: "책방 소개 숏폼 영상 1편", category: "영상", description: "30초 내외 릴스 영상. 책방 분위기와 이달의 책 소개. 촬영은 평일 오후 가능.", authorId: "r3", location: users[6].location, address: "석계로 7", status: "in_progress", reward: "도서 2권", durationDays: 14, difficulty: 2, isTeam: false, createdAt: "2026-09-10T05:00:00Z" },
+  { id: "p4", title: "키오스크·스마트폰 사용 도움", category: "디지털도움", description: "주민센터 근처 어르신 5분께 키오스크 주문, 카카오톡 사진 보내기 등을 알려드릴 분. 주 1회 1시간, 4주.", authorId: "r4", location: users[7].location, address: "월계1동 주민센터", status: "open", durationDays: 28, difficulty: 1, isTeam: false, createdAt: "2026-09-13T01:00:00Z" },
+  { id: "p5", title: "정육점 디지털 개선 프로젝트 (팀)", category: "웹/앱", description: "간판·메뉴판 디자인 새로 하고, 홍보 영상 1편, 네이버 예약/주문 페이지 연결까지. 팀으로 진행해요.", authorId: "r5", location: users[8].location, address: "월계로 60", status: "open", reward: "팀 사례비 30만원", durationDays: 21, difficulty: 3, isTeam: true, teamSlots: [{ category: "디자인", count: 1, filled: [] }, { category: "영상", count: 1, filled: ["s3"] }, { category: "웹/앱", count: 1, filled: [] }], createdAt: "2026-09-12T07:00:00Z" },
+  { id: "p6", title: "인스타그램 계정 운영 도움 (2주)", category: "SNS홍보", description: "게시물 6개 기획·제작과 해시태그 정리. 사진은 함께 찍어요.", authorId: "r1", location: users[4].location, address: "월계로 45길 12", status: "done", reward: "사례비 8만원", durationDays: 14, difficulty: 2, isTeam: false, createdAt: "2026-08-20T09:00:00Z" },
+  { id: "p8", title: "분식집 메뉴판 정보 구조 개선", category: "디자인", description: "메뉴가 40개 가까이 한 판에 섞여 있어 손님들이 원하는 메뉴를 못 찾고 계속 물어보세요. 벽에 붙일 메뉴판을 새로 만들고 싶어요.", authorId: "r2", location: users[5].location, address: "광운로 21", status: "open", reward: "식사권 5장", durationDays: 10, difficulty: 2, isTeam: false, createdAt: "2026-09-16T02:00:00Z",
+    problem: "메뉴가 한 판에 섞여 있어 손님이 원하는 메뉴를 찾기 어렵고, 주문 때마다 같은 질문을 반복해요", domain: "DESIGN", expectedDeliverables: ["벽 부착용 A2 메뉴판 인쇄 파일 1종", "원본 디자인 파일"], completionCriteria: "점주 확인 후 인쇄소에 바로 넘길 수 있는 PDF", deadline: "2026-10-10", revisionLimit: 2, compensationType: "NON_MONETARY", compensationDescription: "식사권 5장" },
+  { id: "p7", title: "가게 외관·메뉴 사진 촬영", category: "사진", description: "네이버 플레이스에 올릴 사진 20장. 1시간 정도 촬영.", authorId: "r2", location: users[5].location, address: "광운로 21", status: "done", reward: "식사 제공", durationDays: 3, difficulty: 1, isTeam: false, createdAt: "2026-08-28T03:00:00Z" },
+  { id: "p9", title: "베이커리 선물상자 패키지 디자인", category: "디자인", description: "쿠키 선물상자 띠지와 스티커를 따뜻한 분위기로 디자인해 주세요. 로고와 제품 사진은 제공해요.", authorId: "r12", location: locationOf("r12"), address: "광운로 8", status: "open", reward: "사례비 9만원 + 빵 쿠폰", durationDays: 10, difficulty: 2, isTeam: false, createdAt: "2026-10-05T08:30:00Z" },
+  { id: "p10", title: "미용실 가격표와 시술 안내판 새단장", category: "디자인", description: "매장 벽 가격표와 A4 시술 안내지의 글자와 구성을 읽기 쉽게 정리하고 싶어요.", authorId: "r7", location: locationOf("r7"), address: "월계로 53길 4", status: "open", reward: "사례비 7만원", durationDays: 7, difficulty: 2, isTeam: false, createdAt: "2026-10-04T10:10:00Z" },
+  { id: "p11", title: "과일상회 계절 할인 현수막 디자인", category: "디자인", description: "가을 제철 과일 4종과 배달 안내가 한눈에 보이는 가로형 현수막 시안이 필요해요.", authorId: "r11", location: locationOf("r11"), address: "초안산로 5길 9", status: "open", reward: "과일 바구니 + 사례비 5만원", durationDays: 5, difficulty: 1, isTeam: false, createdAt: "2026-10-03T06:20:00Z" },
+  { id: "p12", title: "약국 복약 안내 리플릿 디자인", category: "디자인", description: "어르신도 쉽게 읽을 수 있도록 복약 시간과 주의사항을 정리한 양면 리플릿을 만들어 주세요.", authorId: "r13", location: locationOf("r13"), address: "월계로 50길 3", status: "open", reward: "사례비 10만원", durationDays: 12, difficulty: 3, isTeam: false, createdAt: "2026-10-02T07:40:00Z" },
+  { id: "p13", title: "공방 원데이클래스 작품 사진 촬영", category: "사진", description: "수강생 작품과 작업 과정을 자연광 느낌으로 30장 촬영하고 기본 보정을 부탁드려요.", authorId: "r6", location: locationOf("r6"), address: "광운로 12길 8", status: "open", reward: "원데이클래스 수강권 + 사례비 4만원", durationDays: 4, difficulty: 2, isTeam: false, createdAt: "2026-10-05T05:30:00Z" },
+  { id: "p14", title: "반찬 12종 배달앱 제품 사진", category: "사진", description: "흰 배경 제품 사진과 식탁 연출 사진을 각각 촬영해 배달앱에 올리고 싶어요.", authorId: "r8", location: locationOf("r8"), address: "석계로 18", status: "open", reward: "사례비 12만원 + 반찬 세트", durationDays: 6, difficulty: 2, isTeam: false, createdAt: "2026-10-04T04:15:00Z" },
+  { id: "p15", title: "미용실 전후 변화 릴스 촬영·편집", category: "영상", description: "시술 전후와 디자이너 소개를 담은 20초 릴스 3편을 함께 기획하고 제작해 주세요.", authorId: "r7", location: locationOf("r7"), address: "월계로 53길 4", status: "open", reward: "사례비 15만원", durationDays: 10, difficulty: 3, isTeam: false, createdAt: "2026-10-03T09:00:00Z" },
+  { id: "p16", title: "피아노 발표회 하이라이트 영상", category: "영상", description: "작은 발표회를 촬영하고 학생별 연주와 현장 분위기를 담은 3분 하이라이트 영상을 만들어 주세요.", authorId: "r10", location: locationOf("r10"), address: "월계로 42길 15", status: "open", reward: "팀 사례비 20만원", durationDays: 14, difficulty: 3, isTeam: true, teamSlots: [{ category: "영상", count: 1, filled: [] }, { category: "사진", count: 1, filled: [] }], createdAt: "2026-10-02T11:20:00Z" },
+  { id: "p31", title: "옷수선 작업 과정 숏폼 제작", category: "영상", description: "낡은 옷이 새롭게 바뀌는 과정을 30초 숏폼 2편으로 촬영하고 자막을 넣어 주세요.", authorId: "r14", location: locationOf("r14"), address: "석계로 12길 6", status: "open", reward: "사례비 8만원", durationDays: 7, difficulty: 2, isTeam: false, createdAt: "2026-10-01T12:10:00Z" },
+  { id: "p17", title: "세탁소 서비스 소개 한 페이지 웹사이트", category: "웹/앱", description: "영업시간, 가격, 수거 배달 지역을 휴대폰에서 보기 편한 한 페이지 사이트로 만들고 싶어요.", authorId: "r9", location: locationOf("r9"), address: "광운로 33", status: "open", reward: "사례비 15만원", durationDays: 14, difficulty: 2, isTeam: false, createdAt: "2026-10-05T03:00:00Z" },
+  { id: "p18", title: "베이커리 케이크 사전예약 폼 제작", category: "웹/앱", description: "케이크 종류와 수령일을 선택하고 주문 내용을 매장에서 확인할 수 있는 간단한 예약 화면이 필요해요.", authorId: "r12", location: locationOf("r12"), address: "광운로 8", status: "open", reward: "사례비 18만원", durationDays: 18, difficulty: 3, isTeam: true, teamSlots: [{ category: "웹/앱", count: 1, filled: [] }, { category: "디자인", count: 1, filled: [] }], createdAt: "2026-10-04T02:30:00Z" },
+  { id: "p19", title: "공방 수업 일정·신청 페이지", category: "웹/앱", description: "월별 수업 일정과 남은 자리를 보여주고 네이버 폼으로 연결되는 모바일 페이지를 만들어 주세요.", authorId: "r6", location: locationOf("r6"), address: "광운로 12길 8", status: "open", reward: "사례비 12만원 + 수강권", durationDays: 12, difficulty: 2, isTeam: false, createdAt: "2026-10-03T01:45:00Z" },
+  { id: "p20", title: "약 복용 시간표 모바일 웹 만들기", category: "웹/앱", description: "약 이름과 복용 시간을 입력하면 큰 글씨 시간표로 보여주고 인쇄할 수 있는 간단한 도구가 필요해요.", authorId: "r13", location: locationOf("r13"), address: "월계로 50길 3", status: "open", reward: "사례비 20만원", durationDays: 21, difficulty: 3, isTeam: false, createdAt: "2026-10-02T00:20:00Z" },
+  { id: "p21", title: "과일상회 인스타그램 첫 달 운영", category: "SNS홍보", description: "제철 과일 소개와 보관 팁을 주제로 카드뉴스 6개와 업로드 일정을 만들어 주세요.", authorId: "r11", location: locationOf("r11"), address: "초안산로 5길 9", status: "open", reward: "사례비 10만원 + 과일", durationDays: 21, difficulty: 2, isTeam: false, createdAt: "2026-10-05T01:10:00Z" },
+  { id: "p22", title: "미용실 릴스 콘텐츠 한 달 기획", category: "SNS홍보", description: "고객이 궁금해하는 관리법과 시술 사례를 중심으로 릴스 8편의 주제와 대본을 기획해 주세요.", authorId: "r7", location: locationOf("r7"), address: "월계로 53길 4", status: "open", reward: "사례비 12만원", durationDays: 20, difficulty: 2, isTeam: false, createdAt: "2026-10-04T00:40:00Z" },
+  { id: "p23", title: "반찬가게 네이버 블로그 콘텐츠", category: "SNS홍보", description: "가게 이야기와 주간 메뉴를 담은 블로그 글 4편을 사진과 함께 작성해 주세요.", authorId: "r8", location: locationOf("r8"), address: "석계로 18", status: "open", reward: "반찬 정기권 + 사례비 6만원", durationDays: 14, difficulty: 2, isTeam: false, createdAt: "2026-10-03T00:10:00Z" },
+  { id: "p24", title: "피아노 학원 학부모 뉴스레터", category: "SNS홍보", description: "수업 소식과 연습 팁을 전하는 월간 뉴스레터의 구성과 첫 호 콘텐츠를 만들어 주세요.", authorId: "r10", location: locationOf("r10"), address: "월계로 42길 15", status: "open", reward: "사례비 7만원", durationDays: 10, difficulty: 2, isTeam: false, createdAt: "2026-10-02T03:50:00Z" },
+  { id: "p25", title: "동네책방 이달의 책 콘텐츠", category: "SNS홍보", description: "책방지기가 고른 책 5권을 소개하는 인스타 카드뉴스와 짧은 소개 문구를 제작해 주세요.", authorId: "r3", location: locationOf("r3"), address: "석계로 7", status: "open", reward: "도서 3권 + 사례비 5만원", durationDays: 9, difficulty: 2, isTeam: false, createdAt: "2026-10-01T04:30:00Z" },
+  { id: "p32", title: "옷수선 전후 사례 블로그 정리", category: "SNS홍보", description: "수선 전후 사진과 작업 설명을 활용해 네이버 블로그 사례 글 5편을 작성해 주세요.", authorId: "r14", location: locationOf("r14"), address: "석계로 12길 6", status: "open", reward: "사례비 8만원", durationDays: 12, difficulty: 2, isTeam: false, createdAt: "2026-09-30T05:20:00Z" },
+  { id: "p26", title: "반찬가게 포스 메뉴 정리 도움", category: "디지털도움", description: "포스기에 중복 등록된 메뉴를 정리하고 가격 변경 방법을 사장님께 알려 주세요.", authorId: "r8", location: locationOf("r8"), address: "석계로 18", status: "open", reward: "반찬 세트 + 사례비 3만원", durationDays: 2, difficulty: 1, isTeam: false, createdAt: "2026-10-05T00:20:00Z" },
+  { id: "p27", title: "세탁소 네이버 플레이스 정보 수정", category: "디지털도움", description: "영업시간, 가격표, 사진을 최신 정보로 바꾸고 사장님이 직접 수정하는 방법을 안내해 주세요.", authorId: "r9", location: locationOf("r9"), address: "광운로 33", status: "open", reward: "사례비 4만원", durationDays: 3, difficulty: 1, isTeam: false, createdAt: "2026-10-04T01:20:00Z" },
+  { id: "p28", title: "스마트폰 사진 정리와 클라우드 교육", category: "디지털도움", description: "주민 6분께 사진 앨범 정리, 백업, 가족에게 공유하는 방법을 천천히 알려 주세요.", authorId: "r4", location: locationOf("r4"), address: "월계1동 주민센터 인근", status: "open", durationDays: 7, difficulty: 1, isTeam: false, createdAt: "2026-10-03T02:10:00Z" },
+  { id: "p29", title: "카페 태블릿 주문 화면 설정", category: "디지털도움", description: "태블릿에 메뉴 사진을 등록하고 주문 알림과 프린터 연결을 점검해 주세요.", authorId: "r1", location: locationOf("r1"), address: "월계로 45길 12", status: "open", reward: "음료 쿠폰 + 사례비 5만원", durationDays: 3, difficulty: 2, isTeam: false, createdAt: "2026-10-02T02:00:00Z" },
+  { id: "p30", title: "과일 재고 엑셀 장부 만들기", category: "디지털도움", description: "매일 입고·판매·폐기량을 쉽게 입력하고 남은 수량을 확인할 수 있는 엑셀 양식이 필요해요.", authorId: "r11", location: locationOf("r11"), address: "초안산로 5길 9", status: "open", reward: "과일 바구니 + 사례비 6만원", durationDays: 5, difficulty: 2, isTeam: false, createdAt: "2026-10-01T02:40:00Z" },
 ];
 
-const applications: Application[] = [
+export const applications: Application[] = [
   { id: "a1", postId: "p3", studentId: "s3", message: "숏폼 편집 경험 있습니다. 평일 오후 가능해요.", status: "accepted", createdAt: "2026-09-10T08:00:00Z" },
   { id: "a2", postId: "p1", studentId: "s1", message: "포스터 3종 시안 드릴 수 있어요.", status: "pending", createdAt: "2026-09-14T12:00:00Z" },
+  { id: "a3", postId: "p10", studentId: "s5", message: "가격표와 안내물 디자인 경험이 있어요. 먼저 정보 구조부터 정리해 볼게요.", status: "pending", createdAt: "2026-10-04T11:00:00Z" },
+  { id: "a4", postId: "p18", studentId: "s6", roleId: "p18-role-1", message: "Next.js와 Supabase로 예약 화면을 만든 경험이 있습니다.", status: "pending", createdAt: "2026-10-04T04:00:00Z" },
+  { id: "a5", postId: "p16", studentId: "s7", roleId: "p16-role-1", message: "공연 영상 기획과 현장 촬영을 맡고 싶습니다.", status: "pending", createdAt: "2026-10-03T03:30:00Z" },
+  { id: "a6", postId: "p21", studentId: "s10", message: "시장 조사와 콘텐츠 일정표까지 함께 제안드릴 수 있어요.", status: "accepted", createdAt: "2026-10-05T03:10:00Z" },
+  { id: "a7", postId: "p26", studentId: "s8", message: "포스기 메뉴 정리와 사용법 안내를 차근차근 도와드릴게요.", status: "pending", createdAt: "2026-10-05T01:20:00Z" },
+  { id: "a8", postId: "p13", studentId: "s9", message: "제품과 작업 과정 촬영을 자주 했고 Lightroom 보정도 가능합니다.", status: "pending", createdAt: "2026-10-05T06:10:00Z" },
+  { id: "a9", postId: "p17", studentId: "s11", message: "모바일 우선으로 빠르게 한 페이지 사이트를 제작하겠습니다.", status: "rejected", createdAt: "2026-10-05T04:20:00Z" },
+  { id: "a10", postId: "p25", studentId: "s12", message: "책 소개 글과 카드뉴스 문구를 자연스럽게 다듬을 수 있어요.", status: "pending", createdAt: "2026-10-01T06:00:00Z" },
+  { id: "a11", postId: "p12", studentId: "s1", message: "큰 글씨와 명확한 색상 체계로 읽기 쉬운 리플릿을 제안할게요.", status: "pending", createdAt: "2026-10-02T09:20:00Z" },
+  { id: "a12", postId: "p29", studentId: "s2", message: "태블릿과 주문 프린터 연결을 점검하고 사용 설명도 남기겠습니다.", status: "pending", createdAt: "2026-10-02T04:10:00Z" },
+  { id: "a13", postId: "p10", studentId: "s1", message: "정보가 많은 가격표를 읽기 쉽게 정리한 경험이 있어요. 인쇄 파일까지 전달하겠습니다.", status: "pending", createdAt: "2026-10-04T11:08:00Z" },
+  { id: "a14", postId: "p10", studentId: "s10", message: "고객이 자주 찾는 시술을 먼저 보여주는 구성과 문구를 제안드릴게요.", status: "pending", createdAt: "2026-10-04T11:12:00Z" },
+  { id: "a15", postId: "p10", studentId: "s11", message: "모바일 시안으로 먼저 확인받고 인쇄용 디자인으로 마무리할 수 있습니다.", status: "pending", createdAt: "2026-10-04T11:16:00Z" },
 ];
 
-const messages: ChatMessage[] = [
+export const messages: ChatMessage[] = [
   { id: "m1", applicationId: "a2", senderId: "s1", body: "안녕하세요! 포스터 공고 보고 연락드려요.", createdAt: "2026-09-14T12:01:00Z" },
   { id: "m2", applicationId: "a2", senderId: "r1", body: "반가워요. 신메뉴 사진 먼저 보내 드릴게요.", createdAt: "2026-09-14T12:30:00Z" },
+  { id: "m3", applicationId: "a3", senderId: "s5", body: "현재 가격표 사진을 보내주시면 메뉴 분류부터 살펴볼게요.", createdAt: "2026-10-04T11:02:00Z" },
+  { id: "m4", applicationId: "a3", senderId: "r7", body: "사진 보냈어요. 커트와 염색 가격이 특히 복잡해요.", createdAt: "2026-10-04T11:25:00Z" },
+  { id: "m5", applicationId: "a3", senderId: "s5", body: "확인했습니다. 내일까지 두 가지 구성안을 보내드릴게요.", createdAt: "2026-10-04T11:32:00Z" },
+  { id: "m6", applicationId: "a4", senderId: "s6", body: "예약할 때 꼭 받아야 하는 정보가 종류, 날짜, 문구 세 가지일까요?", createdAt: "2026-10-04T04:02:00Z" },
+  { id: "m7", applicationId: "a4", senderId: "r12", body: "네, 알레르기 여부도 하나 추가하면 좋겠어요.", createdAt: "2026-10-04T04:18:00Z" },
+  { id: "m8", applicationId: "a5", senderId: "s7", body: "발표회 장소와 전체 진행 시간을 알려주실 수 있을까요?", createdAt: "2026-10-03T03:32:00Z" },
+  { id: "m9", applicationId: "a5", senderId: "r10", body: "학원 연주실에서 90분 정도 진행할 예정이에요.", createdAt: "2026-10-03T04:05:00Z" },
+  { id: "m10", applicationId: "a6", senderId: "s10", body: "첫 주에는 사과와 배 보관법 콘텐츠부터 시작하면 어떨까요?", createdAt: "2026-10-05T03:12:00Z" },
+  { id: "m11", applicationId: "a6", senderId: "r11", body: "좋아요. 이번 주 할인 품목도 같이 넣고 싶어요.", createdAt: "2026-10-05T03:40:00Z" },
+  { id: "m12", applicationId: "a6", senderId: "s10", body: "그 내용을 반영한 1주차 일정표를 오늘 저녁에 공유할게요.", createdAt: "2026-10-05T03:52:00Z" },
+  { id: "m13", applicationId: "a7", senderId: "s8", body: "사용 중인 포스기 모델명을 확인할 수 있을까요?", createdAt: "2026-10-05T01:22:00Z" },
+  { id: "m14", applicationId: "a7", senderId: "r8", body: "화면 사진을 찍어서 보내드렸어요. 토요일 오전 가능할까요?", createdAt: "2026-10-05T01:45:00Z" },
+  { id: "m15", applicationId: "a8", senderId: "s9", body: "공방이 가장 밝은 시간이 언제인지 궁금해요.", createdAt: "2026-10-05T06:12:00Z" },
+  { id: "m16", applicationId: "a8", senderId: "r6", body: "오후 2시부터 창가로 빛이 잘 들어옵니다.", createdAt: "2026-10-05T06:35:00Z" },
+  { id: "m17", applicationId: "a8", senderId: "s9", body: "그럼 목요일 2시에 방문해서 한 시간 정도 촬영할게요.", createdAt: "2026-10-05T06:42:00Z" },
+  { id: "m18", applicationId: "a9", senderId: "s11", body: "원하시는 참고 사이트가 있으면 보내주세요.", createdAt: "2026-10-05T04:22:00Z" },
+  { id: "m19", applicationId: "a9", senderId: "r9", body: "이번에는 다른 지원자와 진행하게 됐어요. 지원해 주셔서 감사합니다.", createdAt: "2026-10-05T05:10:00Z" },
+  { id: "m20", applicationId: "a10", senderId: "s12", body: "책마다 추천하고 싶은 독자층을 알려주시면 문구에 반영할게요.", createdAt: "2026-10-01T06:02:00Z" },
+  { id: "m21", applicationId: "a10", senderId: "r3", body: "좋습니다. 책 목록과 제가 쓴 짧은 메모를 보내드릴게요.", createdAt: "2026-10-01T06:25:00Z" },
+  { id: "m22", applicationId: "a11", senderId: "s1", body: "리플릿에 꼭 들어갈 복약 주의사항 목록이 있을까요?", createdAt: "2026-10-02T09:22:00Z" },
+  { id: "m23", applicationId: "a11", senderId: "r13", body: "네, 식전·식후 구분과 졸림 주의를 가장 크게 보여주세요.", createdAt: "2026-10-02T09:50:00Z" },
+  { id: "m24", applicationId: "a12", senderId: "s2", body: "태블릿과 프린터 모델 사진을 부탁드려요.", createdAt: "2026-10-02T04:12:00Z" },
+  { id: "m25", applicationId: "a12", senderId: "r1", body: "사진 보냈습니다. 점심 이후 방문 가능하신가요?", createdAt: "2026-10-02T04:35:00Z" },
+  { id: "m26", applicationId: "a13", senderId: "s1", body: "가격표 크기와 인쇄 예정 수량을 알려주실 수 있을까요?", createdAt: "2026-10-04T11:10:00Z" },
+  { id: "m27", applicationId: "a13", senderId: "r7", body: "A2 크기로 두 장 인쇄할 예정이에요.", createdAt: "2026-10-04T11:27:00Z" },
+  { id: "m28", applicationId: "a14", senderId: "s10", body: "손님들이 가장 많이 묻는 시술 세 가지가 무엇인지 궁금해요.", createdAt: "2026-10-04T11:14:00Z" },
+  { id: "m29", applicationId: "a14", senderId: "r7", body: "커트, 뿌리 염색, 클리닉 가격을 가장 많이 물어봐요.", createdAt: "2026-10-04T11:31:00Z" },
+  { id: "m30", applicationId: "a15", senderId: "s11", body: "기존 로고 파일과 선호하는 색상이 있나요?", createdAt: "2026-10-04T11:18:00Z" },
+  { id: "m31", applicationId: "a15", senderId: "r7", body: "로고는 없고 매장에 있는 연두색을 살리고 싶어요.", createdAt: "2026-10-04T11:34:00Z" },
 ];
 
 const reviews: Review[] = [
@@ -59,12 +144,40 @@ const portfolio: PortfolioCard[] = [
   { id: "c2", studentId: "s3", postId: "p7", title: "행복분식 사진 촬영", roleLabel: "촬영·보정", tasks: ["외관·메뉴 사진 20장 촬영", "네이버 플레이스용 보정"], durationDays: 3, rating: 5, verified: true },
 ];
 
-const seedNotifications: Notification[] = [
+export const seedNotifications: Notification[] = [
+  { id: "n1", userId: "s1", postId: "p1", text: "월계 커피에서 '카페 신메뉴 포스터 디자인' 프로젝트가 등록되었습니다.", distanceM: 580, read: false, createdAt: "2026-09-14T09:01:00Z" },
+  { id: "n2", userId: "s1", postId: "p5", text: "삼거리 정육점 팀 프로젝트에 디자인 1명이 필요합니다.", distanceM: 1200, read: true, createdAt: "2026-09-12T07:05:00Z" },
   { id: "n3", userId: "r1", postId: "p1", text: "김하늘 학생이 포스터 공고에 지원했습니다.", read: false, createdAt: "2026-09-14T12:00:00Z" },
+  { id: "n4", userId: "s5", postId: "p10", kind: "MATCHED_POST", href: "/posts/detail?id=p10", text: "월계 미용실의 가격표 디자인 공고가 관심 분야와 가까워요.", distanceM: 640, read: true, createdAt: "2026-10-04T10:12:00Z" },
+  { id: "n5", userId: "r7", postId: "p10", kind: "APPLICATION", href: "/chats/room?id=a3", text: "윤서연 학생이 가격표 디자인 공고에 지원했어요.", read: false, createdAt: "2026-10-04T11:00:00Z" },
+  { id: "n6", userId: "s5", postId: "p10", kind: "CHAT", href: "/chats/room?id=a3", text: "월계 미용실에서 새 메시지를 보냈어요.", read: false, createdAt: "2026-10-04T11:25:00Z" },
+  { id: "n7", userId: "r12", postId: "p18", kind: "APPLICATION", href: "/chats/room?id=a4", text: "정민재 학생이 케이크 예약 페이지 개발 역할에 지원했어요.", read: false, createdAt: "2026-10-04T04:00:00Z" },
+  { id: "n8", userId: "s6", postId: "p18", kind: "CHAT", href: "/chats/room?id=a4", text: "별빛 베이커리에서 예약 항목을 답변했어요.", read: false, createdAt: "2026-10-04T04:18:00Z" },
+  { id: "n9", userId: "r10", postId: "p16", kind: "APPLICATION", href: "/chats/room?id=a5", text: "한유진 학생이 발표회 영상 촬영 역할에 지원했어요.", read: false, createdAt: "2026-10-03T03:30:00Z" },
+  { id: "n10", userId: "s7", postId: "p16", kind: "CHAT", href: "/chats/room?id=a5", text: "우리동네 피아노에서 발표회 일정을 보냈어요.", read: false, createdAt: "2026-10-03T04:05:00Z" },
+  { id: "n11", userId: "s10", postId: "p21", kind: "APPLICATION_ACCEPTED", href: "/posts/detail?id=p21", text: "과일상회 SNS 콘텐츠 지원이 수락됐어요.", read: false, createdAt: "2026-10-05T03:30:00Z" },
+  { id: "n12", userId: "r11", postId: "p21", kind: "CHAT", href: "/chats/room?id=a6", text: "배수아 학생이 1주차 콘텐츠 일정을 보냈어요.", read: false, createdAt: "2026-10-05T03:52:00Z" },
+  { id: "n13", userId: "s8", postId: "p26", kind: "MATCHED_POST", href: "/posts/detail?id=p26", text: "햇살 반찬의 포스 메뉴 정리 공고가 보유 기술과 잘 맞아요.", distanceM: 720, read: true, createdAt: "2026-10-05T00:22:00Z" },
+  { id: "n14", userId: "r8", postId: "p26", kind: "APPLICATION", href: "/chats/room?id=a7", text: "오지훈 학생이 포스 메뉴 정리 공고에 지원했어요.", read: false, createdAt: "2026-10-05T01:20:00Z" },
+  { id: "n15", userId: "s9", postId: "p13", kind: "CHAT", href: "/chats/room?id=a8", text: "꽃길 공방에서 촬영 가능한 시간을 알려줬어요.", read: false, createdAt: "2026-10-05T06:35:00Z" },
+  { id: "n16", userId: "s11", postId: "p17", kind: "APPLICATION_REJECTED", href: "/chats/room?id=a9", text: "세탁소 웹사이트 지원 결과를 확인해 주세요.", read: false, createdAt: "2026-10-05T05:10:00Z" },
+  { id: "n17", userId: "r3", postId: "p25", kind: "APPLICATION", href: "/chats/room?id=a10", text: "송예린 학생이 이달의 책 콘텐츠 공고에 지원했어요.", read: false, createdAt: "2026-10-01T06:00:00Z" },
+  { id: "n18", userId: "s12", postId: "p25", kind: "CHAT", href: "/chats/room?id=a10", text: "동네책방 소소에서 책 목록을 보냈어요.", read: false, createdAt: "2026-10-01T06:25:00Z" },
+  { id: "n19", userId: "s1", postId: "p12", kind: "MATCHED_POST", href: "/posts/detail?id=p12", text: "다정 약국의 복약 안내 리플릿 공고가 디자인 관심 분야와 가까워요.", distanceM: 980, read: true, createdAt: "2026-10-02T07:42:00Z" },
+  { id: "n20", userId: "r13", postId: "p12", kind: "APPLICATION", href: "/chats/room?id=a11", text: "김하늘 학생이 복약 안내 리플릿 공고에 지원했어요.", read: false, createdAt: "2026-10-02T09:20:00Z" },
+  { id: "n21", userId: "s2", postId: "p29", kind: "CHAT", href: "/chats/room?id=a12", text: "월계 커피에서 방문 가능한 시간을 물어봤어요.", read: false, createdAt: "2026-10-02T04:35:00Z" },
+  { id: "n22", userId: "r1", postId: "p29", kind: "APPLICATION", href: "/chats/room?id=a12", text: "박도윤 학생이 태블릿 주문 설정 공고에 지원했어요.", read: false, createdAt: "2026-10-02T04:10:00Z" },
+  { id: "n23", userId: "r7", postId: "p10", kind: "APPLICATION", href: "/chats/room?id=a13", text: "김하늘 학생이 가격표 디자인 공고에 지원했어요.", read: false, createdAt: "2026-10-04T11:08:00Z" },
+  { id: "n24", userId: "s1", postId: "p10", kind: "CHAT", href: "/chats/room?id=a13", text: "월계 미용실에서 인쇄 크기를 알려줬어요.", read: false, createdAt: "2026-10-04T11:27:00Z" },
+  { id: "n25", userId: "r7", postId: "p10", kind: "APPLICATION", href: "/chats/room?id=a14", text: "배수아 학생이 가격표 디자인 공고에 지원했어요.", read: false, createdAt: "2026-10-04T11:12:00Z" },
+  { id: "n26", userId: "s10", postId: "p10", kind: "CHAT", href: "/chats/room?id=a14", text: "월계 미용실에서 자주 묻는 시술 정보를 보냈어요.", read: false, createdAt: "2026-10-04T11:31:00Z" },
+  { id: "n27", userId: "r7", postId: "p10", kind: "APPLICATION", href: "/chats/room?id=a15", text: "임태현 학생이 가격표 디자인 공고에 지원했어요.", read: false, createdAt: "2026-10-04T11:16:00Z" },
+  { id: "n28", userId: "s11", postId: "p10", kind: "CHAT", href: "/chats/room?id=a15", text: "월계 미용실에서 선호 색상을 알려줬어요.", read: false, createdAt: "2026-10-04T11:34:00Z" },
 ];
 
 // ── 저장: 브라우저 localStorage (서버 연결 전 데모용). 새 구조라 키를 v2 로 올렸다 ──
-const KEY = "wolgye-mock-v2";
+// 확장된 사용자·공고·상호작용 시드가 기존 브라우저에도 보이도록 키를 올린다. 이전 데이터는 삭제하지 않는다.
+const KEY = "wolgye-mock-v5";
 const fresh = (): wf.WorkflowDB => ({
   ...wf.emptyDB(),
   users: structuredClone(users), posts: structuredClone(posts), applications: structuredClone(applications),
@@ -252,17 +365,27 @@ export const mockRepo: Repo = {
   async markNotificationRead(id, userId) { ensure(); const notification = demoNotifications.find((n) => n.id === id && n.userId === userId); if (notification) notification.read = true; save(); },
   onNotification(userId, cb) { const listener = (n: Notification) => { if (n.userId === userId) cb(n); }; notificationListeners.add(listener); return () => { notificationListeners.delete(listener); }; },
   // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
-  async selectApplicant(applicationId, actorId) { return tx(() => { const project = wf.selectApplicant(db, { applicationId, actorId });
-    // 이어받기 공고로 선정되면 원래 프로젝트의 담당자가 바뀐다
-    const selectedPost = db.posts.find((p) => p.id === project.postId);
-    const student = db.applications.find((a) => a.id === applicationId)!.studentId;
-    if (selectedPost?.handoverOfProject) {
-      const o = db.operations.find((x) => x.projectId === selectedPost.handoverOfProject);
-      if (o) { o.status = "OPERATING"; o.maintainerId = student; }
-      db.terms.push({ id: `mt${Date.now()}`, projectId: selectedPost.handoverOfProject, studentId: student, startedOn: new Date().toISOString().slice(0, 10), ticketsClosed: 0 });
-      pushNotification({ userId: student, kind: "HANDOVER_TAKEN", href: `/projects/handover?id=${selectedPost.handoverOfProject}`, text: "프로젝트를 이어받았어요. 인수인계서를 먼저 확인해 주세요." });
-    } const application = db.applications.find((a) => a.id === applicationId)!; const post = db.posts.find((p) => p.id === application.postId)!; pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_ACCEPTED", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 프로젝트에 선정됐어요.` }); return project; }); },
-  async startTeamProject(projectId, actorId, leaderId) { return tx(() => { const project = wf.startTeamProject(db, { projectId, actorId, leaderId }); const post = db.posts.find((p) => p.id === project.postId)!; for (const member of db.members.filter((m) => m.projectId === projectId)) pushNotification({ userId: member.studentId, postId: post.id, kind: "PROJECT_STARTED", href: `/projects/detail?id=${projectId}`, text: `'${post.title}' 팀 프로젝트가 시작됐어요.` }); return project; }); },
+  async selectApplicant(applicationId, actorId) { return tx(() => {
+    const application = db.applications.find((a) => a.id === applicationId)!;
+    const post = db.posts.find((p) => p.id === application.postId)!;
+    const wasPending = application.status === "pending";
+    const rejected = post.isTeam || !wasPending ? [] : db.applications.filter((candidate) => candidate.postId === post.id && candidate.id !== applicationId && candidate.status === "pending");
+    const project = wf.selectApplicant(db, { applicationId, actorId });
+    if (wasPending && post.handoverOfProject) {
+      const operations = db.operations.find((item) => item.projectId === post.handoverOfProject);
+      if (operations && operations.maintainerId !== application.studentId) {
+        operations.status = "OPERATING";
+        operations.maintainerId = application.studentId;
+        db.terms.push({ id: `mt${Date.now()}`, projectId: post.handoverOfProject, studentId: application.studentId, startedOn: new Date().toISOString().slice(0, 10), ticketsClosed: 0 });
+        pushNotification({ userId: application.studentId, kind: "HANDOVER_TAKEN", href: `/projects/handover?id=${post.handoverOfProject}`, text: "프로젝트를 이어받았어요. 인수인계서를 먼저 확인해 주세요." });
+      }
+    }
+    if (wasPending) {
+      pushNotification({ userId: application.studentId, postId: post.id, kind: "APPLICATION_ACCEPTED", href: `/projects/detail?id=${project.id}`, text: `'${post.title}' 프로젝트에 선정됐어요.` });
+      for (const candidate of rejected) pushNotification({ userId: candidate.studentId, postId: post.id, kind: "APPLICATION_REJECTED", href: `/posts/detail?id=${post.id}`, text: `'${post.title}' 지원 결과를 확인해 주세요.` });
+    }
+    return project;
+  }); },  async startTeamProject(projectId, actorId, leaderId) { return tx(() => { const project = wf.startTeamProject(db, { projectId, actorId, leaderId }); const post = db.posts.find((p) => p.id === project.postId)!; for (const member of db.members.filter((m) => m.projectId === projectId)) pushNotification({ userId: member.studentId, postId: post.id, kind: "PROJECT_STARTED", href: `/projects/detail?id=${projectId}`, text: `'${post.title}' 팀 프로젝트가 시작됐어요.` }); return project; }); },
   async getProjectByPost(postId) { ensure(); return wait(db.projects.find((p) => p.postId === postId)); },
   async listMyProjects(userId) {
     ensure();
@@ -500,9 +623,17 @@ export const mockRepo: Repo = {
     ensure();
     const events = db.tierEvents.filter((e) => e.studentId === studentId);
     const projectIds = new Set(events.map((e) => e.projectId));
-    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId)));
+    const projectCount = new Set(db.members.filter(m => m.studentId === studentId).map(m => m.projectId)).size;
+    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId), db.reviews, db.peerReviews, projectCount));
   },
-  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; agreements = {}; loaded = true; save(); },
-};
+  async disputeReview(projectId, studentId, reason) { return tx(() => {
+    const member = db.members.find(m => m.projectId === projectId && m.studentId === studentId);
+    if (!member) throw new Error("프로젝트에 참여한 학생만 이의를 제기할 수 있어요.");
+    const review = db.reviews.find(r => r.projectId === projectId);
+    if (!review) throw new Error("평가를 찾을 수 없어요.");
+    review.status = "DISPUTED";
+    review.disputeReason = reason.trim().slice(0, 1000);
+  }); },
+  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; agreements = {}; loaded = true; save(); },};
 
 export { distanceM };

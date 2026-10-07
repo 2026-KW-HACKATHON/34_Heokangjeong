@@ -4,7 +4,7 @@ import { nextStatus, canTransition } from "@shared/portfolio/stateMachine";
 import { seed, ctx } from "./fixtures";
 
 const claims = { workPerformed: true, roleConfirmed: true, deliverableReceived: true, completionCriteriaMet: true, actuallyUsed: true };
-const review = { satisfaction: 5, deadline: 4, communication: 5, handoff: 4, comment: "손님들이 메뉴를 빨리 찾아요" };
+const review = { satisfaction: 5, deadline: 4, communication: 5, handoff: 4, deliverableQuality: 5, comment: "손님들이 메뉴를 빨리 찾아요" };
 
 function started() {
   const db = seed(); const c = ctx();
@@ -55,6 +55,14 @@ describe("지원·선정", () => {
     expect(wf.selectApplicant(db, { applicationId: app.id, actorId: "owner" }, c).id).toBe(project.id);
     expect(db.members).toHaveLength(1);
   });
+  it("개인 공고에서 한 명을 선정하면 나머지 대기 지원자를 자동 거절한다", () => {
+    const db = seed(); const c = ctx();
+    const selected = wf.apply(db, { postId: "post", studentId: "stu", message: "디자인 경험이 있어요" }, c);
+    const unselected = wf.apply(db, { postId: "post", studentId: "stu2", message: "지원합니다" }, c);
+    wf.selectApplicant(db, { applicationId: selected.id, actorId: "owner" }, c);
+    expect(selected.status).toBe("accepted");
+    expect(unselected.status).toBe("rejected");
+  });
   it("이전 유료 공고도 검증 이력 없이 지원할 수 있다", () => {
     const db = seed(); db.posts[0].compensationType = "PAID";
     expect(() => wf.apply(db, { postId: "post", studentId: "stu", message: "" }, ctx())).not.toThrow();
@@ -79,6 +87,7 @@ describe("팀 구성", () => {
     const a2 = wf.apply(db, { postId: "post", studentId: "stu2", message: "", roleId: "dev" }, c);
     const project = wf.selectApplicant(db, { applicationId: a1.id, actorId: "owner" }, c);
     expect(project.status).toBe("RECRUITING");
+    expect(a2.status).toBe("pending");
     expect(project.startedAt).toBeUndefined();
     expect(() => wf.startTeamProject(db, { projectId: project.id, actorId: "owner", leaderId: "stu" })).toThrow(/인원이 부족/);
     wf.selectApplicant(db, { applicationId: a2.id, actorId: "owner" }, c);
