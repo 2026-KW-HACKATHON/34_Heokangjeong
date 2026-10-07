@@ -1,0 +1,31 @@
+import { chromium } from "playwright";
+import assert from "node:assert/strict";
+const browser = await chromium.launch({ channel: "msedge", headless: true });
+try {
+ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+ await page.goto("http://127.0.0.1:3000/me/");
+ await page.getByRole("button", { name: "프로필 편집", exact: true }).click();
+ await page.getByLabel("학과", { exact: true }).fill("컴퓨터공학과");
+ await page.getByRole("button", { name: "저장하기", exact: true }).click();
+ await page.locator(".portfolio-identity-dept", { hasText: "컴퓨터공학과" }).waitFor();
+ const hide = page.getByRole("button", { name: "한식당 메뉴판 디자인: 공개 중 · 비공개로 전환", exact: true });
+ await hide.click();
+ await page.getByRole("button", { name: "한식당 메뉴판 디자인: 비공개 · 공개로 전환", exact: true }).waitFor();
+ await page.reload();
+ await page.getByRole("button", { name: "한식당 메뉴판 디자인: 비공개 · 공개로 전환", exact: true }).waitFor();
+ await page.locator(".portfolio-identity-dept", { hasText: "컴퓨터공학과" }).waitFor();
+ await page.screenshot({path:"C:/Users/xcrui/AppData/Local/Temp/profile-visibility.png",fullPage:true});
+ await page.getByRole("link", { name: "한식당 메뉴판 디자인 포트폴리오 열기", exact: true }).click();
+ await page.getByRole("button", {name:"게시물 수정",exact:true}).waitFor();
+ await page.evaluate(() => localStorage.setItem("wolgye-user", "s2"));
+ await page.reload();
+ await page.getByRole("heading", {name:"공개된 경험을 찾을 수 없어요"}).waitFor();
+ await page.goto("http://127.0.0.1:3000/portfolio/gallery/?s=s1");
+ await page.locator(".portfolio-feed-grid").waitFor();
+ assert.equal(await page.getByRole("link", { name: "한식당 메뉴판 디자인 포트폴리오 열기", exact: true }).count(),0);
+ await page.evaluate(() => localStorage.setItem("wolgye-user", "s1"));
+ await page.goto("http://127.0.0.1:3000/me/");
+ await page.getByRole("button", {name:"한식당 메뉴판 디자인: 비공개 · 공개로 전환",exact:true}).click();
+ await hide.waitFor();
+ console.log("PASS: department persisted, visibility persisted, private owner access, public denial, restore");
+} finally { await browser.close(); }

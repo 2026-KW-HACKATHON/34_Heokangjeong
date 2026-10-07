@@ -123,6 +123,7 @@ export interface Notification {
 }
 
 export interface PublishedPortfolio {
+  visible?: boolean;
   studentId: string;
   sourceId: string;
   sourceKind: "project" | "card";

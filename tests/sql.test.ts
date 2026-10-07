@@ -82,7 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0019_chat_agreements.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0019_chat_agreements.sql", "0020_portfolio_visibility.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -342,4 +342,13 @@ describe("SQL: 새 DB 에 번호 순서대로", () => {
     expect(t.rows[0].n).toBe(26);
     await fresh.close();
   });
+});
+
+it("hidden portfolio stays readable only to its owner and can be shown again", async () => {
+  await as(U.stu, "insert into portfolio_publications(student_id,source_kind,source_id,title,is_visible) values($1,'card','visibility-test','Private work',false)", [U.stu]);
+  expect(await as(U.stu2, "select * from portfolio_publications where source_id='visibility-test'")).toHaveLength(0);
+  expect(await as(U.stu, "select * from portfolio_publications where source_id='visibility-test'")).toHaveLength(1);
+  expect(await as(U.stu2, "update portfolio_publications set is_visible=true where source_id='visibility-test' returning *")).toHaveLength(0);
+  await as(U.stu, "update portfolio_publications set is_visible=true where source_id='visibility-test'");
+  expect(await as(U.stu2, "select * from portfolio_publications where source_id='visibility-test'")).toHaveLength(1);
 });
