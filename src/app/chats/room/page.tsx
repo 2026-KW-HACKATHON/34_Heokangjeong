@@ -3,6 +3,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
+import ChatAgreement from "@/components/ChatAgreement";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import type { Application, ChatMessage, Post } from "@/types";
@@ -75,6 +76,7 @@ function Room() {
   return (
     <>
       <TopBar title={other?.name ?? "채팅"} back />
+      {user && <ChatAgreement key={`${app.id}:${user.id}`} application={app} post={post} actorId={user.id} studentName={users.find(u=>u.id===app.studentId)?.name ?? "작업자"} ownerName={users.find(u=>u.id===post.authorId)?.name ?? "의뢰인"} />}
       {post && (
         <Link href={`/posts/detail?id=${post.id}`} className="mx-4 mb-2 flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
           <span className="truncate">{post.title}</span><span className="sub shrink-0">공고 보기 ›</span>

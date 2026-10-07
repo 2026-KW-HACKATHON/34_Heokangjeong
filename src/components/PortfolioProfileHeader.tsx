@@ -4,7 +4,7 @@ import type { Student } from "@/types";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 
-export default function PortfolioProfileHeader({ student, publishedCount, editable = false }: { student: Student; publishedCount: number; editable?: boolean }) {
+export default function PortfolioProfileHeader({ student, editable = false }: { student: Student; publishedCount: number; editable?: boolean }) {
   const { refreshUsers } = useSession();
   const [editing, setEditing] = useState(false);
   const [about, setAbout] = useState(student.about ?? "");
@@ -27,13 +27,12 @@ export default function PortfolioProfileHeader({ student, publishedCount, editab
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
-  return <section className="portfolio-identity" aria-label="내 소개">
+  return <section className={`portfolio-identity${editing ? " is-editing" : ""}`} aria-label="내 소개">
     <div className="portfolio-identity-main">
       <div className="portfolio-identity-avatar" aria-label={`${student.name}의 프로필 사진`}>
         {preview || student.avatarUrl ? <img src={preview ?? student.avatarUrl} alt="" /> : <span aria-hidden="true">{student.name.slice(0, 1)}</span>}
       </div>
       <div className="portfolio-identity-text">
-        <p className="portfolio-identity-eyebrow">MY PORTFOLIO</p>
         <h1>{student.name}</h1>
         <p className="portfolio-identity-dept">{student.department}</p>
       </div>
@@ -47,7 +46,7 @@ export default function PortfolioProfileHeader({ student, publishedCount, editab
         {error && <p role="alert" className="portfolio-editor-error">{error}</p>}
         <button className="btn btn-primary" type="button" disabled={busy} onClick={save}>{busy ? "저장 중…" : "저장하기"}</button>
       </div> : <p>{student.about?.trim() || (editable ? "나를 소개하는 한두 문장을 적어 보세요." : "아직 소개글이 없어요.")}</p>}
+      {!editing && <div className="profile-specialties"><h3>Skills & interests</h3><p>{student.skills.join(" · ")}</p><span>{student.interests.join(" / ")}</span></div>}
     </div>
-    <div className="portfolio-identity-stats"><div><strong>{publishedCount}</strong><span>공개 작업</span></div><div><strong>{student.skills.length}</strong><span>보유 기술</span></div><div><strong>{student.interests.length}</strong><span>관심 분야</span></div></div>
   </section>;
 }
