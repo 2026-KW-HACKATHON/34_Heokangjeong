@@ -278,12 +278,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async getProjectByPost(postId) { const r = maybe(await db.from("projects").select("*").eq("post_id", postId).maybeSingle()); return r ? toProject(r) : undefined; },
     async listMyProjects(userId) {
       const memberOf = ok(await db.from("project_members").select("project_id").eq("student_id", userId)).map((r: Row) => r.project_id);
-      let q = db.from("projects").select("*, post:posts(*, roles:post_roles(*))").order("created_at", { ascending: false });
+      let q = db.from("projects").select("*, post:posts!projects_post_id_fkey(*, roles:post_roles(*))").order("created_at", { ascending: false });
       q = memberOf.length ? q.or(`owner_id.eq.${userId},id.in.(${memberOf.join(",")})`) : q.eq("owner_id", userId);
       return ok(await q).map((r: Row) => ({ project: toProject(r), post: toPost(r.post) }));
     },
     async getBundle(projectId) {
-      const p = maybe(await db.from("projects").select("*, post:posts(*, roles:post_roles(*))").eq("id", projectId).maybeSingle());
+      const p = maybe(await db.from("projects").select("*, post:posts!projects_post_id_fkey(*, roles:post_roles(*))").eq("id", projectId).maybeSingle());
       if (!p) throw new Error("프로젝트를 찾을 수 없거나 볼 권한이 없어요 (선정된 학생과 의뢰인만 볼 수 있어요)");
       const by = (t: string, order = "created_at") => db.from(t).select("*").eq("project_id", projectId).order(order);
       const optionalMemberVerifications = async () => {
@@ -381,7 +381,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return toEdit(ok(await db.from("portfolio_edits").select("*").eq("id", id).single()));
     },
     async listPortfolioDocs(studentId) {
-      const rows = ok(await db.from("portfolio_edits").select("*, project:projects(*, post:posts(*))").eq("student_id", studentId).order("version", { ascending: false }));
+      const rows = ok(await db.from("portfolio_edits").select("*, project:projects(*, post:posts!projects_post_id_fkey(*))").eq("student_id", studentId).order("version", { ascending: false }));
       const seen = new Set<string>();
       return rows.filter((r: Row) => r.project && !seen.has(r.project_id) && seen.add(r.project_id))
         .map((r: Row) => ({ edit: toEdit(r), project: toProject(r.project), post: toPost(r.project.post) }));
@@ -408,7 +408,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       // 서버 함수가 아직 배포되지 않았거나 AI 가 실패하면, 입력한 정보만으로 기본 문서를 만들어 저장한다
       const bundle = await repo.getOperations(projectId);
       if (!bundle) throw new Error(await fnError(error));
-      const row = maybe(await db.from("projects").select("post:posts(title)").eq("id", projectId).maybeSingle());
+      const row = maybe(await db.from("projects").select("post:posts!projects_post_id_fkey(title)").eq("id", projectId).maybeSingle());
       const markdown = templateHandover(row?.post?.title ?? "프로젝트", bundle.operations);
       const saved = ok(await db.from("handover_docs").insert({ project_id: projectId, markdown, model: "TEMPLATE" }).select().single());
       return toDoc(saved);
@@ -416,7 +416,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async openHandover(projectId) { done(await db.rpc("open_handover", { p_project: projectId })); },
     async takeOver() { throw new Error("이어받기 공고에 지원하면 사장님이 선정해요"); },
     async listHandoverOpenings() {
-      const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts(*))").eq("status", "HANDOVER_OPEN")) as Row[];
+      const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts!projects_post_id_fkey(*))").eq("status", "HANDOVER_OPEN")) as Row[];
       return rows.filter((r) => r.project?.post).map((r) => ({ operations: toOperations(r), post: toPost(r.project.post), project: toProject(r.project) }));
     },
     async createTicket(projectId, _actorId, kind, body) {
@@ -426,7 +426,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async closeTicket(ticketId) { done(await db.rpc("close_ticket", { p_ticket: ticketId })); },
     async recordUptime(projectId, okFlag) { done(await db.rpc("record_uptime", { p_project: projectId, p_ok: okFlag })); },
     async listOperatingProjects(userId) {
-      const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts(*))")) as Row[];
+      const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts!projects_post_id_fkey(*))")) as Row[];
       return rows
         .filter((r) => r.project?.post && (r.maintainer_id === userId || r.project.owner_id === userId))
         .map((r) => ({ operations: toOperations(r), post: toPost(r.project.post), project: toProject(r.project) }));
@@ -465,7 +465,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const [profiles, posts, operations, tickets, pending] = await Promise.all([
         db.from("profiles").select("role").then(ok) as Promise<Row[]>,
         db.from("posts").select("id, title, status, urgent").then(ok) as Promise<Row[]>,
-        db.from("operations").select("*, project:projects(post:posts(title))").then(ok) as Promise<Row[]>,
+        db.from("operations").select("*, project:projects(post:posts!projects_post_id_fkey(title))").then(ok) as Promise<Row[]>,
         db.from("maintenance_tickets").select("status").eq("status", "OPEN").then(ok) as Promise<Row[]>,
         db.from("clubs").select("id").eq("status", "PENDING").then(ok) as Promise<Row[]>,
       ]);
