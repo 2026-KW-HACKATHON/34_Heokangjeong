@@ -299,3 +299,34 @@ a.connection-request-node:active { translate: 0 1px; }
 .portfolio-cover-preview { display: block; width: 100%; max-height: 220px; margin: 10px 0; border-radius: 12px; object-fit: contain; background: #f2f3f4; }
 .portfolio-me-details { padding: 15px 18px; border: 1px solid #e4e6e8; border-radius: 16px; background: white; font-size: 13px; }.portfolio-me-details summary { cursor: pointer; font-weight: 700; }.portfolio-me-details dl { display: grid; grid-template-columns: 75px 1fr; gap: 9px; margin-top: 16px; }.portfolio-me-details dt { color: #889198; }.portfolio-me-details a { display: block; margin-top: 15px; text-decoration: underline; text-underline-offset: 3px; }
 @media(max-width: 400px) { .portfolio-identity-main { gap: 14px; padding: 20px 17px 15px; }.portfolio-identity-avatar { width: 76px; height: 76px; border-radius: 22px; }.portfolio-identity-about { margin: 0 17px; }.portfolio-feed-grid { gap: 3px; } }
+
+/* A single editorial profile sheet, with three experience covers per row. */
+.portfolio-sheet { background: #fff; box-shadow: 0 12px 40px #25252509; }
+.portfolio-identity { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0; overflow: visible; border: 0; border-radius: 0; box-shadow: none; background: #eee8e1; }
+.portfolio-identity-main { display: contents; }
+.portfolio-identity-text { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 26px 22px; background: white; }
+.portfolio-identity-text h1 { font-size: 23px; letter-spacing: .02em; }
+.portfolio-identity-dept { margin: 0; font-size: 10px; text-align: right; }
+.portfolio-identity-avatar { grid-column: 2; grid-row: 2; align-self: start; width: auto; height: auto; aspect-ratio: 4 / 5; margin: 20px 20px 22px 4px; border-radius: 0; background: #c7b79a; color: #fff; font-size: 48px; }
+.portfolio-identity-about { grid-column: 1; grid-row: 2; margin: 0; padding: 20px 17px 22px 22px; border: 0; }
+.portfolio-identity-about-heading { align-items: start; flex-wrap: wrap; gap: 0; }
+.portfolio-identity-about-heading h2 { font-size: 12px; letter-spacing: .03em; }
+.portfolio-identity-about-heading button { font-size: 10px; min-height: 28px; }
+.portfolio-identity-about > p { font-size: 11px; line-height: 1.85; }
+.profile-specialties { margin-top: 23px; }.profile-specialties h3 { font-size: 11px; font-weight: 700; }.profile-specialties p { margin-top: 8px; font-size: 10px; line-height: 1.8; }.profile-specialties span { display: block; margin-top: 8px; color: #8c8277; font-size: 9px; line-height: 1.7; }
+.portfolio-sheet > .card { margin: 0; padding: 20px 22px; border: 0; border-radius: 0; box-shadow: none; }.portfolio-sheet > .card h2 { font-size: 12px; }.portfolio-sheet > .card dl { margin-top: 10px; }.portfolio-sheet > .card dl > div { border-radius: 0; padding: 0; background: transparent; }.portfolio-sheet > .card dt { font-size: 10px; }.portfolio-sheet > .card dd { font-size: 14px; }.portfolio-sheet > .card > p { font-size: 9px; }
+.portfolio-sheet .portfolio-feed { padding: 4px 20px 20px; }.portfolio-feed-heading h2 { font-size: 14px; }.portfolio-feed-heading p { font-size: 8px; }.portfolio-feed-heading > span { font-size: 9px; }
+.portfolio-feed-grid { gap: 9px; }.portfolio-feed-tile { display: block; aspect-ratio: auto; background: transparent; color: #343333; }.portfolio-feed-tile img { aspect-ratio: 1; height: auto; object-fit: cover; }.portfolio-feed-tile::after { display: none; }.portfolio-feed-tile-caption { position: static; color: inherit; padding: 8px 0; gap: 4px; }.portfolio-feed-tile-caption strong { font-size: 10px; }.portfolio-feed-tile-caption small { font-size: 8px; color: #978773; }.portfolio-feed-placeholder { position: static; aspect-ratio: 1; background: #ece7e0; }
+.portfolio-sample-note { padding: 0 20px 18px; font-size: 9px; color: #938a80; }
+.portfolio-identity.is-editing .portfolio-identity-about { grid-column: 1 / -1; }.portfolio-identity.is-editing .portfolio-identity-avatar { display: none; }
+.experience-page { margin: 0 16px 100px; padding: 28px 22px; background: #fff; }.experience-kicker { color: #9b8061; letter-spacing: .15em; font-size: 10px; font-weight: 700; }.experience-page h1 { margin: 12px 0; font-size: 27px; font-weight: 750; line-height: 1.25; letter-spacing: -.04em; overflow-wrap: anywhere; }.experience-byline { font-size: 11px; color: #8d8d8d; line-height: 1.7; }.experience-hero { width: 100%; height: auto; margin: 25px 0; }.experience-intro { font-size: 17px; line-height: 1.7; font-weight: 600; }.experience-page article > section { margin-top: 27px; padding-top: 20px; border-top: 1px solid #e9e6e2; }.experience-page h2 { margin-bottom: 10px; font-size: 16px; font-weight: 700; }.experience-page section p { font-size: 14px; line-height: 1.9; color: #5b5b5b; white-space: pre-wrap; }.experience-back { display: block; margin-top: 35px; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
+@media(max-width: 359px) { .portfolio-identity-text { padding: 20px 16px; }.portfolio-identity-about { padding-left: 16px; }.portfolio-identity-avatar { margin-right: 16px; }.portfolio-sheet .portfolio-feed { padding-left: 16px; padding-right: 16px; }.portfolio-feed-grid { gap: 6px; } }
+
+.experience-edit-button { margin-bottom: 24px; }
+.experience-editor fieldset { display: flex; flex-direction: column; gap: 24px; margin-top: 24px; min-width: 0; }
+.experience-editor label { display: flex; flex-direction: column; gap: 10px; font-size: 14px; font-weight: 600; }
+.experience-editor input, .experience-editor textarea { width: 100%; min-width: 0; padding: 13px; border: 1px solid #dce6eb; border-radius: 14px; background: #fff; font-weight: 400; line-height: 1.7; }
+.experience-editor textarea { resize: vertical; }
+.experience-edit-cover { max-height: 240px; width: 100%; object-fit: contain; border-radius: 14px; background: #f1f5f8; }
+.experience-edit-actions { display: flex; gap: 12px; }
+.experience-edit-actions button { flex: 1; }
