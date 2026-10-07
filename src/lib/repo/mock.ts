@@ -396,6 +396,7 @@ export const mockRepo: Repo = {
   }); },
   // ── 관리자 ──────────────────────────────────────────────────────────────
   async listPendingClubs() { ensure(); return wait(db.clubs.filter((c) => c.status === "PENDING")); },
+  async listClubsByStatus(status) { ensure(); return wait(db.clubs.filter((c) => c.status === status)); },
   async reviewClub(clubId, approve, reason, actorId) { return tx(() => {
     if (users.find((u) => u.id === actorId)?.role !== "admin") throw new Error("관리자만 심사할 수 있어요");
     const club = db.clubs.find((c) => c.id === clubId);

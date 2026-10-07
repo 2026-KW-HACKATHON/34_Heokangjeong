@@ -93,6 +93,7 @@ export interface Repo {
   assignMaintainer(projectId: string, studentId: string, actorId: string): Promise<void>; // 단체 안에서 담당자 넘기기
   // ── 관리자 ────────────────────────────────────────────────────────────────
   listPendingClubs(): Promise<Club[]>;
+  listClubsByStatus(status: Club["status"]): Promise<Club[]>;   // 관리자 심사 내역 (대기·승인·거절)
   reviewClub(clubId: string, approve: boolean, reason: string | undefined, actorId: string): Promise<void>;
   adminOverview(): Promise<AdminOverview>;
   listOperatingProjects(userId: string): Promise<{ operations: Operations; post: Post; project: Project }[]>;

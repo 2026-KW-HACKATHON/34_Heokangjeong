@@ -21,11 +21,17 @@ export default function Admin() {
   const [pending, setPending] = useState<Club[]>([]);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [reason, setReason] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
+  const [history, setHistory] = useState<Club[]>([]);
   const act = useAction();
 
-  const reload = () => { repo.listPendingClubs().then(setPending); repo.adminOverview().then(setOverview); };
+  const reload = () => {
+    repo.listPendingClubs().then(setPending);
+    repo.adminOverview().then(setOverview);
+    if (tab !== "PENDING") repo.listClubsByStatus(tab).then(setHistory);
+  };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user?.role === "admin") reload(); }, [user]);
+  useEffect(() => { if (user?.role === "admin") reload(); }, [user, tab]);
 
   if (loading) return <><TopBar title="관리자" /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   if (user?.role !== "admin") return <><TopBar title="관리자" /><p className="card mx-4 text-sm">관리자 계정으로 로그인해야 볼 수 있어요.</p></>;
@@ -46,8 +52,31 @@ export default function Admin() {
         {/* 1. 지금 처리할 일 */}
         <div className="card flex flex-col gap-3">
           <h3 className="font-bold">단체 등록 심사 {pending.length > 0 && <span className="text-[var(--red)]">{pending.length}</span>}</h3>
-          {pending.length === 0 && <p className="sub text-sm">심사할 신청이 없어요.</p>}
-          {pending.map((c) => (
+          <div className="flex gap-2">
+            {([["PENDING", `대기 ${pending.length}`], ["APPROVED", "승인됨"], ["REJECTED", "거절됨"]] as const).map(([v, label]) => (
+              <button key={v} type="button" aria-pressed={tab === v} onClick={() => setTab(v)} className={`chip ${tab === v ? "chip-on" : ""}`}>{label}</button>
+            ))}
+          </div>
+
+          {tab !== "PENDING" && (
+            <>
+              {history.length === 0 && <p className="sub text-sm">{tab === "APPROVED" ? "승인한 단체가 없어요." : "거절한 신청이 없어요."}</p>}
+              {history.map((c) => (
+                <div key={c.id} className="flex flex-col gap-1 rounded-xl bg-[var(--line)] p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2"><b>{c.name}</b><span className="chip bg-white">{clubKindLabel(c)}</span></div>
+                  {c.college && <p className="sub text-xs">{collegeLabel(c.college)}</p>}
+                  <p className="sub text-xs">{c.description || "소개 없음"}</p>
+                  {c.status === "REJECTED" && <p className="text-xs text-[var(--red)]">거절 사유: {c.rejectReason || "없음"}</p>}
+                  <button onClick={() => run(() => repo.reviewClub(c.id, c.status !== "APPROVED", undefined, user.id))} className="mt-1 self-start text-xs text-[var(--primary)] underline">
+                    {c.status === "APPROVED" ? "승인 취소하고 거절로 바꾸기" : "다시 승인하기"}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+
+          {tab === "PENDING" && pending.length === 0 && <p className="sub text-sm">심사할 신청이 없어요.</p>}
+          {tab === "PENDING" && pending.map((c) => (
             <div key={c.id} className="flex flex-col gap-2 rounded-xl bg-[var(--line)] p-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <b>{c.name}</b><span className="chip bg-white">{clubKindLabel(c)}</span>

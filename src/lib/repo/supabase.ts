@@ -459,6 +459,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
 
     // ── 관리자 ────────────────────────────────────────────────────────────
     async listPendingClubs() { return (ok(await db.from("clubs").select("*").eq("status", "PENDING").order("created_at")) as Row[]).map(toClub); },
+    async listClubsByStatus(status) { return (ok(await db.from("clubs").select("*, club_members(count)").eq("status", status).order("created_at", { ascending: false })) as Row[]).map(toClub); },
     async reviewClub(clubId, approve, reason) { done(await db.rpc("review_club", { p_club: clubId, p_approve: approve, p_reason: reason ?? null })); },
     async adminOverview() {
       const soon = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
