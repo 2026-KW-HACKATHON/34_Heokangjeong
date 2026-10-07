@@ -20,7 +20,7 @@ const users: User[] = [
   { id: "r3", role: "resident", name: "동네책방 소소", kind: "상인", location: { lat: 37.6285, lng: 127.0580 }, address: "석계로 7" },
   { id: "r4", role: "resident", name: "정순자 님", kind: "주민", location: { lat: 37.6238, lng: 127.0632 }, address: "월계1동 주민센터 인근" },
   { id: "r5", role: "resident", name: "삼거리 정육점", kind: "상인", location: { lat: 37.6302, lng: 127.0622 }, address: "월계로 60" },
-  { id: "s5", role: "student", name: "한유진", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 } },
+  { id: "s5", role: "student", name: "정만교", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 } },
 ];
 
 const posts: Post[] = [
