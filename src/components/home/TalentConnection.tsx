@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import Icon from "@/components/Icon";
 import type { Post } from "@/types";
 import { WhiteVillage } from "./ConnectionWorld";
@@ -24,6 +25,7 @@ interface Props {
 
 /** Presentation only: the parent supplies the actual filtered posts and navigation. */
 export default function TalentConnection({ category, onCategoryChange, onExplore, count, suggestedPost, authorName, loading, failed, resident }: Props) {
+  const [hubPulse, setHubPulse] = useState(0);
   const selected = HOME_CATEGORIES.find((item) => item.value === category);
   const request = suggestedPost ? <>
     <span className="connection-recommendation connection-node-caption"><span className="connection-recommendation-icon" title="추천"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2L5.8 21 7 14.2 2 9.3l6.9-1Z" /></svg><span className="sr-only">추천</span></span><span>{authorName ?? "우리 동네 이웃"}</span></span>
@@ -51,9 +53,10 @@ export default function TalentConnection({ category, onCategoryChange, onExplore
         <path className="connection-experience-line" d="M185 110 C184 155 153 181 112 208" />
         <circle className="connection-traveler" r="3.5"><animateMotion dur="1.2s" repeatCount="1" fill="freeze" path="M55 164 C105 172 111 105 185 110 S225 151 296 151" /></circle>
       </svg>
-      <button type="button" className="connection-hub" onClick={() => onCategoryChange("전체")} aria-label="모든 재능의 공고 보기">
+      <button type="button" className="connection-hub" onClick={() => { setHubPulse(n => n + 1); onCategoryChange("전체"); onExplore(); }} aria-label="모든 재능의 공고 보기">
+        {hubPulse > 0 && <span key={hubPulse} className="connection-hub-pulse" aria-hidden="true" />}
         <span key={category} className="connection-hub-ring" aria-hidden="true" />
-        <Image src="/brand/wolink-w.svg?v=2" alt="" width={34} height={34} />
+        <Image className="connection-held-logo" src="/brand/wolink-held.svg" alt="" width={96} height={80} />
       </button>
       {suggestedPost ? <Link href={`/posts/detail?id=${suggestedPost.id}`} className="connection-request-node">{request}</Link> : <div className="connection-request-node">{request}</div>}
       <Link href="/portfolio" className="connection-experience"><Icon name="folder" width={15} height={15} /><span>경험은 나의 포트폴리오로</span><Icon name="arrow" width={13} height={13} /></Link>

@@ -1,4 +1,4 @@
-import type { Application, ChatMessage, Notification, Post, PortfolioCard, PortfolioDoc, RankRow, Review, User } from "@/types";
+import type { Application, ChatMessage, Notification, Post, PortfolioCard, PortfolioDoc, Review, User } from "@/types";
 import type { Repo } from "./index";
 import { distanceM } from "../geo";
 import * as wf from "../workflow/engine";
@@ -6,6 +6,8 @@ import { templateDraft } from "@shared/portfolio/narrative";
 import { summarizeTrust } from "../trust";
 import { fileToDataUrl } from "../files";
 import { domainForCategory } from "@shared/portfolio/domains";
+import type { PublishedPortfolio } from "@/types";
+import { publicationFromSource } from "../portfolio/publication";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
 export const users: User[] = [
@@ -21,6 +23,7 @@ export const users: User[] = [
   { id: "s10", role: "student", name: "배수아", department: "경영학부", skills: ["브랜드 전략", "시장 조사", "카피라이팅"], interests: ["SNS홍보", "디자인"], availableHours: "평일 저녁, 일요일", maxDistanceM: 1700, location: { lat: 37.6280, lng: 127.0618 }, school: "광운대학교", age: 22, phone: "010-0000-1010" },
   { id: "s11", role: "student", name: "임태현", department: "정보융합학부", skills: ["Flutter", "UX 프로토타입", "데이터 시각화"], interests: ["웹/앱", "디자인"], availableHours: "수·금 저녁", maxDistanceM: 2300, location: { lat: 37.6199, lng: 127.0645 }, school: "광운대학교", age: 24, phone: "010-0000-1011" },
   { id: "s12", role: "student", name: "송예린", department: "국어국문학과", skills: ["인터뷰", "블로그 글쓰기", "콘텐츠 교정"], interests: ["SNS홍보", "기타"], availableHours: "평일 오후, 토요일", maxDistanceM: 1400, location: { lat: 37.6258, lng: 127.0575 }, school: "광운대학교", age: 21, phone: "010-0000-1012" },
+  { id: "s13", role: "student", name: "정만교", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 }, school: "광운대학교", age: 23, phone: "010-0000-1013" },
   { id: "r1", role: "resident", name: "월계 커피", kind: "상인", location: { lat: 37.6248, lng: 127.0598 }, address: "월계로 45길 12" },
   { id: "r2", role: "resident", name: "행복분식", kind: "상인", location: { lat: 37.6272, lng: 127.0615 }, address: "월계1동 광운로 21" },
   { id: "r3", role: "resident", name: "동네책방 소소", kind: "상인", location: { lat: 37.6285, lng: 127.0580 }, address: "석계로 7" },
@@ -179,11 +182,17 @@ const fresh = (): wf.WorkflowDB => ({
 let db: wf.WorkflowDB = fresh();
 let msgs: ChatMessage[] = structuredClone(messages);
 let demoNotifications: Notification[] = structuredClone(seedNotifications);
+let publications: PublishedPortfolio[] = [];
+let profileExtras: Record<string, { about: string; avatarUrl?: string }> = {};
+const withPortfolioProfile = (user: User): User => user.role === "student" ? { ...user, ...profileExtras[user.id] } : user;
 function load() {
   if (typeof window === "undefined") return;
   try {
     const s = localStorage.getItem(KEY);
-    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; }
+    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; publications = d.publications ?? []; profileExtras = d.profileExtras ?? {}; db.posts = db.posts.map(post => {
+      const updatedSeed = posts.find(seed => seed.id === post.id);
+      return updatedSeed && /사례비/.test(post.reward ?? "") ? { ...post, reward: updatedSeed.reward, compensationType: "NON_MONETARY", compensationDescription: updatedSeed.reward, paidAmount: undefined } : post;
+    }); }
     else {
       const legacy = localStorage.getItem("wolgye-mock-v1");
       if (legacy) {
@@ -198,7 +207,7 @@ function load() {
 }
 function save() {
   if (typeof window === "undefined") return;
-  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications })); }
+  try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications, publications, profileExtras })); }
   catch { throw new Error("브라우저 저장 공간이 가득 찼어요. 나 › 데모 데이터 초기화 후 다시 시도해 주세요"); }
 }
 let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; } };
@@ -231,8 +240,15 @@ const withRoleIds = (post: Post): Post => {
 import { chatReads } from "./chatReads";
 export const mockRepo: Repo = {
   ...chatReads("mock"),
-  async listUsers() { return wait(users); },
-  async getUser(id) { return wait(users.find((u) => u.id === id)); },
+  async listUsers() { ensure(); return wait(users.map(withPortfolioProfile)); },
+  async getUser(id) { ensure(); const user = users.find((u) => u.id === id); return wait(user ? withPortfolioProfile(user) : undefined); },
+  async updatePortfolioProfile(studentId, data) {
+    ensure();
+    if (!users.some(user => user.id === studentId && user.role === "student")) throw new Error("학생 프로필을 찾을 수 없어요.");
+    profileExtras[studentId] = { ...profileExtras[studentId], ...data };
+    save();
+  },
+  async uploadPortfolioImage(_studentId, file) { return fileToDataUrl(file, 450_000); },
   async listPosts() { ensure(); return wait([...db.posts].map(withRoleIds).sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },
   async getPost(id) { ensure(); const post = db.posts.find((p) => p.id === id); return wait(post ? withRoleIds(post) : undefined); },
   async createPost(p) { return tx(() => {
@@ -276,29 +292,24 @@ export const mockRepo: Repo = {
   onMessage(applicationId, cb) { const l = (m: ChatMessage) => { if (m.applicationId === applicationId) cb(m); }; listeners.add(l); return () => { listeners.delete(l); }; },
   async listReviews(studentId) { ensure(); return wait(db.legacyReviews.filter((r) => !studentId || r.studentId === studentId)); },
   async listPortfolio(studentId) { ensure(); return wait(db.legacyCards.filter((c) => c.studentId === studentId)); },
+  async listPublishedPortfolio(studentId) { ensure(); return wait(publications.filter(p => p.studentId === studentId)); },
+  async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {
+    ensure();
+    const item = await publicationFromSource(mockRepo, studentId, sourceId, sourceKind);
+    const existing = publications.find(p => p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind);
+    item.coverUrl = coverUrl ?? existing?.coverUrl;
+    const previous = publications;
+    publications = [item, ...publications.filter(p => !(p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind))];
+    try { save(); } catch (e) { publications = previous; throw e; }
+  },
+  async unpublishPortfolio(studentId, sourceId, sourceKind) {
+    ensure(); const previous = publications;
+    publications = publications.filter(p => !(p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind));
+    try { save(); } catch (e) { publications = previous; throw e; }
+  },
   async listNotifications(userId) { ensure(); return wait(demoNotifications.filter((n) => n.userId === userId)); },
   async markNotificationRead(id, userId) { ensure(); const notification = demoNotifications.find((n) => n.id === id && n.userId === userId); if (notification) notification.read = true; save(); },
   onNotification(userId, cb) { const listener = (n: Notification) => { if (n.userId === userId) cb(n); }; notificationListeners.add(listener); return () => { notificationListeners.delete(listener); }; },
-  async ranking(kind) {
-    ensure();
-    // 지역 기여 점수 = 해결 수×10 + 평가 평균×4 + 난이도 합×3 (임시 공식, 나중에 조정)
-    const students = users.filter((u): u is Extract<User, { role: "student" }> => u.role === "student");
-    const rows: RankRow[] = students.map((s) => {
-      const cards = db.legacyCards.filter((c) => c.studentId === s.id);
-      const solvedPosts = cards.map((c) => db.posts.find((p) => p.id === c.postId)).filter(Boolean) as Post[];
-      const avg = cards.length ? cards.reduce((a, c) => a + c.rating, 0) / cards.length : 0;
-      const diff = solvedPosts.reduce((a, p) => a + p.difficulty, 0);
-      return { id: s.id, label: s.name, sub: s.department, solved: cards.length, score: cards.length * 10 + Math.round(avg * 4) + diff * 3 };
-    });
-    if (kind === "individual") return wait(rows.sort((a, b) => b.score - a.score));
-    if (kind === "department") {
-      const by: Record<string, RankRow> = {};
-      for (const r of rows) { const k = r.sub; by[k] ??= { id: k, label: k, sub: "학과", score: 0, solved: 0 }; by[k].score += r.score; by[k].solved += r.solved; }
-      return wait(Object.values(by).sort((a, b) => b.score - a.score));
-    }
-    return wait([{ id: "t1", label: "정육점 디지털 개선팀", sub: "디자인·영상·개발", score: 0, solved: 0 }]);
-  },
-
   // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
   async selectApplicant(applicationId, actorId) { return tx(() => {
     const application = db.applications.find((a) => a.id === applicationId)!;
@@ -353,7 +364,7 @@ export const mockRepo: Repo = {
     const projectIds = new Set(events.map((e) => e.projectId));
     return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId)));
   },
-  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); loaded = true; save(); },
+  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; loaded = true; save(); },
 };
 
 export { distanceM };

@@ -12,6 +12,7 @@ export default function PostCard({ post, authorName, distance }: { post: Post; a
         <StatusBadge status={post.status} />
       </div>
       <h3 className="mt-3 text-lg font-semibold leading-snug tracking-tight">{post.title}</h3>
+      {post.description && <p className="sub mt-2 line-clamp-2 text-sm">{post.description}</p>}
       <div className="sub mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
         {authorName && <span>{authorName}</span>}
         {authorName && distance !== undefined && <span aria-hidden="true">·</span>}
@@ -20,7 +21,7 @@ export default function PostCard({ post, authorName, distance }: { post: Post; a
       <div className="mt-4 flex items-center justify-between gap-4">
         <div className="sub flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           <span>{post.durationDays}일 활동</span>
-          {post.reward && <><span aria-hidden="true">·</span><span className="break-words">{post.reward}</span></>}
+          {post.reward && <><span aria-hidden="true">·</span><span className="break-words">{post.compensationType === "PAID" ? "기존 보상" : "가게 쿠폰"} · {post.reward}</span></>}
         </div>
         <span aria-hidden="true" className="post-card-arrow"><Icon name="arrow" width={17} height={17} /></span>
       </div>

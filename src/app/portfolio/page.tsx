@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import EmptyState from "@/components/EmptyState";
+import PortfolioPublicationControl from "@/components/PortfolioPublicationControl";
+import WorkFieldSummary from "@/components/WorkFieldSummary";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { DOMAINS } from "@shared/portfolio/domains";
@@ -34,6 +36,7 @@ export default function Portfolio() {
     <>
       <TopBar title="내 포트폴리오" back />
       <section className="flex flex-col gap-3 px-4">
+        {user?.role === "student" && <WorkFieldSummary key={user.id} studentId={user.id} />}
         {error && <p role="alert" className="card text-sm text-[var(--red)]">{error}</p>}
         {user?.role !== "student" && <EmptyState text="학생 계정에서 볼 수 있어요" />}
         {user?.role === "student" && (
@@ -43,14 +46,18 @@ export default function Portfolio() {
           </div>
         )}
         {docs.map(({ edit, post, project }) => (
-          <SummaryCard key={edit.id} href={`/portfolio/view?id=${project.id}&s=${user!.id}`} title={edit.content.title} domain={DOMAINS[project.domain].label}
-            card={cardOf(post.id)} post={post} project={project} action="Case Study 보기" />
+          <div key={`${user!.id}:${edit.id}`}>
+            <SummaryCard href={`/portfolio/view?id=${project.id}&s=${user!.id}`} title={edit.content.title} domain={DOMAINS[project.domain].label}
+              card={cardOf(post.id)} post={post} project={project} action="Case Study 보기" />
+            <PortfolioPublicationControl studentId={user!.id} sourceId={project.id} sourceKind="project" />
+          </div>
         ))}
         {pending.map(({ project, post }) => (
           <SummaryCard key={project.id} href={`/portfolio/build?id=${project.id}`} title={post.title} domain={DOMAINS[project.domain].label}
             card={cardOf(post.id)} post={post} project={project} action="포트폴리오 만들기" highlight />
         ))}
-        {legacy.map((c) => <SummaryCard key={c.id} title={c.title} card={c} />)}
+        {legacy.map((c) => <div key={`${user!.id}:${c.id}`}><SummaryCard title={c.title} card={c} /><PortfolioPublicationControl studentId={user!.id} sourceId={c.id} sourceKind="card" /></div>)}
+        {user?.role === "student" && <Link href={`/portfolio/gallery?s=${encodeURIComponent(user.id)}`} className="btn w-full">내 공개 갤러리 보기</Link>}
         {user?.role === "student" && docs.length === 0 && pending.length === 0 && legacy.length === 0 && <EmptyState text="검증을 마친 프로젝트가 생기면 여기에 쌓여요" />}
       </section>
     </>

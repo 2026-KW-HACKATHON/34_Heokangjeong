@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SessionProvider>
           {/* 모바일 앱 느낌의 480px 프레임. 데스크톱에서도 가운데에 폰 화면처럼 보인다. */}
-          <div className="mx-auto min-h-screen max-w-[480px] pb-24"><AuthGate>{children}</AuthGate></div>
+          <div className="mx-auto min-h-screen max-w-[480px] pb-[calc(104px+env(safe-area-inset-bottom))]"><AuthGate>{children}</AuthGate></div>
           <BottomTab />
         </SessionProvider>
       </body>
