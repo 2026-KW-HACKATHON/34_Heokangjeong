@@ -3,7 +3,6 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
-import PersonalRankCard from "@/components/PersonalRankCard";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import type { PublishedPortfolio, User } from "@/types";
@@ -50,7 +49,6 @@ function Gallery() {
           <div className="gallery-avatar" aria-hidden="true">{profile.name.slice(0, 1)}</div>
           <div><h1 className="text-xl font-bold">{profile.name}</h1><p className="sub mt-1 text-sm">{profile.role === "student" ? profile.department : "우리 동네 이웃"}</p><p className="mt-2 text-sm">공개한 작업 <strong>{items.length}</strong></p></div>
         </header>
-        {profile.role === "student" && <PersonalRankCard key={id} studentId={id} />}
         <p className="sub mb-5 text-xs">본인이 공개한 작업을 모았어요. 표지를 눌러 자세히 살펴보세요.</p>
         {user?.id === id && <Link className="btn mb-5 w-full" href="/portfolio">내 포트폴리오 공개 관리</Link>}
         {items.length ? <div className="portfolio-gallery-grid">{items.map((item, i) => <button key={`${item.sourceKind}:${item.sourceId}`} onClick={() => setSelected(i)} className={`portfolio-gallery-tile gallery-tone-${i % 4}`} aria-label={`${item.title} 자세히 보기`}>

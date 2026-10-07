@@ -9,7 +9,7 @@ const tabs = [
   { href: "/", label: "홈", icon: "home" },
   { href: "/map", label: "지도", icon: "map" },
   { href: "/chats", label: "채팅", icon: "chat" },
-  { href: "/ranking", label: "랭킹", icon: "trophy" },
+  { href: "/activity", label: "기록", icon: "folder" },
   { href: "/me", label: "나", icon: "user" },
 ];
 

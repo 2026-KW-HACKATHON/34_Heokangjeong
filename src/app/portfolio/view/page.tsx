@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import PortfolioDocument from "@/components/PortfolioDocument";
-import PersonalRankCard from "@/components/PersonalRankCard";
+import WorkFieldSummary from "@/components/WorkFieldSummary";
 import NotionPanel from "@/components/NotionPanel";
 import { ErrorText } from "@/components/ui";
 import { repo } from "@/lib/repo";
@@ -55,7 +55,7 @@ function View() {
     <>
       <TopBar title="포트폴리오" back right={mine ? <Link href={`/portfolio/build?id=${id}`} className="text-sm font-semibold text-[var(--primary)]">고치기</Link> : undefined} />
       <section className="flex flex-col gap-3 px-4">
-        <PersonalRankCard key={studentId} studentId={studentId} />
+        <WorkFieldSummary key={studentId} studentId={studentId} />
         <p className="sub text-xs">편집본 v{doc.edit.version} · {doc.edit.createdAt.slice(0, 10)} 저장{mine ? " · 의뢰인 검증·평가 원문·증빙은 원본 그대로예요" : ""}</p>
         <PortfolioDocument title={doc.edit.content.title} summary={doc.edit.content.summary} blocks={blocks} outcomes={doc.bundle.outcomes} />
         {mine && <NotionPanel key={`${user?.id}:${doc.edit.id}`} edit={doc.edit} doc={blocks} />}

@@ -9,11 +9,9 @@ import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { distanceM, formatDistance } from "@/lib/geo";
-import { COMPENSATION_LABEL, listingOf } from "@/lib/listing";
+import { listingOf } from "@/lib/listing";
 import { DOMAINS } from "@shared/portfolio/domains";
-import { MIN_VERIFIED_FOR_PAID, TIERS, applicationTierFor, meetsApplicationTier } from "@shared/portfolio/policy";
-import { TierMark } from "@/components/TierCard";
-import type { Application, Post, Project, TrustSummary, User } from "@/types";
+import type { Application, Post, Project, User } from "@/types";
 
 /** 공고 상세 + 지원(개인/팀 역할 선택) + 주민의 지원자 선정 → 프로젝트 시작
  *  앱(정적 export) 빌드를 위해 /posts/[id] 대신 /posts/detail?id=... 형태를 쓴다. */
@@ -28,36 +26,21 @@ function PostDetail() {
   const [post, setPost] = useState<Post | null>(null);
   const [apps, setApps] = useState<Application[]>([]);
   const [project, setProject] = useState<Project | undefined>();
-  const [trust, setTrust] = useState<TrustSummary | null>(null);
-  const [currentRank, setCurrentRank] = useState<number | null>(null);
-  const [eligibilityError, setEligibilityError] = useState("");
-  const [eligibilityUser, setEligibilityUser] = useState("");
   const [msg, setMsg] = useState("");
   const [roleId, setRoleId] = useState("");
   const act = useAction();
   const reload = () => { repo.getPost(id).then((p) => setPost(p ?? null)); repo.listApplications(id).then(setApps); repo.getProjectByPost(id).then(setProject).catch(() => setProject(undefined)); };
   useEffect(reload, [id]);
-  useEffect(() => {
-    let active = true; setTrust(null); setCurrentRank(null); setEligibilityError(""); setEligibilityUser("");
-    if (user?.role === "student") Promise.all([repo.trustSummary(user.id), repo.personalRanking(user.id)]).then(([t, r]) => { if (active) { setTrust(t); setCurrentRank(r.current); setEligibilityUser(user.id); } }).catch(() => { if (active) setEligibilityError("지원 자격을 확인하지 못했어요. 새로고침해 주세요."); });
-    return () => { active = false; };
-  }, [user?.id, user?.role]);
   if (!post) return <><TopBar title="공고" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const author = users.find((u) => u.id === post.authorId) as Extract<User, { role: "resident" }> | undefined;
   const mine = apps.find((a) => a.studentId === user?.id);
   const isOwner = user?.id === post.authorId;
   const listing = listingOf(post);
-  const paidLocked = listing.compensationType === "PAID" && trust !== null && !trust.paidEligible;
-  const requiredTier = TIERS.find(t => t.key === (post.minimumTier ?? "SEED")) ?? TIERS[0];
-  const actualTier = trust ? applicationTierFor(trust.temperature, currentRank) : null;
-  const tierLocked = actualTier !== null && !meetsApplicationTier(actualTier.key, requiredTier.key);
-  const eligibilityReady = eligibilityUser === user?.id && trust !== null;
   const recruiting = post.status === "open";
 
   async function submit() {
     if (!user || user.role !== "student") return;
     await act.run(async () => {
-      if (!eligibilityReady || tierLocked || paidLocked) throw new Error("지원 등급과 유료 지원 조건을 확인해 주세요.");
       if (post!.isTeam && !roleId) throw new Error("지원할 역할을 선택해 주세요");
       await repo.apply(post!.id, user.id, msg || "지원합니다!", roleId || undefined);
       setMsg(""); reload();
@@ -81,9 +64,8 @@ function PostDetail() {
           <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
             <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">기간</dt><dd className="font-semibold">{post.durationDays}일</dd></div>
             <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">난이도</dt><dd className="font-semibold">{"★".repeat(post.difficulty)}</dd></div>
-            <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">{COMPENSATION_LABEL[listing.compensationType]}</dt><dd className="truncate font-semibold">{listing.compensationType === "PAID" && listing.paidAmount ? `${listing.paidAmount.toLocaleString()}원` : listing.compensationDescription || "없음"}</dd></div>
+            <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">{listing.compensationType === "PAID" ? "기존 보상" : "가게 쿠폰"}</dt><dd className="truncate font-semibold">{listing.compensationType === "PAID" && listing.paidAmount ? `${listing.paidAmount.toLocaleString()}원` : listing.compensationDescription || "미기재"}</dd></div>
           </dl>
-          <div className="post-minimum-tier mt-4"><TierMark tier={requiredTier.key} size={20}/><span>최소 지원 등급 · <strong>{requiredTier.label} 이상</strong></span></div>
         </div>
 
         <div className="card text-sm">
@@ -129,12 +111,6 @@ function PostDetail() {
                 <p className="sub text-sm">&ldquo;{mine.message}&rdquo; · {mine.status === "pending" ? "확인 대기 중" : mine.status === "accepted" ? "선정됨 🎉" : "이번에는 함께하지 못해요"}</p>
                 <Link href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">💬 {author?.name ?? "가게"}와 채팅하기</Link>
               </>
-            ) : !eligibilityReady ? (
-              <p role="status" className="sub text-sm">{eligibilityError || "현재 지원 등급을 확인하고 있어요…"}</p>
-            ) : tierLocked ? (
-              <p className="rounded-xl bg-[var(--line)] px-3 py-2 text-sm">현재 지원 등급은 {actualTier?.label}입니다. 이 공고는 {requiredTier.label} 이상부터 지원할 수 있어요.</p>
-            ) : paidLocked ? (
-              <p className="rounded-xl bg-[var(--line)] px-3 py-2 text-sm">유료 의뢰는 의뢰인 검증을 받은 프로젝트가 {MIN_VERIFIED_FOR_PAID}개 이상일 때 지원할 수 있어요. 자원봉사·비금전 보상 공고로 첫 검증 경험을 쌓아 보세요.</p>
             ) : (
               <>
                 {post.isTeam && post.teamSlots && (

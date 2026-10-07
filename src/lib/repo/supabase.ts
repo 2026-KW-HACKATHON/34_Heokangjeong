@@ -3,7 +3,7 @@ import { chatReads } from "./chatReads";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
   ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, MemberVerification, Notification, Outcome, PortfolioCard,
-  PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review, TeamPeerReview,
+  PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, Review, TeamPeerReview,
   SubmissionVersion, TierScoreEvent, User,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
@@ -15,7 +15,6 @@ import { sourceFromBundle } from "../portfolio/source";
 import { sanitizeContent } from "../workflow/engine";
 import { summarizeTrust } from "../trust";
 import { publicationFromSource } from "../portfolio/publication";
-import { validateTierReward } from "@shared/portfolio/policy";
 
 // ── DB 행(snake_case) ↔ 도메인 타입(camelCase) 변환 ────────────────────────────
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -122,13 +121,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async listPosts() { return (await postsWithRoles()).map(toPost); },
     async getPost(id) { const r = await postWithRoles(id); return r ? toPost(r) : undefined; },
     async createPost(p) {
-      validateTierReward(p.minimumTier ?? "SEED", p.compensationType ?? "VOLUNTEER", p.paidAmount);
       const r = ok(await db.from("posts").insert({
         title: p.title, category: p.category, description: p.description, author_id: p.authorId, lat: p.location.lat, lng: p.location.lng,
         address: p.address, reward: p.reward || null, duration_days: p.durationDays, difficulty: p.difficulty, is_team: p.isTeam, team_slots: p.teamSlots ?? null,
         problem: p.problem ?? "", domain: p.domain ?? null, expected_deliverables: p.expectedDeliverables ?? [], completion_criteria: p.completionCriteria ?? "",
         deadline: p.deadline || null, revision_limit: p.revisionLimit ?? 2, compensation_type: p.compensationType ?? "VOLUNTEER",
-        compensation_description: p.compensationDescription ?? "", paid_amount: p.compensationType === "PAID" ? p.paidAmount ?? null : null, minimum_tier: p.minimumTier ?? "SEED",
+        compensation_description: p.compensationDescription ?? "", paid_amount: null, minimum_tier: "SEED",
       }).select().single());
       if (p.isTeam && p.teamSlots?.length) {
         done(await db.from("post_roles").insert(p.teamSlots.map((slot, index) => ({
@@ -209,29 +207,6 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (e) => cb(toNotification(e.new)))
         .subscribe();
       return () => { db.removeChannel(ch); };
-    },
-    async ranking(kind) {
-      if (kind === "individual") return ok(await db.rpc("personal_rankings")).map((r: Row) => ({ id: r.student_id, label: r.label, sub: r.department, score: r.score, solved: r.solved }));
-      // mock 과 같은 임시 공식: 해결 수×10 + 평가 평균×4 + 난이도 합×3
-      const [users, cards, posts] = await Promise.all([repo.listUsers(), db.from("portfolio_cards").select("*").then(ok), repo.listPosts()]);
-      const rows: RankRow[] = users.filter((u) => u.role === "student").map((s) => {
-        const mine = (cards as Row[]).filter((c) => c.student_id === s.id);
-        const avg = mine.length ? mine.reduce((a, c) => a + c.rating, 0) / mine.length : 0;
-        const diff = mine.reduce((a, c) => a + (posts.find((p) => p.id === c.post_id)?.difficulty ?? 0), 0);
-        return { id: s.id, label: s.name, sub: s.role === "student" ? s.department : "", solved: mine.length, score: mine.length * 10 + Math.round(avg * 4) + diff * 3 };
-      });
-      if (kind === "department") {
-        const by: Record<string, RankRow> = {};
-        for (const r of rows) { by[r.sub] ??= { id: r.sub, label: r.sub, sub: "학과", score: 0, solved: 0 }; by[r.sub].score += r.score; by[r.sub].solved += r.solved; }
-        return Object.values(by).sort((a, b) => b.score - a.score);
-      }
-      if (kind === "team") return []; // 팀 랭킹은 팀 확정 기능 이후
-      return rows.sort((a, b) => b.score - a.score);
-    },
-
-    async personalRanking(studentId) {
-      const rows = ok(await db.rpc("personal_rankings", { p_student: studentId }));
-      return { current: rows[0]?.current_rank ?? null, best: rows[0]?.best_rank ?? null };
     },
     // ── 검증형 포트폴리오 파이프라인 (규칙은 DB 함수가 강제: supabase/migrations/0005) ──────
     async selectApplicant(applicationId) {

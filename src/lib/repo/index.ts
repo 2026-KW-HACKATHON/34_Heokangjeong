@@ -1,6 +1,6 @@
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
-  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, RankRow, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims,
+  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims,
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
 
@@ -39,8 +39,6 @@ export interface Repo {
   listNotifications(userId: string): Promise<Notification[]>;
   markNotificationRead(id: string, userId: string): Promise<void>;
   onNotification(userId: string, cb: (notification: Notification) => void): () => void;
-  ranking(kind: "individual" | "team" | "department"): Promise<RankRow[]>;
-  personalRanking(studentId: string): Promise<import("@/types").PersonalRanking>;
 
   // ── 검증형 포트폴리오 파이프라인 ───────────────────────────────────────────
   /** 점주가 지원자를 선정 → 프로젝트 생성(또는 팀원 추가) */

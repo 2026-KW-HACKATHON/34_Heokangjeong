@@ -20,5 +20,3 @@ export function listingOf(p: Post): Listing {
     projectMode: p.isTeam ? "TEAM" : "INDIVIDUAL",
   };
 }
-
-export const COMPENSATION_LABEL = { VOLUNTEER: "자원봉사", NON_MONETARY: "비금전 보상", PAID: "유료" } as const;

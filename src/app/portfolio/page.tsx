@@ -4,7 +4,7 @@ import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import EmptyState from "@/components/EmptyState";
 import PortfolioPublicationControl from "@/components/PortfolioPublicationControl";
-import PersonalRankCard from "@/components/PersonalRankCard";
+import WorkFieldSummary from "@/components/WorkFieldSummary";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { DOMAINS } from "@shared/portfolio/domains";
@@ -36,7 +36,7 @@ export default function Portfolio() {
     <>
       <TopBar title="내 포트폴리오" back />
       <section className="flex flex-col gap-3 px-4">
-        {user?.role === "student" && <PersonalRankCard key={user.id} studentId={user.id} />}
+        {user?.role === "student" && <WorkFieldSummary key={user.id} studentId={user.id} />}
         {error && <p role="alert" className="card text-sm text-[var(--red)]">{error}</p>}
         {user?.role !== "student" && <EmptyState text="학생 계정에서 볼 수 있어요" />}
         {user?.role === "student" && (

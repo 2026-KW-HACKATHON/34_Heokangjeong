@@ -82,6 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -163,10 +164,10 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     const v2 = await submit(projectId, ev);
     await expect(rpc(U.owner, "request_revision", [v2, "b"])).rejects.toThrow(/REVISION_LIMIT/);
   });
-  it("유료 공고: 검증 이력 없으면 지원 불가, 생기면 가능", async () => {
+  it("이전 유료 공고도 순위·등급·검증 이력과 무관하게 지원 가능", async () => {
     const paid = await newPost("paid", "PAID");
-    await expect(as(U.stu2, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu2])).rejects.toThrow(/PAID_NOT_ELIGIBLE/);
-    await as(U.stu, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu]); // stu 는 앞 테스트에서 검증됨
+    await expect(as(U.stu2, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu2])).resolves.toHaveLength(0);
+    await as(U.stu, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu]);
   });
 });
 

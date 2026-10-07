@@ -41,7 +41,7 @@ export default function PortfolioPublicationControl({ studentId, sourceId, sourc
     <dialog ref={dialog} className="portfolio-gallery-dialog" aria-label="포트폴리오 공개 미리보기" onClose={() => setPreview(null)} onClick={e => { if (e.target === e.currentTarget && !busy) dialog.current?.close(); }}>
       {preview && <div className="p-6">
         <div className="mb-4 flex items-center justify-between"><h2 className="font-bold">공개할 내용 확인</h2><button autoFocus disabled={busy} onClick={() => dialog.current?.close()} aria-label="공개 미리보기 닫기" className="gallery-close">×</button></div>
-        <p className="sub mb-5 text-sm">아래 제목과 본문이 랭킹의 갤러리에 공개됩니다. 원본 증빙과 의뢰인 평가는 포함하지 않아요. 이후 편집한 내용은 다시 공개할 때 반영됩니다.</p>
+        <p className="sub mb-5 text-sm">아래 제목과 본문이 공개 갤러리에 표시됩니다. 원본 증빙과 의뢰인 평가는 포함하지 않아요. 이후 편집한 내용은 다시 공개할 때 반영됩니다.</p>
         <h3 className="text-xl font-bold">{preview.title}</h3><p className="my-4 whitespace-pre-wrap text-sm">{preview.summary}</p>
         {preview.sections.map((s, i) => <section key={i} className="mb-4"><h4 className="font-semibold">{s.title}</h4><p className="sub mt-1 whitespace-pre-wrap text-sm">{s.body}</p></section>)}
         {error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}

@@ -59,7 +59,7 @@ export interface Post {
   location: GeoPoint;
   address: string;
   status: PostStatus;
-  reward?: string;           // 보상(사례비·식사권 등, 선택)
+  reward?: string;           // 쿠폰 제공 내용 (기존 공고는 다른 보상 기록이 남아 있을 수 있음)
   durationDays: number;      // 예상 기간
   difficulty: 1 | 2 | 3;     // 활동 난이도
   isTeam: boolean;
@@ -74,8 +74,8 @@ export interface Post {
   revisionLimit?: number;            // 보완 요청 가능 횟수
   compensationType?: CompensationType;
   compensationDescription?: string;
-  paidAmount?: number;               // PAID 일 때 원
-  minimumTier?: "SEED" | "TRUST" | "RECOMMENDED";
+  paidAmount?: number;               // 기존 유료 공고와의 호환용
+  minimumTier?: "SEED" | "TRUST" | "RECOMMENDED"; // 기존 공고 데이터와의 호환용
 }
 
 export interface Application {
@@ -119,9 +119,6 @@ export interface Notification {
   read: boolean;
   createdAt: string;
 }
-
-export interface RankRow { id: string; label: string; sub: string; score: number; solved: number }
-export interface PersonalRanking { current: number | null; best: number | null }
 
 export interface PublishedPortfolio {
   studentId: string;
@@ -178,6 +175,6 @@ export interface TeamPeerReview {
   comment: string;
   createdAt: string;
 }
-export interface TrustSummary { verifiedCount: number; points: number; temperature: number; tier: { key: string; label: string }; paidEligible: boolean; badges: Badge[]; events: TierScoreEvent[] }
+export interface TrustSummary { verifiedCount: number; points: number; temperature: number; tier: { key: string; label: string }; badges: Badge[]; events: TierScoreEvent[] }
 /** 공개 포트폴리오 한 건: 최신 편집본 + 잠긴 원본(검증·평가·증빙) */
 export interface PortfolioDoc { edit: PortfolioEditedVersion; bundle: ProjectBundle }

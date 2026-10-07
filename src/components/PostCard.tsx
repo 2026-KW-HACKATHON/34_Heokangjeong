@@ -3,8 +3,6 @@ import type { Post } from "@/types";
 import StatusBadge from "./StatusBadge";
 import { walkMinutes } from "@/lib/geo";
 import Icon from "./Icon";
-import { TIERS } from "@shared/portfolio/policy";
-import { TierMark } from "./TierCard";
 
 export default function PostCard({ post, authorName, distance }: { post: Post; authorName?: string; distance?: number }) {
   return (
@@ -14,7 +12,6 @@ export default function PostCard({ post, authorName, distance }: { post: Post; a
         <StatusBadge status={post.status} />
       </div>
       <h3 className="mt-3 text-lg font-semibold leading-snug tracking-tight">{post.title}</h3>
-      <p className="post-minimum-tier"><TierMark tier={post.minimumTier ?? "SEED"} size={16}/>{TIERS.find(t => t.key === (post.minimumTier ?? "SEED"))?.label} 이상 지원</p>
       {post.description && <p className="sub mt-2 line-clamp-2 text-sm">{post.description}</p>}
       <div className="sub mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
         {authorName && <span>{authorName}</span>}
@@ -24,7 +21,7 @@ export default function PostCard({ post, authorName, distance }: { post: Post; a
       <div className="mt-4 flex items-center justify-between gap-4">
         <div className="sub flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           <span>{post.durationDays}일 활동</span>
-          {post.compensationType === "PAID" && post.paidAmount ? <><span aria-hidden="true">·</span><span className="font-semibold">사례비 {post.paidAmount.toLocaleString()}원</span></> : post.reward && <><span aria-hidden="true">·</span><span className="break-words">{post.reward}</span></>}
+          {post.reward && <><span aria-hidden="true">·</span><span className="break-words">{post.compensationType === "PAID" ? "기존 보상" : "가게 쿠폰"} · {post.reward}</span></>}
         </div>
         <span aria-hidden="true" className="post-card-arrow"><Icon name="arrow" width={17} height={17} /></span>
       </div>

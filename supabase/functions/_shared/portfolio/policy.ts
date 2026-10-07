@@ -4,31 +4,12 @@ import type { ReadinessLevel } from "./types.ts";
 /** 포트폴리오 자료 준비도 가중치 (합 100). 실력 점수가 아니라 "자료가 얼마나 갖춰졌나" 이다. */
 export const READINESS_WEIGHTS: Record<ReadinessLevel, number> = { REQUIRED: 70, RECOMMENDED: 25, OPTIONAL: 5 };
 
-/** 협업 온도 기준 티어. 유료 공고 자격은 별도의 검증 활동 조건을 쓴다. */
+/** 기존 협업 기록과 배지 데이터의 호환성에 필요한 온도 기준. 지원·보상에는 쓰지 않는다. */
 export const TIERS = [
   { key: "SEED", label: "새싹", minTemperature: 30 },
   { key: "TRUST", label: "신뢰", minTemperature: 40 },
   { key: "RECOMMENDED", label: "추천", minTemperature: 50 },
 ] as const;
-export const MIN_VERIFIED_FOR_PAID = 1;
-
-export type ApplicationTier = "SEED" | "TRUST" | "RECOMMENDED";
-/** Demo reward floors per listing, not market rates. */
-export const MIN_TIER_REWARD: Record<ApplicationTier, number> = { SEED: 0, TRUST: 30000, RECOMMENDED: 50000 };
-export function applicationTierFor(temperature: number, rank: number | null) {
-  return rank !== null && rank > 0 && rank <= 5 ? TIERS[2] : tierForTemperature(temperature);
-}
-export function meetsApplicationTier(actual: ApplicationTier, required: ApplicationTier) {
-  return TIERS.findIndex(t => t.key === actual) >= TIERS.findIndex(t => t.key === required);
-}
-export function validateTierReward(tier: ApplicationTier, compensation: string, amount?: number) {
-  if (!(tier in MIN_TIER_REWARD)) throw new Error("최소 지원 등급을 확인해 주세요.");
-  const floor = MIN_TIER_REWARD[tier];
-  if (floor > 0 && (compensation !== "PAID" || !Number.isFinite(amount) || !Number.isInteger(amount) || amount! < floor)) {
-    throw new Error(`${TIERS.find(t => t.key === tier)!.label} 이상 공고는 사례비 ${floor.toLocaleString()}원 이상이 필요해요.`);
-  }
-}
-
 /** 승인 시 한 번만 지급되는 점수 (학생·프로젝트·종류별 유일). SQL approve_version 과 같은 값 */
 export const POINTS = {
   projectVerified: (difficulty: number) => 10 + difficulty * 3,
