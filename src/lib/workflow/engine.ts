@@ -3,7 +3,7 @@
 import type {
   ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, MemberVerification, Outcome, PortfolioCard,
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
-  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport,
+  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember,
 } from "@/types";
 import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
@@ -11,6 +11,7 @@ import { sourceHash } from "@shared/portfolio/snapshot";
 import { POINTS } from "@shared/portfolio/policy";
 import { listingOf } from "../listing";
 import { sourceFromBundle } from "../portfolio/source";
+import { assessReview } from "@shared/portfolio/reputation";
 export { roleLabelOf } from "../portfolio/source";
 
 export { WorkflowError };
@@ -34,6 +35,12 @@ export interface WorkflowDB {
   edits: PortfolioEditedVersion[];
   tierEvents: TierScoreEvent[];
   badges: Badge[];
+  clubs: Club[];
+  clubMembers: ClubMember[];
+  operations: Operations[];
+  terms: MaintainerTerm[];
+  tickets: MaintenanceTicket[];
+  handoverDocs: HandoverDoc[];
   peerReviews: TeamPeerReview[];
   legacyReviews: Review[];      // 예전 화면(랭킹·포트폴리오 카드)이 읽는 테이블
   legacyCards: PortfolioCard[];
@@ -41,6 +48,7 @@ export interface WorkflowDB {
 export const emptyDB = (): WorkflowDB => ({
   users: [], posts: [], applications: [], projects: [], members: [], answers: [], logs: [], evidence: [], versions: [], verifications: [], memberVerifications: [],
   reviews: [], outcomes: [], snapshots: [], drafts: [], edits: [], tierEvents: [], badges: [], peerReviews: [], legacyReviews: [], legacyCards: [],
+  clubs: [], clubMembers: [], operations: [], terms: [], tickets: [], handoverDocs: [],
 });
 export interface Ctx { now: () => string; id: () => string }
 export const defaultCtx: Ctx = {
@@ -98,7 +106,7 @@ export function savePeerReview(db: WorkflowDB, a: { projectId: string; reviewerI
 }
 
 // ── 지원 ────────────────────────────────────────────────────────────────────
-export function apply(db: WorkflowDB, a: { postId: string; studentId: string; message: string; roleId?: string }, ctx: Ctx = defaultCtx): Application {
+export function apply(db: WorkflowDB, a: { postId: string; studentId: string; message: string; roleId?: string; clubId?: string }, ctx: Ctx = defaultCtx): Application {
   const post = must(db.posts.find((p) => p.id === a.postId), "공고");
   const student = db.users.find((u) => u.id === a.studentId);
   if (student?.role !== "student") fail("FORBIDDEN", "학생만 지원할 수 있어요");
@@ -107,6 +115,10 @@ export function apply(db: WorkflowDB, a: { postId: string; studentId: string; me
   const role = post.teamSlots?.find((slot) => slot.id === a.roleId);
   if (post.isTeam && !role) fail("ROLE_REQUIRED", "지원할 역할을 선택해 주세요");
   if (!post.isTeam && a.roleId) fail("INVALID_ROLE", "개인 프로젝트에는 역할을 선택할 수 없어요");
+  // 지원 대상 (개인만 / 단체만)
+  const scope = post.applicantScope ?? "ANY";
+  if (scope === "CLUB" && !a.clubId) fail("CLUB_ONLY", "단체 이름으로만 지원할 수 있는 공고예요");
+  if (scope === "INDIVIDUAL" && a.clubId) fail("INDIVIDUAL_ONLY", "개인으로만 지원할 수 있는 공고예요");
   const app: Application = { id: ctx.id(), postId: a.postId, studentId: a.studentId, message: a.message, roleId: a.roleId, status: "pending", createdAt: ctx.now() };
   db.applications.push(app);
   return app;
@@ -146,7 +158,12 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   });
   if (role) { role.filled.push(app.studentId); role.filledCount = role.filled.length; }
   app.status = "accepted";
-  if (!post.isTeam) post.status = "in_progress";
+  if (!post.isTeam) {
+    post.status = "in_progress";
+    db.applications
+      .filter((candidate) => candidate.postId === post.id && candidate.id !== app.id && candidate.status === "pending")
+      .forEach((candidate) => { candidate.status = "rejected"; });
+  }
   return project;
 }
 
@@ -267,7 +284,7 @@ export function requestRevision(db: WorkflowDB, a: { versionId: string; actorId:
   return v;
 }
 
-export interface ReviewInput { satisfaction: number; deadline: number; communication: number; handoff: number; comment: string }
+export interface ReviewInput { satisfaction: number; deadline: number; communication: number; handoff: number; deliverableQuality: number; comment: string }
 const rating = (n: number, what: string) => (Number.isInteger(n) && n >= 1 && n <= 5 ? n : fail("INVALID_INPUT", `${what}은(는) 1~5 로 골라 주세요`));
 
 /** 승인 = 제출 버전 승인 + Claim 단위 검증 + 평가를 한 번에 (원자적으로) 기록 */
@@ -275,10 +292,11 @@ export function approveVersion(db: WorkflowDB, a: { versionId: string; actorId: 
   const { v, project } = reviewable(db, a.versionId, a.actorId);
   if (!a.claims.workPerformed) fail("INVALID_INPUT", "학생이 실제로 작업했음을 확인해야 승인할 수 있어요");
   const r = a.review;
-  const review: ClientReview = {
-    projectId: project.id, reviewerId: a.actorId, satisfaction: rating(r.satisfaction, "만족도"), deadline: rating(r.deadline, "기한 준수"),
-    communication: rating(r.communication, "소통"), handoff: rating(r.handoff, "인계"), comment: r.comment.trim().slice(0, 1000), createdAt: ctx.now(),
-  };
+  const values = { satisfaction: rating(r.satisfaction, "만족도"), deadline: rating(r.deadline, "기한 준수"), communication: rating(r.communication, "소통"), handoff: rating(r.handoff, "인계"), deliverableQuality: rating(r.deliverableQuality, "결과물 품질") };
+  const deadline = listingOf(must(db.posts.find((p) => p.id === project.postId), "공고")).deadline;
+  const evidence = { submissionExists: true, approvedSubmissionVersion: true, deadlineMet: deadline ? ctx.now().slice(0, 10) <= deadline : null, revisionCount: db.versions.filter(v => v.projectId === project.id && v.status === "REVISION_REQUESTED").length, handoverCompleted: !!a.claims.deliverableReceived, deliverableReceived: !!a.claims.deliverableReceived, completionCriteriaMet: !!a.claims.completionCriteriaMet, actuallyUsed: !!a.claims.actuallyUsed };
+  const assessment = assessReview(values, a.actorId, evidence, db.reviews.map(row => ({ reviewerId: row.reviewerId, values: [row.satisfaction, row.deadline, row.communication, row.handoff, row.deliverableQuality], status: row.status, evidenceConsistency: row.evidenceConsistency, reviewerReliability: row.reviewerReliability })));
+  const review: ClientReview = { projectId: project.id, reviewerId: a.actorId, ...values, comment: r.comment.trim().slice(0, 1000), createdAt: ctx.now(), ...assessment };
   const status = nextStatus(project.status, "APPROVE", project.mode);
   const now = ctx.now();
   Object.assign(v, { status: "APPROVED", reviewedAt: now, reviewedBy: a.actorId });
@@ -293,6 +311,18 @@ export function approveVersion(db: WorkflowDB, a: { versionId: string; actorId: 
   const post = must(db.posts.find((p) => p.id === project.postId), "공고");
   post.status = "done";
   const members = db.members.filter((x) => x.projectId === project.id);
+  // 계속 운영되는 결과물(웹사이트 등)이면 완료와 동시에 운영·보증이 시작된다 (DB 0018 의 start_operations 와 같은 규칙)
+  if (post.ongoing && !db.operations.some((o) => o.projectId === project.id)) {
+    const day = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+    const maintainer = members[0]?.studentId;
+    // 단체 이름으로 지원했으면 그 단체가 운영을 맡는다 (DB 0022 와 같은 규칙)
+    const clubId = members.map((m) => db.applications.find((a) => a.id === m.applicationId)?.clubId).find(Boolean);
+    db.operations.push({
+      projectId: project.id, status: "WARRANTY", maintainerId: maintainer, clubId, adminHanded: false, requestUsed: 0,
+      warrantyRequestUntil: day(post.warrantyRequestDays ?? 30), warrantyDefectUntil: day(post.warrantyDefectDays ?? 90),
+    });
+    if (maintainer) db.terms.push({ id: ctx.id(), projectId: project.id, studentId: maintainer, startedOn: now.slice(0, 10), ticketsClosed: 0 });
+  }
   const verifiedIds = project.mode === "TEAM" ? new Set(a.verifiedMemberIds ?? []) : new Set(members.map((m) => m.studentId));
   if (verifiedIds.size === 0) fail("INVALID_INPUT", "실제 참여를 확인한 팀원을 한 명 이상 선택해 주세요");
   for (const m of members) {

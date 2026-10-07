@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
+import { collegeLabel } from "@/lib/colleges";
+import { clubKindLabel } from "@/lib/clubs";
+import type { Club } from "@/types";
 import Icon from "@/components/Icon";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
@@ -28,21 +31,28 @@ function PostDetail() {
   const [project, setProject] = useState<Project | undefined>();
   const [msg, setMsg] = useState("");
   const [roleId, setRoleId] = useState("");
+  const [clubId, setClubId] = useState("");                 // 단체 이름으로 지원하기 (소속이 확정된 단체만)
+  const [myClubs, setMyClubs] = useState<{ club: Club; role: string }[]>([]);
   const act = useAction();
   const reload = () => { repo.getPost(id).then((p) => setPost(p ?? null)); repo.listApplications(id).then(setApps); repo.getProjectByPost(id).then(setProject).catch(() => setProject(undefined)); };
   useEffect(reload, [id]);
+  useEffect(() => { if (user?.role === "student") repo.myClubs(user.id).then(setMyClubs); }, [user]);
   if (!post) return <><TopBar title="공고" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const author = users.find((u) => u.id === post.authorId) as Extract<User, { role: "resident" }> | undefined;
   const mine = apps.find((a) => a.studentId === user?.id);
+  const scope = post.applicantScope ?? "ANY";
   const isOwner = user?.id === post.authorId;
   const listing = listingOf(post);
   const recruiting = post.status === "open";
+  const selectedApplication = apps.find((a) => a.status === "accepted");
+  const selectedStudent = users.find((u) => u.id === selectedApplication?.studentId);
+  const individualDecisionComplete = !post.isTeam && !!project;
 
   async function submit() {
     if (!user || user.role !== "student") return;
     await act.run(async () => {
       if (post!.isTeam && !roleId) throw new Error("지원할 역할을 선택해 주세요");
-      await repo.apply(post!.id, user.id, msg || "지원합니다!", roleId || undefined);
+      await repo.apply(post!.id, user.id, msg || "지원합니다!", roleId || undefined, clubId || undefined);
       setMsg(""); reload();
     });
   }
@@ -56,14 +66,27 @@ function PostDetail() {
       <TopBar title="공고" back />
       <section className="flex flex-col gap-5 px-5 pb-6">
         <div className="card">
-          <div className="mb-2 flex items-center justify-between"><span className="chip chip-on">{post.category}{post.isTeam ? " · 팀 프로젝트" : ""}</span><StatusBadge status={post.status} /></div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="flex flex-wrap items-center gap-1.5">
+              {post.urgent && <span className="chip bg-[var(--red)] font-bold text-white">🚨 긴급</span>}
+              {post.handoverOfProject && <span className="chip bg-[var(--primary)] font-bold text-white">🔧 이어받기</span>}
+              {(post.applicantScope ?? "ANY") !== "ANY" && <span className="chip">{post.applicantScope === "CLUB" ? "단체만 지원" : "개인만 지원"}</span>}
+              <span className="chip chip-on">{post.category}{post.isTeam ? " · 팀 프로젝트" : ""}</span>
+            </span>
+            <StatusBadge status={post.status} />
+          </div>
+          {post.handoverOfProject && (
+            <p className="sub mb-1 text-xs">이미 운영 중인 서비스예요. 선정되면 인수인계서를 받고 바로 이어받아요.</p>
+          )}
+          {post.urgent && post.urgentColleges && post.urgentColleges.length > 0 && (
+            <p className="sub mb-1 text-xs">{post.urgentColleges.map(collegeLabel).filter(Boolean).join(", ")} 학생에게 알림이 갔어요</p>
+          )}
           <div className="silver-badge mb-5 mt-4"><Icon name="folder" width={22} height={22} /></div>
           <h2 className="page-title">{post.title}</h2>
           <p className="sub mt-1 text-sm">{author?.name} · {post.address}{user && <> · 📍 {formatDistance(distanceM(user.location, post.location))}</>}</p>
           <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed">{post.description}</p>
-          <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
+          <dl className="mt-4 grid grid-cols-2 gap-2 text-center text-sm">
             <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">기간</dt><dd className="font-semibold">{post.durationDays}일</dd></div>
-            <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">난이도</dt><dd className="font-semibold">{"★".repeat(post.difficulty)}</dd></div>
             <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">{listing.compensationType === "PAID" ? "기존 보상" : "가게 쿠폰"}</dt><dd className="truncate font-semibold">{listing.compensationType === "PAID" && listing.paidAmount ? `${listing.paidAmount.toLocaleString()}원` : listing.compensationDescription || "미기재"}</dd></div>
           </dl>
         </div>
@@ -128,8 +151,28 @@ function PostDetail() {
                     </div>
                   </fieldset>
                 )}
+                {scope !== "INDIVIDUAL" && (
+                  <fieldset className="mb-2">
+                    <legend className="mb-1.5 text-sm font-semibold">누구 이름으로 지원하나요?</legend>
+                    {myClubs.length === 0 ? (
+                      <p className="sub text-xs">{scope === "CLUB"
+                        ? "단체만 지원할 수 있는 공고예요. ‘나 › 단체’ 에서 동아리·학회에 가입한 뒤 지원해 주세요."
+                        : "소속 단체가 있으면 단체 이름으로도 지원할 수 있어요."}</p>
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          {scope === "ANY" && <button type="button" aria-pressed={clubId === ""} onClick={() => setClubId("")} className={`chip ${clubId === "" ? "chip-on" : ""}`}>개인</button>}
+                          {myClubs.map(({ club }) => (
+                            <button key={club.id} type="button" aria-pressed={clubId === club.id} onClick={() => setClubId(club.id)} className={`chip ${clubId === club.id ? "chip-on" : ""}`}>{club.name}</button>
+                          ))}
+                        </div>
+                        {clubId && <p className="sub mt-1 text-xs">단체 이름으로 맡으면 담당자가 바뀌어도 단체가 계속 관리해요. ({clubKindLabel(myClubs.find((m) => m.club.id === clubId)!.club)})</p>}
+                      </>
+                    )}
+                  </fieldset>
+                )}
                 <textarea aria-label="지원 메시지" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="할 수 있는 것과 가능한 시간을 간단히 적어 주세요" className="h-24 w-full rounded-xl bg-[var(--line)] p-3 text-sm outline-none" />
-                <button onClick={submit} disabled={act.busy} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
+                <button onClick={submit} disabled={act.busy || (scope === "CLUB" && !clubId)} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
               </>
             )}
             <div className="mt-2"><ErrorText text={act.error} /></div>
@@ -139,6 +182,9 @@ function PostDetail() {
         {isOwner && (
           <div className="card">
             <h3 className="mb-2 font-bold">지원자 {apps.length}명</h3>
+            {individualDecisionComplete && <p className="mb-3 rounded-xl bg-[var(--primary-weak)] px-3 py-2 text-sm">
+              <b>{selectedStudent?.name ?? "지원자"} 학생 선정 완료</b><br />나머지 지원자에게는 미선정 안내가 자동으로 전달됐어요.
+            </p>}
             <ul className="flex flex-col gap-2 text-sm">
               {apps.map((a) => { const s = users.find((u) => u.id === a.studentId) as Extract<User, { role: "student" }> | undefined; const role = post.teamSlots?.find((x) => x.id === a.roleId); return (
                 <li key={a.id} className="rounded-xl bg-[var(--line)] px-3 py-2">
@@ -147,17 +193,32 @@ function PostDetail() {
                   {s && s.skills.length > 0 && <p className="sub mt-0.5 text-xs">{s.skills.join(" · ")}</p>}
                   {role && <p className="mt-1 text-xs font-semibold text-[var(--primary)]">지원 역할 · {role.label ?? role.category}</p>}
                   <p className="mt-1">{a.message}</p>
-                  <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
+                  {a.status === "pending" && !individualDecisionComplete ? <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
                     <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
-                    <button onClick={() => select(a)} disabled={act.busy || a.status !== "pending" || (!!project && !post.isTeam)} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
-                    <button onClick={() => reject(a)} disabled={act.busy || a.status !== "pending"} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
-                  </div>
+                    <button onClick={() => select(a)} disabled={act.busy} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
+                    <button onClick={() => reject(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
+                  </div> : <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                    <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
+                    <span className={`btn cursor-default px-2 py-2 ${a.status === "accepted" ? "btn-primary" : "bg-white sub"}`}>{a.status === "accepted" ? "선정 완료" : "미선정 안내 완료"}</span>
+                  </div>}
                 </li>); })}
               {apps.length === 0 && <li className="sub">아직 지원자가 없어요</li>}
             </ul>
-            <p className="sub mt-2 text-xs">선정하면 프로젝트가 시작되고, 학생이 분야별 질문에 답하며 과정을 기록해요. 완료는 학생의 제출을 검토·승인할 때 기록됩니다.</p>
+            <p className="sub mt-2 text-xs">채팅은 선택 사항이에요. 바로 선정하거나 거절할 수 있으며, 선정하면 프로젝트가 시작됩니다.{individualDecisionComplete && " 다시 시험하려면 ‘나 → 데모 데이터 초기화’를 이용하세요."}</p>
             <ErrorText text={act.error} />
           </div>
+        )}
+
+        {/* 공고 삭제: 작성자만, 학생을 선정하기 전까지 */}
+        {isOwner && !project && (
+          <button
+            onClick={() => act.run(async () => {
+              if (!confirm("이 공고를 지울까요? 받은 지원도 함께 사라져요.")) return;
+              await repo.deletePost(post.id, user!.id);
+              router.replace("/");
+            })}
+            disabled={act.busy}
+            className="btn btn-ghost w-full text-[var(--red)]">공고 삭제</button>
         )}
         <button onClick={() => router.push("/map")} className="btn btn-ghost w-full">지도에서 보기</button>
       </section>

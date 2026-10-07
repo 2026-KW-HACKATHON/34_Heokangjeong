@@ -5,7 +5,7 @@ import type {
   PortfolioEditedVersion, PortfolioSourceSnapshot, Project, ProjectAnswer, ProjectMember, ProjectMode, SubmissionVersion, TierScoreEvent,
 } from "@shared/portfolio/types";
 export type * from "@shared/portfolio/types";
-export type Role = "student" | "resident";
+export type Role = "student" | "resident" | "admin";
 
 export type Category =
   | "디자인" | "영상" | "사진" | "SNS홍보" | "웹/앱" | "디지털도움" | "기타";
@@ -25,6 +25,7 @@ export interface Student {
   maxDistanceM: number;      // 활동 가능 거리(m)
   location: GeoPoint;        // 기준 위치(집/학교)
   school?: string;
+  college?: string;          // 단과대학 key (src/lib/colleges.ts). 긴급 공고 알림 대상 선정에 쓴다
   age?: number;
   phone?: string;
   about?: string;
@@ -40,7 +41,10 @@ export interface Resident {
   address: string;
 }
 
-export type User = Student | Resident;
+/** 앱 관리자 (단체 등록 심사 등). 화면은 /admin 하나만 쓴다 */
+export interface Admin { id: string; role: "admin"; name: string; location: GeoPoint }
+
+export type User = Student | Resident | Admin;
 
 export interface RoleSlot {
   id?: string;
@@ -67,6 +71,17 @@ export interface Post {
   isTeam: boolean;
   teamSlots?: RoleSlot[];    // isTeam 일 때
   createdAt: string;         // ISO
+  urgent?: boolean;          // 긴급 공고. 올리는 즉시 아래 단과대학 학생에게 알림이 간다
+  urgentColleges?: string[]; // 단과대학 key 목록 (비어 있으면 전체 학생)
+  // 유지보수: 만들고 끝나는 일인지, 계속 운영되는 결과물인지
+  ongoing?: boolean;                 // 웹사이트·예약 시스템처럼 완료 후에도 운영이 필요한가
+  warrantyRequestDays?: number;      // 점주 요청(내용 수정) 무상 기간
+  warrantyRequestCount?: number;     // 그 기간의 무상 횟수
+  warrantyDefectDays?: number;       // 학생 작업 하자(버그) 무상 기간
+  clientOwnedBilling?: boolean;      // 도메인·호스팅 명의와 결제를 점주가 보유
+  handoverOfProject?: string;        // 이어받기 공고면 원래 프로젝트 id (담당 학생이 빠져 다음 담당자를 모집)
+  applicantScope?: "ANY" | "INDIVIDUAL" | "CLUB";  // 누가 지원할 수 있나 (둘 다 / 개인만 / 단체만)
+  preferClub?: boolean;              // (이전 버전) 단체 권장 표시
   // ── 구조화된 공고 정보 (검증형 포트폴리오 파이프라인). 예전 공고에는 없을 수 있어 listingOf() 로 기본값을 채운다
   problem?: string;                  // 의뢰인이 겪는 문제
   domain?: DomainKey;                // 분야 모듈. 없으면 category 로 정한다
@@ -84,6 +99,7 @@ export interface Application {
   id: string;
   postId: string;
   studentId: string;
+  clubId?: string;           // 단체 이름으로 지원했으면 그 단체
   message: string;
   roleId?: string;
   status: "pending" | "accepted" | "rejected";
@@ -179,6 +195,63 @@ export interface TeamPeerReview {
   comment: string;
   createdAt: string;
 }
-export interface TrustSummary { verifiedCount: number; points: number; temperature: number; tier: { key: string; label: string }; badges: Badge[]; events: TierScoreEvent[] }
+export interface TrustSummary { verifiedCount: number; points: number; temperature: number; reputationScore: number; completionRate: number; deadlineReliability: number; handoverReliability: number; communicationScore: number; normalizedRating: number | null; rawRating: number | null; reviewCount: number; heldReviewCount: number; anomalyCount: number; tier: { key: string; label: string }; badges: Badge[]; events: TierScoreEvent[] }
 /** 공개 포트폴리오 한 건: 최신 편집본 + 잠긴 원본(검증·평가·증빙) */
 export interface PortfolioDoc { edit: PortfolioEditedVersion; bundle: ProjectBundle }
+
+// ── 유지보수·인수인계 (계속 운영되는 결과물: 웹사이트, 예약 시스템 등) ────────────
+export type OperationStatus = "WARRANTY" | "OPERATING" | "HANDOVER_OPEN" | "ARCHIVED";
+export type TicketKind = "BUG" | "CONTENT" | "FEATURE" | "OTHER";
+export type TicketCoverage = "FREE_DEFECT" | "FREE_REQUEST" | "NEW_POST" | "EXPIRED";
+
+/** 완료된 프로젝트의 운영 상태 + 인수인계 정보 */
+export interface Operations {
+  projectId: string;
+  status: OperationStatus;
+  maintainerId?: string;           // 현재 담당 학생 (바뀐다)
+  repoUrl?: string;
+  deployUrl?: string;
+  adminHanded: boolean;            // 관리자 계정 전달 완료
+  envList?: string;                // 외부 서비스·환경값
+  monthlyCost?: string;            // 월 비용·결제일
+  billingOwner?: "CLIENT" | "STUDENT";
+  expiresOn?: string;              // 가장 먼저 만료되는 날 (도메인·인증서·키)
+  backupNote?: string;
+  knownIssues?: string;
+  clubId?: string;                 // 이 서비스를 맡은 단체 (있으면 단체 안에서 담당자를 바로 넘길 수 있다)
+  warrantyRequestUntil?: string;   // 점주 요청 무상 기간
+  warrantyDefectUntil?: string;    // 하자(버그) 무상 기간
+  requestUsed: number;
+  lastCheckAt?: string;
+  lastCheckOk?: boolean;
+}
+
+export interface MaintainerTerm { id: string; projectId: string; studentId: string; startedOn: string; endedOn?: string; ticketsClosed: number }
+export interface MaintenanceTicket {
+  id: string; projectId: string; authorId: string; kind: TicketKind; body: string;
+  coverage: TicketCoverage; assigneeId?: string; status: "OPEN" | "DONE"; createdAt: string; closedAt?: string;
+}
+export interface HandoverDoc { id: string; projectId: string; markdown: string; model?: string; generatedAt: string }
+/** 운영 화면이 한 번에 받는 묶음 */
+export interface OperationsBundle { operations: Operations; history: MaintainerTerm[]; tickets: MaintenanceTicket[]; doc: HandoverDoc | null }
+export interface HandoverInput {
+  repoUrl?: string; deployUrl?: string; adminHanded?: boolean; envList?: string;
+  monthlyCost?: string; billingOwner?: "CLIENT" | "STUDENT"; expiresOn?: string; backupNote?: string; knownIssues?: string;
+}
+
+// ── 단체(동아리·학회·학생회 등). 로그인은 개인 학생 계정이고, 소속만 단체에 둔다 ──
+export type ClubKind = "CENTRAL" | "DEPARTMENT" | "COUNCIL" | "VOLUNTEER" | "OTHER";
+export interface Club {
+  id: string;
+  name: string;
+  kind: ClubKind;
+  kindOther?: string;        // 기타일 때 직접 적은 유형 (예: 교내 방송국)
+  description: string;
+  college?: string;          // 주로 활동하는 단과대학 key
+  createdBy: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";   // 관리자 심사
+  rejectReason?: string;
+  memberCount?: number;
+}
+export interface ClubMember { clubId: string; studentId: string; role: "LEADER" | "MEMBER"; status: "PENDING" | "ACTIVE"; joinedAt: string }
+export interface ClubInput { name: string; kind: ClubKind; kindOther?: string; description: string; college?: string }

@@ -15,7 +15,16 @@ it("검증된 작업만 분야별로 묶고 별점은 평가가 있는 작업만
   ] as PortfolioCard[];
   const summary = workFieldSummary(cards, posts);
   expect(summary.total).toBe(3);
-  expect(summary.mostFrequent).toBe("디자인");
+  expect(summary.mostFrequent).toEqual(["디자인"]);   // 동점이면 여러 분야를 함께 돌려준다
   expect(summary.averageRating).toBe(4);
   expect(summary.byField.map(f => [f.category, f.count, f.averageRating])).toEqual([["디자인", 2, 4.5], ["사진", 1, 3]]);
+});
+
+it("가장 많이 한 분야가 동점이면 함께 보여 준다", () => {
+  const posts = [{ id: "p1", category: "디자인" }, { id: "p2", category: "영상" }] as Post[];
+  const cards = [
+    { id: "1", postId: "p1", rating: 5, verified: true },
+    { id: "2", postId: "p2", rating: 5, verified: true },
+  ] as PortfolioCard[];
+  expect(workFieldSummary(cards, posts).mostFrequent).toEqual(["디자인", "영상"]);
 });

@@ -13,7 +13,7 @@ export default function TopBar({ title, back, right, brand = false }: { title: s
   const { user } = useSession();
   const unreadNotifications = useUnreadNotifications(user?.id);
   const path = usePathname() ?? "/";
-  const showCreate = path === "/" || path === "/me";
+  const showCreate = (path === "/" || path === "/me") && user?.role !== "admin";
   return (
     <header className="sticky top-0 z-[900] flex h-16 items-center justify-between bg-[#f5f5f7]/95 px-5 backdrop-blur">
       <div className={`flex items-center gap-2 ${brand ? "brand-with-companion" : ""}`}>

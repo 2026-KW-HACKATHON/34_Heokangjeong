@@ -47,3 +47,6 @@ next-env.d.ts
 *.jks
 *.keystore
 keystore.properties
+
+# 데모 계정 메모 (로컬 전용)
+id pw.md

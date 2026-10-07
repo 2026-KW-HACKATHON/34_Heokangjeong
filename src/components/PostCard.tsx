@@ -8,7 +8,11 @@ export default function PostCard({ post, authorName, distance }: { post: Post; a
   return (
     <Link href={`/posts/detail?id=${post.id}`} className="card post-card block active:opacity-80">
       <div className="mb-2 flex items-center justify-between">
-        <span className="sub text-xs font-medium">{post.category}{post.isTeam ? " · 팀" : ""}</span>
+        <span className="flex items-center gap-1.5 text-xs font-medium">
+          {post.urgent && <span className="rounded-full bg-[var(--red)] px-2 py-0.5 font-bold text-white">긴급</span>}
+          {post.handoverOfProject && <span className="rounded-full bg-[var(--primary)] px-2 py-0.5 font-bold text-white">이어받기</span>}
+          <span className="sub">{post.category}{post.isTeam ? " · 팀" : ""}</span>
+        </span>
         <StatusBadge status={post.status} />
       </div>
       <h3 className="mt-3 text-lg font-semibold leading-snug tracking-tight">{post.title}</h3>

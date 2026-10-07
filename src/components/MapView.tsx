@@ -1,6 +1,6 @@
 "use client";
 import { MapContainer, TileLayer, CircleMarker, Popup, Marker, useMap } from "react-leaflet";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import L from "leaflet";
 import Link from "next/link";
 import type { GeoPoint, Post } from "@/types";
@@ -23,23 +23,27 @@ function Recenter({ center, request }: { center: GeoPoint; request: number }) {
 
 /** OpenStreetMap + Leaflet. API 키 없음. 카카오/네이버 지도로 바꾸려면 이 컴포넌트만 교체. */
 export default function MapView({ posts, me, center, recenterRequest = 0 }: { posts: Post[]; me?: GeoPoint; center: GeoPoint; recenterRequest?: number }) {
+  const [tilesFailed, setTilesFailed] = useState(false);
   return (
-    <MapContainer center={[center.lat, center.lng]} zoom={15} className="h-full w-full" scrollWheelZoom>
-      <Recenter center={center} request={recenterRequest} />
-      <TileLayer attribution='&copy; OpenStreetMap' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
-      {posts.map((p) => (
-        <CircleMarker key={p.id} center={[p.location.lat, p.location.lng]} radius={11} pathOptions={{ color: "white", weight: 2, fillColor: COLOR[p.status], fillOpacity: 0.95 }}>
-          <Popup>
-            <div className="min-w-[160px] text-sm">
-              <div className="text-xs">{STATUS[p.status].dot} {STATUS[p.status].label} · {p.category}</div>
-              <div className="mt-1 font-bold">{p.title}</div>
-              {me && <div className="mt-1 text-xs text-gray-500">📍 {formatDistance(distanceM(me, p.location))}</div>}
-              <Link href={`/posts/detail?id=${p.id}`} className="mt-2 block font-semibold text-[var(--primary)]">자세히 보기 ›</Link>
-            </div>
-          </Popup>
-        </CircleMarker>
-      ))}
-    </MapContainer>
+    <div className="relative h-full w-full">
+      <MapContainer center={[center.lat, center.lng]} zoom={15} className="h-full w-full" scrollWheelZoom>
+        <Recenter center={center} request={recenterRequest} />
+        <TileLayer attribution='&copy; OpenStreetMap' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }} />
+        {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
+        {posts.map((p) => (
+          <CircleMarker key={p.id} center={[p.location.lat, p.location.lng]} radius={11} pathOptions={{ color: "white", weight: 2, fillColor: COLOR[p.status], fillOpacity: 0.95 }}>
+            <Popup>
+              <div className="min-w-[160px] text-sm">
+                <div className="text-xs">{STATUS[p.status].dot} {STATUS[p.status].label} · {p.category}</div>
+                <div className="mt-1 font-bold">{p.title}</div>
+                {me && <div className="mt-1 text-xs text-gray-500">📍 {formatDistance(distanceM(me, p.location))}</div>}
+                <Link href={`/posts/detail?id=${p.id}`} className="mt-2 block font-semibold text-[var(--primary)]">자세히 보기 ›</Link>
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
+      </MapContainer>
+      {tilesFailed && <p role="status" className="absolute left-1/2 top-3 z-[600] w-[calc(100%-2rem)] -translate-x-1/2 rounded-xl bg-white/95 px-3 py-2 text-center text-xs shadow">지도 배경 연결이 원활하지 않아요. 공고 위치 표시는 계속 사용할 수 있어요.</p>}
+    </div>
   );
 }

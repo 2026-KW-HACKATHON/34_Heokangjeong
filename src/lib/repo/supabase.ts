@@ -4,7 +4,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
   ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, MemberVerification, Notification, Outcome, PortfolioCard,
   PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, Review, TeamPeerReview,
-  SubmissionVersion, TierScoreEvent, User,
+  SubmissionVersion, TierScoreEvent, User, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
 import { DOMAINS, QUESTION_SET_VERSION, domainForCategory } from "@shared/portfolio/domains";
@@ -24,8 +24,10 @@ const u = <T,>(v: T | null | undefined) => v ?? undefined;
 const toAgreement = (r: Row): WorkAgreement => ({ applicationId: r.application_id, version: r.version, terms: r.terms, studentConfirmedAt: r.student_confirmed_at, ownerConfirmedAt: r.owner_confirmed_at, finalizedAt: r.finalized_at, updatedAt: r.updated_at });
 let realtimeChannelSequence = 0;
 
-export const toUser = (r: Row): User => r.role === "student"
-  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
+export const toUser = (r: Row): User => r.role === "admin"
+  ? { id: r.id, role: "admin", name: r.name, location: { lat: r.lat, lng: r.lng } }
+  : r.role === "student"
+  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
   : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
@@ -34,11 +36,53 @@ const toPost = (r: Row): Post => ({
   durationDays: r.duration_days, difficulty: r.difficulty, isTeam: r.is_team,
   teamSlots: r.roles?.length ? r.roles.map((x: Row) => ({ id: x.id, label: x.label, category: x.category, domain: x.domain, count: x.capacity, filled: [], filledCount: x.filled_count })) : r.team_slots ?? undefined,
   createdAt: r.created_at,
+  urgent: r.urgent ?? false, urgentColleges: r.urgent_colleges ?? [],
+  ongoing: r.ongoing ?? false, warrantyRequestCount: r.warranty_request_count ?? 3, handoverOfProject: u(r.handover_of_project), preferClub: r.prefer_club ?? false, applicantScope: r.applicant_scope ?? "ANY",
   problem: r.problem ?? "", domain: u(r.domain), expectedDeliverables: r.expected_deliverables ?? [], completionCriteria: r.completion_criteria ?? "",
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount), minimumTier: r.minimum_tier ?? "SEED",
 });
-const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
+const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, clubId: u(r.club_id), message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
+/** Edge Function 이 보낸 한국어 에러 메시지를 꺼낸다 */
+const fnError = async (error: unknown) =>
+  (await (error as { context?: Response }).context?.json?.().then((b: { error?: string }) => b.error).catch(() => undefined)) ?? (error as Error).message;
+
+const toOperations = (r: Row): Operations => ({
+  projectId: r.project_id, status: r.status, maintainerId: u(r.maintainer_id), repoUrl: u(r.repo_url), deployUrl: u(r.deploy_url),
+  adminHanded: r.admin_handed, envList: u(r.env_list), monthlyCost: u(r.monthly_cost), billingOwner: u(r.billing_owner),
+  expiresOn: u(r.expires_on), backupNote: u(r.backup_note), knownIssues: u(r.known_issues),
+  clubId: u(r.club_id), warrantyRequestUntil: u(r.warranty_request_until), warrantyDefectUntil: u(r.warranty_defect_until), requestUsed: r.request_used ?? 0,
+  lastCheckAt: u(r.last_check_at), lastCheckOk: u(r.last_check_ok),
+});
+const toTicket = (r: Row): MaintenanceTicket => ({
+  id: r.id, projectId: r.project_id, authorId: r.author_id, kind: r.kind, body: r.body, coverage: r.coverage,
+  assigneeId: u(r.assignee_id), status: r.status, createdAt: r.created_at, closedAt: u(r.closed_at),
+});
+const toTerm = (r: Row): MaintainerTerm => ({ id: r.id, projectId: r.project_id, studentId: r.student_id, startedOn: r.started_on, endedOn: u(r.ended_on), ticketsClosed: r.tickets_closed ?? 0 });
+const toDoc = (r: Row): HandoverDoc => ({ id: r.id, projectId: r.project_id, markdown: r.markdown, model: u(r.model), generatedAt: r.generated_at });
+
+/** AI 없이 쓰는 기본 인수인계서 (서버 함수 handover-ai 의 template 과 같은 내용) */
+function templateHandover(title: string, o: Operations) {
+  const v = (x?: string) => (x && x.trim() ? x : "확인 필요");
+  return [
+    `# ${title} 인수인계서`, "",
+    "## 어디에 무엇이 있나",
+    `- 저장소: ${v(o.repoUrl)}`, `- 배포 주소: ${v(o.deployUrl)}`,
+    `- 관리자 계정 전달: ${o.adminHanded ? "완료 (사장님 보관)" : "미완료"}`,
+    `- 외부 서비스·환경값: ${v(o.envList)}`, "",
+    "## 돈과 만료",
+    `- 월 비용·결제일: ${v(o.monthlyCost)}`,
+    `- 결제 명의: ${o.billingOwner === "CLIENT" ? "사장님" : o.billingOwner === "STUDENT" ? "학생 (사장님 명의로 이관 필요)" : "확인 필요"}`,
+    `- 가장 먼저 만료되는 날: ${v(o.expiresOn)}`, `- 백업: ${v(o.backupNote)}`, "",
+    "## 알려진 문제", o.knownIssues?.trim() || "기록된 문제 없음",
+  ].join("\n");
+}
+
+const toClub = (r: Row): Club => ({
+  id: r.id, name: r.name, kind: r.kind, kindOther: u(r.kind_other), description: r.description ?? "",
+  college: u(r.college), createdBy: r.created_by, status: r.status ?? "APPROVED", rejectReason: u(r.reject_reason), memberCount: r.club_members?.[0]?.count ?? r.member_count,
+});
+
 const toMsg = (r: Row): ChatMessage => ({ id: r.id, applicationId: r.application_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
 const toProject = (r: Row): Project => ({
   id: r.id, postId: r.post_id, ownerId: r.owner_id, domain: r.domain, mode: r.mode, status: r.status, questionSnapshot: r.question_snapshot,
@@ -66,7 +110,7 @@ const toVerification = (r: Row): ClientVerification => ({
   projectId: r.project_id, submissionVersionId: r.submission_version_id, verifierId: r.verifier_id, note: r.note, createdAt: r.created_at,
   workPerformed: r.work_performed, roleConfirmed: r.role_confirmed, deliverableReceived: r.deliverable_received, completionCriteriaMet: r.completion_criteria_met, actuallyUsed: r.actually_used,
 });
-const toReview = (r: Row): ClientReview => ({ projectId: r.project_id, reviewerId: r.reviewer_id, satisfaction: r.satisfaction, deadline: r.deadline, communication: r.communication, handoff: r.handoff, comment: r.comment, createdAt: r.created_at });
+const toReview = (r: Row): ClientReview => ({ projectId: r.project_id, reviewerId: r.reviewer_id, satisfaction: r.satisfaction, deadline: r.deadline, communication: r.communication, handoff: r.handoff, deliverableQuality: r.deliverable_quality ?? r.satisfaction, comment: r.comment, createdAt: r.created_at, status: r.status ?? "NORMAL", reviewerReliability: r.reviewer_reliability ?? 1, evidenceConsistency: r.evidence_consistency ?? 1, adjustedRating: r.adjusted_rating ?? r.satisfaction, anomalyReasons: r.anomaly_reasons ?? [], policyVersion: r.policy_version ?? "legacy" });
 const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 const toOutcome = (r: Row): Outcome => ({
   id: r.id, projectId: r.project_id, authorId: r.author_id, metricName: r.metric_name, measured: r.measured, value: num(r.value), unit: r.unit, baseline: num(r.baseline),
@@ -149,13 +193,24 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async listPosts() { return (await postsWithRoles()).map(toPost); },
     async getPost(id) { const r = await postWithRoles(id); return r ? toPost(r) : undefined; },
     async createPost(p) {
-      const r = ok(await db.from("posts").insert({
+      const row = {
         title: p.title, category: p.category, description: p.description, author_id: p.authorId, lat: p.location.lat, lng: p.location.lng,
         address: p.address, reward: p.reward || null, duration_days: p.durationDays, difficulty: p.difficulty, is_team: p.isTeam, team_slots: p.teamSlots ?? null,
+        urgent: p.urgent ?? false, urgent_colleges: p.urgentColleges ?? [], applicant_scope: p.applicantScope ?? "ANY",
         problem: p.problem ?? "", domain: p.domain ?? null, expected_deliverables: p.expectedDeliverables ?? [], completion_criteria: p.completionCriteria ?? "",
         deadline: p.deadline || null, revision_limit: p.revisionLimit ?? 2, compensation_type: p.compensationType ?? "VOLUNTEER",
-        compensation_description: p.compensationDescription ?? "", paid_amount: null, minimum_tier: "SEED",
-      }).select().single());
+        compensation_description: p.compensationDescription ?? "",
+        // 평소 공고는 가게 쿠폰(NON_MONETARY). 긴급 공고일 때만 현금 사례비를 받는다
+        paid_amount: p.urgent && p.compensationType === "PAID" ? p.paidAmount ?? null : null,
+        minimum_tier: "SEED",
+      };
+      // 새 컬럼이 아직 없는 DB 에서도 등록 자체는 되게 한다 (긴급·유지보수 기능만 빠진다)
+      let res = await db.from("posts").insert(row).select().single();
+      if (res.error && /urgent|applicant_scope|schema cache/i.test(res.error.message)) {
+        const { urgent, urgent_colleges, applicant_scope, ...legacy } = row; void urgent; void urgent_colleges; void applicant_scope;
+        res = await db.from("posts").insert(legacy).select().single();
+      }
+      const r = ok(res);
       if (p.isTeam && p.teamSlots?.length) {
         done(await db.from("post_roles").insert(p.teamSlots.map((slot, index) => ({
           post_id: r.id, label: slot.label?.trim() || slot.category, category: slot.category,
@@ -165,12 +220,13 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return (await repo.getPost(r.id)) ?? toPost(r);
     },
     async updatePostStatus(id, status) { done(await db.from("posts").update({ status }).eq("id", id)); },
+    async deletePost(postId) { done(await db.rpc("delete_post", { p_post: postId })); },
     async listApplications(postId) {
       let q = db.from("applications").select("*").order("created_at");
       if (postId) q = q.eq("post_id", postId);
       return ok(await q).map(toApp);
     },
-    async apply(postId, studentId, message, roleId) { return toApp(ok(await db.from("applications").insert({ post_id: postId, student_id: studentId, message, role_id: roleId ?? null }).select().single())); },
+    async apply(postId, studentId, message, roleId, clubId) { return toApp(ok(await db.from("applications").insert({ post_id: postId, student_id: studentId, message, role_id: roleId ?? null, club_id: clubId ?? null }).select().single())); },
     async getApplication(id) { const r = maybe(await db.from("applications").select("*").eq("id", id).maybeSingle()); return r ? toApp(r) : undefined; },
     async updateApplicationStatus(id, status) { done(await db.from("applications").update({ status }).eq("id", id)); },
 
@@ -263,12 +319,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async getProjectByPost(postId) { const r = maybe(await db.from("projects").select("*").eq("post_id", postId).maybeSingle()); return r ? toProject(r) : undefined; },
     async listMyProjects(userId) {
       const memberOf = ok(await db.from("project_members").select("project_id").eq("student_id", userId)).map((r: Row) => r.project_id);
-      let q = db.from("projects").select("*, post:posts(*, roles:post_roles(*))").order("created_at", { ascending: false });
+      let q = db.from("projects").select("*, post:posts!projects_post_id_fkey(*, roles:post_roles(*))").order("created_at", { ascending: false });
       q = memberOf.length ? q.or(`owner_id.eq.${userId},id.in.(${memberOf.join(",")})`) : q.eq("owner_id", userId);
       return ok(await q).map((r: Row) => ({ project: toProject(r), post: toPost(r.post) }));
     },
     async getBundle(projectId) {
-      const p = maybe(await db.from("projects").select("*, post:posts(*, roles:post_roles(*))").eq("id", projectId).maybeSingle());
+      const p = maybe(await db.from("projects").select("*, post:posts!projects_post_id_fkey(*, roles:post_roles(*))").eq("id", projectId).maybeSingle());
       if (!p) throw new Error("프로젝트를 찾을 수 없거나 볼 권한이 없어요 (선정된 학생과 의뢰인만 볼 수 있어요)");
       const by = (t: string, order = "created_at") => db.from(t).select("*").eq("project_id", projectId).order(order);
       const optionalMemberVerifications = async () => {
@@ -366,7 +422,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return toEdit(ok(await db.from("portfolio_edits").select("*").eq("id", id).single()));
     },
     async listPortfolioDocs(studentId) {
-      const rows = ok(await db.from("portfolio_edits").select("*, project:projects(*, post:posts(*))").eq("student_id", studentId).order("version", { ascending: false }));
+      const rows = ok(await db.from("portfolio_edits").select("*, project:projects(*, post:posts!projects_post_id_fkey(*))").eq("student_id", studentId).order("version", { ascending: false }));
       const seen = new Set<string>();
       return rows.filter((r: Row) => r.project && !seen.has(r.project_id) && seen.add(r.project_id))
         .map((r: Row) => ({ edit: toEdit(r), project: toProject(r.project), post: toPost(r.project.post) }));
@@ -375,16 +431,121 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const r = maybe(await db.from("portfolio_edits").select("*").eq("project_id", projectId).eq("student_id", studentId).order("version", { ascending: false }).limit(1).maybeSingle());
       return r ? { edit: toEdit(r), bundle: await repo.getBundle(projectId) } : undefined;
     },
+    // ── 유지보수·인수인계 ─────────────────────────────────────────────────
+    async getOperations(projectId) {
+      const o = maybe(await db.from("operations").select("*").eq("project_id", projectId).maybeSingle());
+      if (!o) return null;
+      const [history, tickets, docs] = await Promise.all([
+        db.from("maintainer_history").select("*").eq("project_id", projectId).order("started_on").then(ok),
+        db.from("maintenance_tickets").select("*").eq("project_id", projectId).order("created_at", { ascending: false }).then(ok),
+        db.from("handover_docs").select("*").eq("project_id", projectId).order("generated_at", { ascending: false }).limit(1).then(ok),
+      ]);
+      return { operations: toOperations(o), history: (history as Row[]).map(toTerm), tickets: (tickets as Row[]).map(toTicket), doc: (docs as Row[])[0] ? toDoc((docs as Row[])[0]) : null };
+    },
+    async saveHandover(projectId, _actorId, data) { done(await db.rpc("save_handover", { p_project: projectId, p_data: data })); },
+    async generateHandoverDoc(projectId) {
+      const { data, error } = await db.functions.invoke<HandoverDoc>("handover-ai", { body: { projectId } });
+      if (!error) return data!;
+      // 서버 함수가 아직 배포되지 않았거나 AI 가 실패하면, 입력한 정보만으로 기본 문서를 만들어 저장한다
+      const bundle = await repo.getOperations(projectId);
+      if (!bundle) throw new Error(await fnError(error));
+      const row = maybe(await db.from("projects").select("post:posts!projects_post_id_fkey(title)").eq("id", projectId).maybeSingle());
+      const markdown = templateHandover(row?.post?.title ?? "프로젝트", bundle.operations);
+      const saved = ok(await db.from("handover_docs").insert({ project_id: projectId, markdown, model: "TEMPLATE" }).select().single());
+      return toDoc(saved);
+    },
+    async openHandover(projectId) { done(await db.rpc("open_handover", { p_project: projectId })); },
+    async takeOver() { throw new Error("이어받기 공고에 지원하면 사장님이 선정해요"); },
+    async listHandoverOpenings() {
+      const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts!projects_post_id_fkey(*))").eq("status", "HANDOVER_OPEN")) as Row[];
+      return rows.filter((r) => r.project?.post).map((r) => ({ operations: toOperations(r), post: toPost(r.project.post), project: toProject(r.project) }));
+    },
+    async createTicket(projectId, _actorId, kind, body) {
+      const id: string = ok(await db.rpc("create_ticket", { p_project: projectId, p_kind: kind, p_body: body }));
+      return toTicket(ok(await db.from("maintenance_tickets").select("*").eq("id", id).single()));
+    },
+    async closeTicket(ticketId) { done(await db.rpc("close_ticket", { p_ticket: ticketId })); },
+    async recordUptime(projectId, okFlag) { done(await db.rpc("record_uptime", { p_project: projectId, p_ok: okFlag })); },
+    async listOperatingProjects(userId) {
+      const rows = ok(await db.from("operations").select("*, project:projects(*, post:posts!projects_post_id_fkey(*))")) as Row[];
+      return rows
+        .filter((r) => r.project?.post && (r.maintainer_id === userId || r.project.owner_id === userId))
+        .map((r) => ({ operations: toOperations(r), post: toPost(r.project.post), project: toProject(r.project) }));
+    },
+
+    // ── 단체 ──────────────────────────────────────────────────────────────
+    async listClubs() {
+      const rows = ok(await db.from("clubs").select("*, club_members(count)").eq("status", "APPROVED").order("name")) as Row[];
+      return rows.map(toClub);
+    },
+    async myClubs(studentId) {
+      const rows = ok(await db.from("club_members").select("role, club:clubs(*, club_members(count))").eq("student_id", studentId)) as Row[];
+      return rows.filter((r) => r.club).map((r) => ({ club: toClub(r.club), role: r.role }));
+    },
+    async listClubMembers(clubId) {
+      const rows = ok(await db.from("club_members").select("*").eq("club_id", clubId).order("joined_at")) as Row[];
+      return rows.map((r): ClubMember => ({ clubId: r.club_id, studentId: r.student_id, role: r.role, status: r.status ?? "ACTIVE", joinedAt: r.joined_at }));
+    },
+    async createClub(_actorId, input) {
+      const id: string = ok(await db.rpc("create_club", {
+        p_name: input.name, p_kind: input.kind, p_description: input.description,
+        p_college: input.college ?? null, p_kind_other: input.kindOther ?? null,
+      }));
+      return toClub(ok(await db.from("clubs").select("*").eq("id", id).single()));
+    },
+    async joinClub(clubId) { done(await db.rpc("join_club", { p_club: clubId })); },
+    async reviewMember(clubId, studentId, approve) { done(await db.rpc("review_member", { p_club: clubId, p_student: studentId, p_approve: approve })); },
+    async leaveClub(clubId) { done(await db.rpc("leave_club", { p_club: clubId })); },
+    async assignMaintainer(projectId, studentId) { done(await db.rpc("assign_maintainer", { p_project: projectId, p_student: studentId })); },
+
+    // ── 관리자 ────────────────────────────────────────────────────────────
+    async listPendingClubs() { return (ok(await db.from("clubs").select("*").eq("status", "PENDING").order("created_at")) as Row[]).map(toClub); },
+    async listClubsByStatus(status) { return (ok(await db.from("clubs").select("*, club_members(count)").eq("status", status).order("created_at", { ascending: false })) as Row[]).map(toClub); },
+    async reviewClub(clubId, approve, reason) { done(await db.rpc("review_club", { p_club: clubId, p_approve: approve, p_reason: reason ?? null })); },
+    async adminOverview() {
+      const soon = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+      const [profiles, posts, operations, tickets, pending] = await Promise.all([
+        db.from("profiles").select("role").then(ok) as Promise<Row[]>,
+        db.from("posts").select("id, title, status, urgent").then(ok) as Promise<Row[]>,
+        db.from("operations").select("*, project:projects(post:posts!projects_post_id_fkey(title))").then(ok) as Promise<Row[]>,
+        db.from("maintenance_tickets").select("status").eq("status", "OPEN").then(ok) as Promise<Row[]>,
+        db.from("clubs").select("id").eq("status", "PENDING").then(ok) as Promise<Row[]>,
+      ]);
+      const title = (o: Row) => o.project?.post?.title ?? "프로젝트";
+      return {
+        pendingClubs: pending.length,
+        students: profiles.filter((p) => p.role === "student").length,
+        residents: profiles.filter((p) => p.role === "resident").length,
+        posts: posts.length,
+        urgentOpen: posts.filter((p) => p.urgent && p.status === "open").length,
+        operating: operations.filter((o) => o.status === "WARRANTY" || o.status === "OPERATING").length,
+        handoverOpen: operations.filter((o) => o.status === "HANDOVER_OPEN").length,
+        warrantyEndingSoon: operations.filter((o) => o.warranty_defect_until && o.warranty_defect_until <= soon)
+          .map((o) => ({ projectId: o.project_id, title: title(o), until: o.warranty_defect_until })),
+        downSites: operations.filter((o) => o.last_check_ok === false).map((o) => ({ projectId: o.project_id, title: title(o) })),
+        openTickets: tickets.length,
+      };
+    },
+
     async trustSummary(studentId) {
-      const [events, badges, peerReviewsResult] = await Promise.all([
+      const [events, badges, peerReviewsResult, allReviewsResult, allPeerReviewsResult, membershipsResult] = await Promise.all([
         db.from("tier_score_events").select("*").eq("student_id", studentId).then(ok),
         db.from("badges").select("*").eq("student_id", studentId).then(ok),
         db.from("team_peer_reviews").select("*").eq("reviewee_id", studentId),
+        db.from("client_reviews").select("*"),
+        db.from("team_peer_reviews").select("*"),
+        db.from("project_members").select("project_id").eq("student_id", studentId),
       ]);
       const ids = [...new Set((events as Row[]).map((e) => e.project_id))];
       const reviews = ids.length ? ok(await db.from("client_reviews").select("*").in("project_id", ids)).map(toReview) : [];
       const peerReviews = peerReviewsResult.error && /team_peer_reviews|schema cache/i.test(peerReviewsResult.error.message) ? [] : ok(peerReviewsResult).map(toPeerReview);
-      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge), peerReviews);
+      const allReviews = allReviewsResult.error ? reviews : ok(allReviewsResult).map(toReview);
+      const allPeerReviews = allPeerReviewsResult.error && /team_peer_reviews|schema cache/i.test(allPeerReviewsResult.error.message) ? peerReviews : ok(allPeerReviewsResult).map(toPeerReview);
+      const projectCount = membershipsResult.error ? ids.length : new Set(ok(membershipsResult).map((row: Row) => row.project_id)).size;
+      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge), peerReviews, allReviews, allPeerReviews, projectCount);
+    },
+    async disputeReview(projectId, _studentId, reason) {
+      ok(await db.rpc("dispute_client_review", { p_project: projectId, p_reason: reason.trim() }));
     },
   };
 

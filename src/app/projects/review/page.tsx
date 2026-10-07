@@ -33,7 +33,7 @@ function Review() {
   const [mode, setMode] = useState<"approve" | "revise">("approve");
   const [comment, setComment] = useState("");
   const [claims, setClaims] = useState<VerificationClaims>({ workPerformed: false, roleConfirmed: false, deliverableReceived: false, completionCriteriaMet: false, actuallyUsed: false });
-  const [review, setReview] = useState({ satisfaction: 0, deadline: 0, communication: 0, handoff: 0, comment: "" });
+  const [review, setReview] = useState({ satisfaction: 0, deadline: 0, communication: 0, handoff: 0, deliverableQuality: 0, comment: "" });
   const [note, setNote] = useState("");
   const [verifiedMemberIds, setVerifiedMemberIds] = useState<string[] | null>(null);
   const act = useAction();
@@ -47,7 +47,7 @@ function Review() {
   if (!v || b.project.status !== "REVIEW_PENDING") return (
     <><TopBar title="검토" back /><div className="card mx-4 text-sm">{b.project.status === "COMPLETED" ? "이미 승인한 프로젝트예요." : "검토할 제출이 없어요."}<Link href={`/projects/detail?id=${id}`} className="btn btn-ghost mt-3 w-full">프로젝트로</Link></div></>
   );
-  const ratingsDone = review.satisfaction && review.deadline && review.communication && review.handoff;
+  const ratingsDone = review.satisfaction && review.deadline && review.communication && review.handoff && review.deliverableQuality;
   const checkedMembers = verifiedMemberIds ?? b.members.map((m) => m.studentId);
 
   async function submit() {
@@ -111,6 +111,7 @@ function Review() {
               <Rating label="기한 준수" value={review.deadline} onChange={(n) => setReview({ ...review, deadline: n })} />
               <Rating label="소통" value={review.communication} onChange={(n) => setReview({ ...review, communication: n })} />
               <Rating label="인계" value={review.handoff} onChange={(n) => setReview({ ...review, handoff: n })} />
+              <Rating label="결과물 품질" value={review.deliverableQuality} onChange={(n) => setReview({ ...review, deliverableQuality: n })} />
               <Field label="한마디 (선택)" hint="원문 그대로 포트폴리오에 인용돼요. 학생이 고칠 수 없어요.">
                 <textarea className={`${inputCls} h-20`} value={review.comment} onChange={(e) => setReview({ ...review, comment: e.target.value })} />
               </Field>

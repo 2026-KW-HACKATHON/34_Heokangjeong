@@ -1,16 +1,18 @@
 "use client";
-import { useState } from "react";
-import { useSession } from "@/lib/session";
+import { useEffect, useState } from "react";
+import { isKakaoEnabled, useSession } from "@/lib/session";
 import BrandLogo from "@/components/BrandLogo";
 
 /** 이메일·비밀번호 로그인/가입 (Supabase 연결 시에만 쓰인다) */
 export default function Login() {
-  const { mode, signIn, signUp } = useSession();
+  const { mode, signIn, signUp, signInWithKakao } = useSession();
   const [isNew, setIsNew] = useState(false);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [kakao, setKakao] = useState(false);     // 카카오 로그인이 켜져 있을 때만 버튼을 보여 준다
+  useEffect(() => { isKakaoEnabled().then(setKakao); }, []);
   if (mode === "mock") return <p className="sub p-10 text-center text-sm">서버 연결 전에는 로그인 없이 &lsquo;나&rsquo; 탭에서 계정을 바꿔 볼 수 있어요.</p>;
 
   async function submit(e: React.FormEvent) {
@@ -30,6 +32,11 @@ export default function Login() {
         {err && <p className="text-sm text-[var(--red)]">{err}</p>}
         <button disabled={busy} className="btn btn-primary w-full disabled:opacity-50">{busy ? "잠시만요…" : isNew ? "가입하기" : "로그인"}</button>
       </form>
+      {/* 카카오 공급자를 Supabase 에서 켜면 '준비 중' 표시가 사라진다 */}
+      <button onClick={async () => { setErr(""); try { await signInWithKakao(); } catch (x) { setErr((x as Error).message); } }}
+        className={`btn w-full bg-[#FEE500] text-[#191600] ${kakao ? "" : "opacity-60"}`}>
+        카카오로 시작하기{kakao ? "" : " (준비 중)"}
+      </button>
       <button onClick={() => { setIsNew(!isNew); setErr(""); }} className="sub text-sm">{isNew ? "이미 계정이 있어요 · 로그인" : "처음이에요 · 가입하기"}</button>
     </section>
   );

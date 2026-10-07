@@ -20,6 +20,6 @@ function ProfileView() {
     return () => { active = false; };
   }, [id]);
   return <><TopBar title="프로필" back /><main className="portfolio-me">
-    {profile === undefined ? <p role="status" className="card sub">프로필을 불러오는 중…</p> : !profile ? <p className="card">프로필을 찾을 수 없어요.</p> : profile.role === "student" ? <><PortfolioProfileHeader student={profile} publishedCount={items.length} /><PortfolioFeed student={profile} items={items} /></> : <section className="card"><h1 className="text-xl font-bold">{profile.name}</h1><p className="sub mt-2 text-sm">{profile.kind} · {profile.address}</p></section>}
+    {profile === undefined ? <p role="status" className="card sub">프로필을 불러오는 중…</p> : !profile ? <p className="card">프로필을 찾을 수 없어요.</p> : profile.role === "student" ? <><PortfolioProfileHeader student={profile} publishedCount={items.length} /><PortfolioFeed student={profile} items={items} /></> : <section className="card"><h1 className="text-xl font-bold">{profile.name}</h1><p className="sub mt-2 text-sm">{profile.role === "resident" ? `${profile.kind} · ${profile.address}` : "앱 관리자"}</p></section>}
   </main></>;
 }

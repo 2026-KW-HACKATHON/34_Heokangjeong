@@ -1,6 +1,6 @@
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
-  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims,
+  Club, ClubInput, ClubMember, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TicketKind, TrustSummary, User, VerificationClaims
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
 import type { AgreementTerms, WorkAgreement } from "../agreement";
@@ -8,6 +8,12 @@ import type { AgreementTerms, WorkAgreement } from "../agreement";
 export type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput };
 export interface GenerateResult { draft: PortfolioDraft; reused: boolean; aiError?: string }
 export interface UploadedFile { url: string; fileName: string; mimeType: string }
+/** 관리자 화면 요약 */
+export interface AdminOverview {
+  pendingClubs: number; students: number; residents: number; posts: number; urgentOpen: number;
+  operating: number; handoverOpen: number; warrantyEndingSoon: { projectId: string; title: string; until: string }[];
+  downSites: { projectId: string; title: string }[]; openTickets: number;
+}
 
 /**
  * 데이터 접근 계층(Repository). 화면은 이 인터페이스만 사용한다.
@@ -23,8 +29,9 @@ export interface Repo {
   getPost(id: string): Promise<Post | undefined>;
   createPost(p: Omit<Post, "id" | "createdAt" | "status">): Promise<Post>;
   updatePostStatus(id: string, status: Post["status"]): Promise<void>;
+  deletePost(postId: string, actorId: string): Promise<void>;   // 작성자만, 선정 전에만
   listApplications(postId?: string): Promise<Application[]>;
-  apply(postId: string, studentId: string, message: string, roleId?: string): Promise<Application>;
+  apply(postId: string, studentId: string, message: string, roleId?: string, clubId?: string): Promise<Application>;
   getApplication(id: string): Promise<Application | undefined>;
   updateApplicationStatus(id: string, status: Application["status"]): Promise<void>; // 공고 작성자의 거절 (수락은 selectApplicant)
   // 채팅: 지원서 하나가 채팅방 하나 (공고 작성자 ↔ 지원 학생)
@@ -74,6 +81,33 @@ export interface Repo {
   listPortfolioDocs(studentId: string): Promise<{ edit: PortfolioEditedVersion; post: Post; project: Project }[]>;
   getPortfolioDoc(projectId: string, studentId: string): Promise<PortfolioDoc | undefined>;
   trustSummary(studentId: string): Promise<TrustSummary>;
+
+  // ── 유지보수·인수인계 (계속 운영되는 결과물) ──────────────────────────────
+  getOperations(projectId: string): Promise<OperationsBundle | null>;
+  saveHandover(projectId: string, actorId: string, data: HandoverInput): Promise<void>;
+  generateHandoverDoc(projectId: string, actorId: string): Promise<HandoverDoc>;
+  openHandover(projectId: string, actorId: string): Promise<void>;          // 담당 학생이 인계 요청
+  takeOver(projectId: string, actorId: string): Promise<void>;              // 다른 학생이 이어받기
+  listHandoverOpenings(): Promise<{ operations: Operations; post: Post; project: Project }[]>;
+  createTicket(projectId: string, actorId: string, kind: TicketKind, body: string): Promise<MaintenanceTicket>;
+  closeTicket(ticketId: string, actorId: string): Promise<void>;
+  recordUptime(projectId: string, ok: boolean): Promise<void>;              // '지금 점검하기'
+  // ── 단체(동아리·학회·학생회) ───────────────────────────────────────────────
+  listClubs(): Promise<Club[]>;
+  myClubs(studentId: string): Promise<{ club: Club; role: ClubMember["role"] }[]>;
+  listClubMembers(clubId: string): Promise<ClubMember[]>;
+  createClub(actorId: string, input: ClubInput): Promise<Club>;
+  joinClub(clubId: string, actorId: string): Promise<void>;                  // 가입 신청 (대표 수락 필요)
+  reviewMember(clubId: string, studentId: string, approve: boolean, actorId: string): Promise<void>;   // 대표의 수락·거절
+  leaveClub(clubId: string, actorId: string): Promise<void>;
+  assignMaintainer(projectId: string, studentId: string, actorId: string): Promise<void>; // 단체 안에서 담당자 넘기기
+  // ── 관리자 ────────────────────────────────────────────────────────────────
+  listPendingClubs(): Promise<Club[]>;
+  listClubsByStatus(status: Club["status"]): Promise<Club[]>;   // 관리자 심사 내역 (대기·승인·거절)
+  reviewClub(clubId: string, approve: boolean, reason: string | undefined, actorId: string): Promise<void>;
+  adminOverview(): Promise<AdminOverview>;
+  listOperatingProjects(userId: string): Promise<{ operations: Operations; post: Post; project: Project }[]>;
+  disputeReview(projectId: string, studentId: string, reason: string): Promise<void>;
   /** mock 전용: 데모 데이터 초기화 */
   resetDemo?(): Promise<void>;
 }
