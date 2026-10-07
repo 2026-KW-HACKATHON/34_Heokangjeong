@@ -110,7 +110,7 @@ const toVerification = (r: Row): ClientVerification => ({
   projectId: r.project_id, submissionVersionId: r.submission_version_id, verifierId: r.verifier_id, note: r.note, createdAt: r.created_at,
   workPerformed: r.work_performed, roleConfirmed: r.role_confirmed, deliverableReceived: r.deliverable_received, completionCriteriaMet: r.completion_criteria_met, actuallyUsed: r.actually_used,
 });
-const toReview = (r: Row): ClientReview => ({ projectId: r.project_id, reviewerId: r.reviewer_id, satisfaction: r.satisfaction, deadline: r.deadline, communication: r.communication, handoff: r.handoff, comment: r.comment, createdAt: r.created_at });
+const toReview = (r: Row): ClientReview => ({ projectId: r.project_id, reviewerId: r.reviewer_id, satisfaction: r.satisfaction, deadline: r.deadline, communication: r.communication, handoff: r.handoff, deliverableQuality: r.deliverable_quality ?? r.satisfaction, comment: r.comment, createdAt: r.created_at, status: r.status ?? "NORMAL", reviewerReliability: r.reviewer_reliability ?? 1, evidenceConsistency: r.evidence_consistency ?? 1, adjustedRating: r.adjusted_rating ?? r.satisfaction, anomalyReasons: r.anomaly_reasons ?? [], policyVersion: r.policy_version ?? "legacy" });
 const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 const toOutcome = (r: Row): Outcome => ({
   id: r.id, projectId: r.project_id, authorId: r.author_id, metricName: r.metric_name, measured: r.measured, value: num(r.value), unit: r.unit, baseline: num(r.baseline),
@@ -526,15 +526,24 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     },
 
     async trustSummary(studentId) {
-      const [events, badges, peerReviewsResult] = await Promise.all([
+      const [events, badges, peerReviewsResult, allReviewsResult, allPeerReviewsResult, membershipsResult] = await Promise.all([
         db.from("tier_score_events").select("*").eq("student_id", studentId).then(ok),
         db.from("badges").select("*").eq("student_id", studentId).then(ok),
         db.from("team_peer_reviews").select("*").eq("reviewee_id", studentId),
+        db.from("client_reviews").select("*"),
+        db.from("team_peer_reviews").select("*"),
+        db.from("project_members").select("project_id").eq("student_id", studentId),
       ]);
       const ids = [...new Set((events as Row[]).map((e) => e.project_id))];
       const reviews = ids.length ? ok(await db.from("client_reviews").select("*").in("project_id", ids)).map(toReview) : [];
       const peerReviews = peerReviewsResult.error && /team_peer_reviews|schema cache/i.test(peerReviewsResult.error.message) ? [] : ok(peerReviewsResult).map(toPeerReview);
-      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge), peerReviews);
+      const allReviews = allReviewsResult.error ? reviews : ok(allReviewsResult).map(toReview);
+      const allPeerReviews = allPeerReviewsResult.error && /team_peer_reviews|schema cache/i.test(allPeerReviewsResult.error.message) ? peerReviews : ok(allPeerReviewsResult).map(toPeerReview);
+      const projectCount = membershipsResult.error ? ids.length : new Set(ok(membershipsResult).map((row: Row) => row.project_id)).size;
+      return summarizeTrust(events.map(toEvent), reviews, badges.map(toBadge), peerReviews, allReviews, allPeerReviews, projectCount);
+    },
+    async disputeReview(projectId, _studentId, reason) {
+      ok(await db.rpc("dispute_client_review", { p_project: projectId, p_reason: reason.trim() }));
     },
   };
 

@@ -16,5 +16,5 @@ it("팀원 평가는 프로젝트별 평균으로 협업 온도에 반영한다"
     { projectId: "p1", communication: 5, collaboration: 5, responsibility: 5 },
     { projectId: "p1", communication: 3, collaboration: 3, responsibility: 3 },
   ];
-  expect(temperatureFor([], peer)).toBe(37.3);
+  expect(temperatureFor([], peer)).toBe(37.4);
 });

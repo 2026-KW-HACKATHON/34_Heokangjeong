@@ -39,6 +39,7 @@ function Project() {
   const { bundle: b, error, reload } = useBundle(id);
   const act = useAction();
   const [leaderId, setLeaderId] = useState("");
+  const [disputeReason, setDisputeReason] = useState("");
   if (error) return <><TopBar title="프로젝트" back /><div className="px-4"><ErrorText text={error} /></div></>;
   if (!b || !user) return <><TopBar title="프로젝트" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
 
@@ -175,7 +176,17 @@ function Project() {
           <div className="card">
             <h3 className="mb-2 font-bold">의뢰인 검증</h3>
             <Verification v={b.verification} outcomes={b.outcomes} approvedVersion={approved?.version} />
-            {b.review && <p className="mt-3 rounded-xl bg-[var(--line)] px-3 py-2 text-sm">“{b.review.comment || "평가 코멘트 없음"}” <span className="sub text-xs">· 만족도 {b.review.satisfaction}/5</span></p>}
+            {b.review && <>
+              <p className="mt-3 rounded-xl bg-[var(--line)] px-3 py-2 text-sm">“{b.review.comment || "평가 코멘트 없음"}” <span className="sub text-xs">· 만족도 {b.review.satisfaction}/5 · 결과물 {b.review.deliverableQuality}/5</span></p>
+              {(b.review.status === "FLAGGED" || b.review.status === "DISPUTED" || b.review.status === "UNDER_REVIEW") && <p role="status" className="mt-2 rounded-xl bg-[#fff7ed] px-3 py-2 text-sm text-[#9a3412]">검토 중인 평가입니다. 확정 전까지 평판 점수에 반영되지 않아요.</p>}
+              {isMember && (b.review.status === "NORMAL" || b.review.status === "VALID" || b.review.status === "PARTIALLY_VALID") && <details className="mt-3 rounded-xl border border-[var(--line)] p-3 text-sm">
+                <summary className="cursor-pointer font-semibold">이 평가에 이의가 있어요</summary>
+                <p className="sub mt-2 text-xs">제출 결과물, 승인 기록, 증빙과 다른 부분을 적어 주세요. 이의제기 즉시 평판 반영이 보류됩니다.</p>
+                <textarea aria-label="이의제기 사유" className="mt-2 h-24 w-full rounded-xl bg-[var(--line)] p-3" value={disputeReason} onChange={e => setDisputeReason(e.target.value)} placeholder="평가와 프로젝트 기록이 다른 이유" />
+                <button className="btn btn-ghost mt-2 w-full" disabled={act.busy || disputeReason.trim().length < 10} onClick={() => act.run(async () => { await repo.disputeReview(id, user.id, disputeReason); setDisputeReason(""); await reload(); })}>이의제기 제출</button>
+                <ErrorText text={act.error} />
+              </details>}
+            </>}
           </div>
         )}
 
