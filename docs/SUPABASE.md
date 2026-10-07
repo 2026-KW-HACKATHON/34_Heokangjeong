@@ -70,3 +70,17 @@ DB 구조를 바꾸거나 함수를 배포하려면 Supabase 접근 권한이 �
 2. 인수인계서 AI: Edge Functions → Deploy a new function → 이름 `handover-ai` → `supabase/functions/handover-ai/index.ts` 붙여 넣기 → Deploy.
    (키는 이미 넣어 둔 `GEMINI_API_KEY` 를 같이 쓴다. 배포하지 않아도 입력값만으로 된 기본 문서는 만들어진다.)
 3. 확인용 더미 데이터: `npm run seed:demo` — 완료 직후 / 보증 중 / 인계 모집 중 / 담당자 교체됨 네 가지 상태의 프로젝트가 생긴다.
+
+## 단체·관리자 (0022, 0023)
+1. SQL Editor 에 `0022_clubs.sql`, `0023_club_approval.sql` 실행
+2. 관리자 계정 만들기: `npm run seed:admin` → `admin@admin.com` / `admin1234`
+   (Supabase 는 비밀번호 6자 이상이라 `admin` 은 쓸 수 없다. 바꾸려면 대시보드 Authentication → Users)
+
+## 카카오 로그인 (선택)
+1. https://developers.kakao.com 에서 앱 생성 → 플랫폼에 사이트 도메인 추가
+2. 카카오 앱 → 제품 설정 → 카카오 로그인 ON, Redirect URI 에
+   `https://<프로젝트ref>.supabase.co/auth/v1/callback` 추가, 동의 항목에 이메일(선택 동의도 가능)
+3. Supabase 대시보드 → Authentication → Sign In / Providers → Kakao ON,
+   REST API 키(Client ID)와 Client Secret 입력
+4. 앱 로그인 화면의 "카카오로 시작하기" 가 그때부터 동작한다.
+   안드로이드 앱(Capacitor)에서는 돌아오는 주소를 앱으로 받기 위해 딥링크 설정이 추가로 필요하다.

@@ -4,7 +4,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
   ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, MemberVerification, Notification, Outcome, PortfolioCard,
   PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review, TeamPeerReview,
-  SubmissionVersion, TierScoreEvent, User, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations,
+  SubmissionVersion, TierScoreEvent, User, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
 import { DOMAINS, QUESTION_SET_VERSION, domainForCategory } from "@shared/portfolio/domains";
@@ -21,7 +21,9 @@ type Row = Record<string, any>;
 const u = <T,>(v: T | null | undefined) => v ?? undefined;
 let realtimeChannelSequence = 0;
 
-export const toUser = (r: Row): User => r.role === "student"
+export const toUser = (r: Row): User => r.role === "admin"
+  ? { id: r.id, role: "admin", name: r.name, location: { lat: r.lat, lng: r.lng } }
+  : r.role === "student"
   ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
   : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
@@ -32,12 +34,12 @@ const toPost = (r: Row): Post => ({
   teamSlots: r.roles?.length ? r.roles.map((x: Row) => ({ id: x.id, label: x.label, category: x.category, domain: x.domain, count: x.capacity, filled: [], filledCount: x.filled_count })) : r.team_slots ?? undefined,
   createdAt: r.created_at,
   urgent: r.urgent ?? false, urgentColleges: r.urgent_colleges ?? [],
-  ongoing: r.ongoing ?? false, warrantyRequestCount: r.warranty_request_count ?? 3, handoverOfProject: u(r.handover_of_project),
+  ongoing: r.ongoing ?? false, warrantyRequestCount: r.warranty_request_count ?? 3, handoverOfProject: u(r.handover_of_project), preferClub: r.prefer_club ?? false,
   problem: r.problem ?? "", domain: u(r.domain), expectedDeliverables: r.expected_deliverables ?? [], completionCriteria: r.completion_criteria ?? "",
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount),
 });
-const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
+const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, clubId: u(r.club_id), message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
 /** Edge Function 이 보낸 한국어 에러 메시지를 꺼낸다 */
 const fnError = async (error: unknown) =>
   (await (error as { context?: Response }).context?.json?.().then((b: { error?: string }) => b.error).catch(() => undefined)) ?? (error as Error).message;
@@ -46,7 +48,7 @@ const toOperations = (r: Row): Operations => ({
   projectId: r.project_id, status: r.status, maintainerId: u(r.maintainer_id), repoUrl: u(r.repo_url), deployUrl: u(r.deploy_url),
   adminHanded: r.admin_handed, envList: u(r.env_list), monthlyCost: u(r.monthly_cost), billingOwner: u(r.billing_owner),
   expiresOn: u(r.expires_on), backupNote: u(r.backup_note), knownIssues: u(r.known_issues),
-  warrantyRequestUntil: u(r.warranty_request_until), warrantyDefectUntil: u(r.warranty_defect_until), requestUsed: r.request_used ?? 0,
+  clubId: u(r.club_id), warrantyRequestUntil: u(r.warranty_request_until), warrantyDefectUntil: u(r.warranty_defect_until), requestUsed: r.request_used ?? 0,
   lastCheckAt: u(r.last_check_at), lastCheckOk: u(r.last_check_ok),
 });
 const toTicket = (r: Row): MaintenanceTicket => ({
@@ -72,6 +74,11 @@ function templateHandover(title: string, o: Operations) {
     "## 알려진 문제", o.knownIssues?.trim() || "기록된 문제 없음",
   ].join("\n");
 }
+
+const toClub = (r: Row): Club => ({
+  id: r.id, name: r.name, kind: r.kind, kindOther: u(r.kind_other), description: r.description ?? "",
+  college: u(r.college), createdBy: r.created_by, status: r.status ?? "APPROVED", rejectReason: u(r.reject_reason), memberCount: r.club_members?.[0]?.count ?? r.member_count,
+});
 
 const toMsg = (r: Row): ChatMessage => ({ id: r.id, applicationId: r.application_id, senderId: r.sender_id, body: r.body, createdAt: r.created_at });
 const toProject = (r: Row): Project => ({
@@ -186,7 +193,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       if (postId) q = q.eq("post_id", postId);
       return ok(await q).map(toApp);
     },
-    async apply(postId, studentId, message, roleId) { return toApp(ok(await db.from("applications").insert({ post_id: postId, student_id: studentId, message, role_id: roleId ?? null }).select().single())); },
+    async apply(postId, studentId, message, roleId, clubId) { return toApp(ok(await db.from("applications").insert({ post_id: postId, student_id: studentId, message, role_id: roleId ?? null, club_id: clubId ?? null }).select().single())); },
     async getApplication(id) { const r = maybe(await db.from("applications").select("*").eq("id", id).maybeSingle()); return r ? toApp(r) : undefined; },
     async updateApplicationStatus(id, status) { done(await db.from("applications").update({ status }).eq("id", id)); },
 
@@ -423,6 +430,59 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return rows
         .filter((r) => r.project?.post && (r.maintainer_id === userId || r.project.owner_id === userId))
         .map((r) => ({ operations: toOperations(r), post: toPost(r.project.post), project: toProject(r.project) }));
+    },
+
+    // ── 단체 ──────────────────────────────────────────────────────────────
+    async listClubs() {
+      const rows = ok(await db.from("clubs").select("*, club_members(count)").eq("status", "APPROVED").order("name")) as Row[];
+      return rows.map(toClub);
+    },
+    async myClubs(studentId) {
+      const rows = ok(await db.from("club_members").select("role, club:clubs(*, club_members(count))").eq("student_id", studentId)) as Row[];
+      return rows.filter((r) => r.club).map((r) => ({ club: toClub(r.club), role: r.role }));
+    },
+    async listClubMembers(clubId) {
+      const rows = ok(await db.from("club_members").select("*").eq("club_id", clubId).order("joined_at")) as Row[];
+      return rows.map((r): ClubMember => ({ clubId: r.club_id, studentId: r.student_id, role: r.role, status: r.status ?? "ACTIVE", joinedAt: r.joined_at }));
+    },
+    async createClub(_actorId, input) {
+      const id: string = ok(await db.rpc("create_club", {
+        p_name: input.name, p_kind: input.kind, p_description: input.description,
+        p_college: input.college ?? null, p_kind_other: input.kindOther ?? null,
+      }));
+      return toClub(ok(await db.from("clubs").select("*").eq("id", id).single()));
+    },
+    async joinClub(clubId) { done(await db.rpc("join_club", { p_club: clubId })); },
+    async reviewMember(clubId, studentId, approve) { done(await db.rpc("review_member", { p_club: clubId, p_student: studentId, p_approve: approve })); },
+    async leaveClub(clubId) { done(await db.rpc("leave_club", { p_club: clubId })); },
+    async assignMaintainer(projectId, studentId) { done(await db.rpc("assign_maintainer", { p_project: projectId, p_student: studentId })); },
+
+    // ── 관리자 ────────────────────────────────────────────────────────────
+    async listPendingClubs() { return (ok(await db.from("clubs").select("*").eq("status", "PENDING").order("created_at")) as Row[]).map(toClub); },
+    async reviewClub(clubId, approve, reason) { done(await db.rpc("review_club", { p_club: clubId, p_approve: approve, p_reason: reason ?? null })); },
+    async adminOverview() {
+      const soon = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+      const [profiles, posts, operations, tickets, pending] = await Promise.all([
+        db.from("profiles").select("role").then(ok) as Promise<Row[]>,
+        db.from("posts").select("id, title, status, urgent").then(ok) as Promise<Row[]>,
+        db.from("operations").select("*, project:projects(post:posts(title))").then(ok) as Promise<Row[]>,
+        db.from("maintenance_tickets").select("status").eq("status", "OPEN").then(ok) as Promise<Row[]>,
+        db.from("clubs").select("id").eq("status", "PENDING").then(ok) as Promise<Row[]>,
+      ]);
+      const title = (o: Row) => o.project?.post?.title ?? "프로젝트";
+      return {
+        pendingClubs: pending.length,
+        students: profiles.filter((p) => p.role === "student").length,
+        residents: profiles.filter((p) => p.role === "resident").length,
+        posts: posts.length,
+        urgentOpen: posts.filter((p) => p.urgent && p.status === "open").length,
+        operating: operations.filter((o) => o.status === "WARRANTY" || o.status === "OPERATING").length,
+        handoverOpen: operations.filter((o) => o.status === "HANDOVER_OPEN").length,
+        warrantyEndingSoon: operations.filter((o) => o.warranty_defect_until && o.warranty_defect_until <= soon)
+          .map((o) => ({ projectId: o.project_id, title: title(o), until: o.warranty_defect_until })),
+        downSites: operations.filter((o) => o.last_check_ok === false).map((o) => ({ projectId: o.project_id, title: title(o) })),
+        openTickets: tickets.length,
+      };
     },
 
     async trustSummary(studentId) {

@@ -3,7 +3,7 @@
 import type {
   ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, MemberVerification, Outcome, PortfolioCard,
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
-  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations,
+  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember,
 } from "@/types";
 import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
@@ -34,6 +34,8 @@ export interface WorkflowDB {
   edits: PortfolioEditedVersion[];
   tierEvents: TierScoreEvent[];
   badges: Badge[];
+  clubs: Club[];
+  clubMembers: ClubMember[];
   operations: Operations[];
   terms: MaintainerTerm[];
   tickets: MaintenanceTicket[];
@@ -45,7 +47,7 @@ export interface WorkflowDB {
 export const emptyDB = (): WorkflowDB => ({
   users: [], posts: [], applications: [], projects: [], members: [], answers: [], logs: [], evidence: [], versions: [], verifications: [], memberVerifications: [],
   reviews: [], outcomes: [], snapshots: [], drafts: [], edits: [], tierEvents: [], badges: [], peerReviews: [], legacyReviews: [], legacyCards: [],
-  operations: [], terms: [], tickets: [], handoverDocs: [],
+  clubs: [], clubMembers: [], operations: [], terms: [], tickets: [], handoverDocs: [],
 });
 export interface Ctx { now: () => string; id: () => string }
 export const defaultCtx: Ctx = {
@@ -305,8 +307,10 @@ export function approveVersion(db: WorkflowDB, a: { versionId: string; actorId: 
   if (post.ongoing && !db.operations.some((o) => o.projectId === project.id)) {
     const day = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
     const maintainer = members[0]?.studentId;
+    // 단체 이름으로 지원했으면 그 단체가 운영을 맡는다 (DB 0022 와 같은 규칙)
+    const clubId = members.map((m) => db.applications.find((a) => a.id === m.applicationId)?.clubId).find(Boolean);
     db.operations.push({
-      projectId: project.id, status: "WARRANTY", maintainerId: maintainer, adminHanded: false, requestUsed: 0,
+      projectId: project.id, status: "WARRANTY", maintainerId: maintainer, clubId, adminHanded: false, requestUsed: 0,
       warrantyRequestUntil: day(post.warrantyRequestDays ?? 30), warrantyDefectUntil: day(post.warrantyDefectDays ?? 90),
     });
     if (maintainer) db.terms.push({ id: ctx.id(), projectId: project.id, studentId: maintainer, startedOn: now.slice(0, 10), ticketsClosed: 0 });

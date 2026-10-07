@@ -5,7 +5,7 @@ import type {
   PortfolioEditedVersion, PortfolioSourceSnapshot, Project, ProjectAnswer, ProjectMember, ProjectMode, SubmissionVersion, TierScoreEvent,
 } from "@shared/portfolio/types";
 export type * from "@shared/portfolio/types";
-export type Role = "student" | "resident";
+export type Role = "student" | "resident" | "admin";
 
 export type Category =
   | "디자인" | "영상" | "사진" | "SNS홍보" | "웹/앱" | "디지털도움" | "기타";
@@ -39,7 +39,10 @@ export interface Resident {
   address: string;
 }
 
-export type User = Student | Resident;
+/** 앱 관리자 (단체 등록 심사 등). 화면은 /admin 하나만 쓴다 */
+export interface Admin { id: string; role: "admin"; name: string; location: GeoPoint }
+
+export type User = Student | Resident | Admin;
 
 export interface RoleSlot {
   id?: string;
@@ -75,6 +78,7 @@ export interface Post {
   warrantyDefectDays?: number;       // 학생 작업 하자(버그) 무상 기간
   clientOwnedBilling?: boolean;      // 도메인·호스팅 명의와 결제를 점주가 보유
   handoverOfProject?: string;        // 이어받기 공고면 원래 프로젝트 id (담당 학생이 빠져 다음 담당자를 모집)
+  preferClub?: boolean;              // 단체(동아리 등)에 맡기고 싶다. 담당자가 바뀌어도 단체가 계속 관리한다
   // ── 구조화된 공고 정보 (검증형 포트폴리오 파이프라인). 예전 공고에는 없을 수 있어 listingOf() 로 기본값을 채운다
   problem?: string;                  // 의뢰인이 겪는 문제
   domain?: DomainKey;                // 분야 모듈. 없으면 category 로 정한다
@@ -91,6 +95,7 @@ export interface Application {
   id: string;
   postId: string;
   studentId: string;
+  clubId?: string;           // 단체 이름으로 지원했으면 그 단체
   message: string;
   roleId?: string;
   status: "pending" | "accepted" | "rejected";
@@ -198,6 +203,7 @@ export interface Operations {
   expiresOn?: string;              // 가장 먼저 만료되는 날 (도메인·인증서·키)
   backupNote?: string;
   knownIssues?: string;
+  clubId?: string;                 // 이 서비스를 맡은 단체 (있으면 단체 안에서 담당자를 바로 넘길 수 있다)
   warrantyRequestUntil?: string;   // 점주 요청 무상 기간
   warrantyDefectUntil?: string;    // 하자(버그) 무상 기간
   requestUsed: number;
@@ -217,3 +223,20 @@ export interface HandoverInput {
   repoUrl?: string; deployUrl?: string; adminHanded?: boolean; envList?: string;
   monthlyCost?: string; billingOwner?: "CLIENT" | "STUDENT"; expiresOn?: string; backupNote?: string; knownIssues?: string;
 }
+
+// ── 단체(동아리·학회·학생회 등). 로그인은 개인 학생 계정이고, 소속만 단체에 둔다 ──
+export type ClubKind = "CENTRAL" | "DEPARTMENT" | "COUNCIL" | "VOLUNTEER" | "OTHER";
+export interface Club {
+  id: string;
+  name: string;
+  kind: ClubKind;
+  kindOther?: string;        // 기타일 때 직접 적은 유형 (예: 교내 방송국)
+  description: string;
+  college?: string;          // 주로 활동하는 단과대학 key
+  createdBy: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";   // 관리자 심사
+  rejectReason?: string;
+  memberCount?: number;
+}
+export interface ClubMember { clubId: string; studentId: string; role: "LEADER" | "MEMBER"; status: "PENDING" | "ACTIVE"; joinedAt: string }
+export interface ClubInput { name: string; kind: ClubKind; kindOther?: string; description: string; college?: string }

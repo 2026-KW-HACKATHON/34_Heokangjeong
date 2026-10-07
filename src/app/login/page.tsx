@@ -5,7 +5,7 @@ import BrandLogo from "@/components/BrandLogo";
 
 /** 이메일·비밀번호 로그인/가입 (Supabase 연결 시에만 쓰인다) */
 export default function Login() {
-  const { mode, signIn, signUp } = useSession();
+  const { mode, signIn, signUp, signInWithKakao } = useSession();
   const [isNew, setIsNew] = useState(false);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -30,6 +30,8 @@ export default function Login() {
         {err && <p className="text-sm text-[var(--red)]">{err}</p>}
         <button disabled={busy} className="btn btn-primary w-full disabled:opacity-50">{busy ? "잠시만요…" : isNew ? "가입하기" : "로그인"}</button>
       </form>
+      <button onClick={async () => { setErr(""); try { await signInWithKakao(); } catch (x) { setErr((x as Error).message); } }}
+        className="btn w-full bg-[#FEE500] text-[#191600]">카카오로 시작하기</button>
       <button onClick={() => { setIsNew(!isNew); setErr(""); }} className="sub text-sm">{isNew ? "이미 계정이 있어요 · 로그인" : "처음이에요 · 가입하기"}</button>
     </section>
   );

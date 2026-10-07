@@ -22,7 +22,7 @@ function ProfileView() {
       <section className="card">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--primary-weak)] text-[var(--primary)]"><Icon name="user" width={32} height={32} /></div>
         <h2 className="page-title">{profile.name}</h2>
-        <p className="sub mt-1 text-sm">{profile.role === "student" ? `${profile.school || "학교 미입력"} · ${profile.department}` : `${profile.kind} · ${profile.address}`}</p>
+        <p className="sub mt-1 text-sm">{profile.role === "student" ? `${profile.school || "학교 미입력"} · ${profile.department}` : profile.role === "resident" ? `${profile.kind} · ${profile.address}` : "앱 관리자"}</p>
       </section>
       {profile.role === "student" && <section className="card text-sm">
         <h3 className="mb-4 font-bold">기본 정보</h3>

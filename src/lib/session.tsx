@@ -19,6 +19,7 @@ interface Session {
   setUserId: (id: string) => void; // mock 전용
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  signInWithKakao: () => Promise<void>;
   signOut: () => Promise<void>;
   saveProfile: (p: ProfileInput) => Promise<void>;
 }
@@ -57,6 +58,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase!.auth.signUp({ email, password });
       if (error) throw new Error(error.message);
       if (!data.session) throw new Error("가입 확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.");
+    },
+    // 카카오 로그인. Supabase 대시보드에서 Kakao 공급자를 켜 두어야 쓸 수 있다 (docs/SUPABASE.md 참고)
+    async signInWithKakao() {
+      if (!supabase) throw new Error("서버(Supabase)를 연결하면 쓸 수 있어요");
+      const { error } = await supabase.auth.signInWithOAuth({ provider: "kakao", options: { redirectTo: window.location.origin } });
+      if (error) throw new Error(/provider/i.test(error.message) ? "카카오 로그인이 아직 설정되지 않았어요 (Supabase 에서 Kakao 공급자 켜기)" : error.message);
     },
     async signOut() { await supabase?.auth.signOut(); },
     async saveProfile(p) {

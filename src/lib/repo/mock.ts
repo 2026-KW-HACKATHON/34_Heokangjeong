@@ -1,5 +1,5 @@
 import type {
-  Application, ChatMessage, HandoverDoc, MaintenanceTicket, Notification, Post, PortfolioCard, PortfolioDoc, RankRow, Review, User,
+  Application, ChatMessage, HandoverDoc, MaintenanceTicket, Notification, Post, PortfolioCard, PortfolioDoc, RankRow, Review, User, Club,
 } from "@/types";
 import type { Repo } from "./index";
 import { distanceM } from "../geo";
@@ -139,8 +139,9 @@ export const mockRepo: Repo = {
   }); },
   async updatePostStatus(id, status) { return tx(() => { const p = db.posts.find((x) => x.id === id); if (p) p.status = status; }); },
   async listApplications(postId) { ensure(); return wait(db.applications.filter((a) => !postId || a.postId === postId)); },
-  async apply(postId, studentId, message, roleId) { return tx(() => {
-    const application = wf.apply(db, { postId, studentId, message, roleId }); const post = db.posts.find((p) => p.id === postId)!; const student = users.find((u) => u.id === studentId);
+  async apply(postId, studentId, message, roleId, clubId) { return tx(() => {
+    const application = wf.apply(db, { postId, studentId, message, roleId });
+    if (clubId) application.clubId = clubId; const post = db.posts.find((p) => p.id === postId)!; const student = users.find((u) => u.id === studentId);
     pushNotification({ userId: post.authorId, postId, kind: "APPLICATION", href: `/posts/detail?id=${postId}`, text: `${student?.name ?? "학생"}님이 '${post.title}' 공고에 지원했어요.` });
     return application;
   }); },
@@ -346,6 +347,96 @@ export const mockRepo: Repo = {
       return [{ operations, project, post }];
     }));
   },
+
+  // ── 단체 (DB 0022 와 같은 규칙) ──────────────────────────────────────────
+  async listClubs() { ensure(); return wait(db.clubs.filter((c) => c.status === "APPROVED").map((c) => ({ ...c, memberCount: db.clubMembers.filter((m) => m.clubId === c.id).length }))); },
+  async myClubs(studentId) {
+    ensure();
+    return wait(db.clubMembers.filter((m) => m.studentId === studentId && m.status === "ACTIVE").flatMap((m) => {
+      const club = db.clubs.find((c) => c.id === m.clubId);
+      return club ? [{ club: { ...club, memberCount: db.clubMembers.filter((x) => x.clubId === club.id).length }, role: m.role }] : [];
+    }));
+  },
+  async listClubMembers(clubId) { ensure(); return wait(db.clubMembers.filter((m) => m.clubId === clubId)); },
+  async createClub(actorId, input) { return tx(() => {
+    if (users.find((u) => u.id === actorId)?.role !== "student") throw new Error("학생만 단체를 만들 수 있어요");
+    if (db.clubs.some((c) => c.name === input.name.trim())) throw new Error("같은 이름의 단체가 이미 있어요");
+    const club: Club = {
+      id: `c${Date.now()}`, name: input.name.trim(), kind: input.kind,
+      kindOther: input.kind === "OTHER" ? input.kindOther?.trim() || undefined : undefined,
+      description: input.description, college: input.college, createdBy: actorId, status: "PENDING",
+    };
+    db.clubs.push(club);
+    db.clubMembers.push({ clubId: club.id, studentId: actorId, role: "LEADER", status: "ACTIVE", joinedAt: new Date().toISOString() });
+    return club;
+  }); },
+  async joinClub(clubId, actorId) { return tx(() => {
+    const club = db.clubs.find((c) => c.id === clubId);
+    if (club?.status !== "APPROVED") throw new Error("아직 등록 심사 중인 단체예요");
+    if (!db.clubMembers.some((m) => m.clubId === clubId && m.studentId === actorId))
+      db.clubMembers.push({ clubId, studentId: actorId, role: "MEMBER", status: "PENDING", joinedAt: new Date().toISOString() });
+    for (const leader of db.clubMembers.filter((m) => m.clubId === clubId && m.role === "LEADER" && m.status === "ACTIVE"))
+      pushNotification({ userId: leader.studentId, kind: "CLUB_JOIN", href: `/clubs/detail?id=${clubId}`, text: `${users.find((u) => u.id === actorId)?.name ?? "학생"}님이 "${club.name}" 가입을 신청했어요.` });
+  }); },
+  async reviewMember(clubId, studentId, approve, actorId) { return tx(() => {
+    if (!db.clubMembers.some((m) => m.clubId === clubId && m.studentId === actorId && m.role === "LEADER" && m.status === "ACTIVE"))
+      throw new Error("단체 대표만 가입을 수락할 수 있어요");
+    const i = db.clubMembers.findIndex((m) => m.clubId === clubId && m.studentId === studentId);
+    if (i < 0) return;
+    if (approve) {
+      db.clubMembers[i].status = "ACTIVE";
+      pushNotification({ userId: studentId, kind: "CLUB_JOIN", href: `/clubs/detail?id=${clubId}`, text: `"${db.clubs.find((c) => c.id === clubId)?.name}" 가입이 수락됐어요.` });
+    } else db.clubMembers.splice(i, 1);
+  }); },
+  async leaveClub(clubId, actorId) { return tx(() => {
+    if (db.operations.some((o) => o.clubId === clubId && o.maintainerId === actorId && (o.status === "WARRANTY" || o.status === "OPERATING")))
+      throw new Error("맡고 있는 서비스의 담당자를 먼저 넘겨 주세요");
+    const i = db.clubMembers.findIndex((m) => m.clubId === clubId && m.studentId === actorId);
+    if (i >= 0) db.clubMembers.splice(i, 1);
+  }); },
+  // ── 관리자 ──────────────────────────────────────────────────────────────
+  async listPendingClubs() { ensure(); return wait(db.clubs.filter((c) => c.status === "PENDING")); },
+  async reviewClub(clubId, approve, reason, actorId) { return tx(() => {
+    if (users.find((u) => u.id === actorId)?.role !== "admin") throw new Error("관리자만 심사할 수 있어요");
+    const club = db.clubs.find((c) => c.id === clubId);
+    if (!club) throw new Error("단체를 찾을 수 없어요");
+    club.status = approve ? "APPROVED" : "REJECTED";
+    club.rejectReason = approve ? undefined : reason;
+    pushNotification({ userId: club.createdBy, kind: "CLUB_REVIEW", href: "/clubs", text: approve ? `신청한 단체 "${club.name}" 가 등록됐어요.` : `단체 "${club.name}" 등록이 반려됐어요. ${reason ?? ""}` });
+  }); },
+  async adminOverview() {
+    ensure();
+    const title = (projectId: string) => db.posts.find((p) => p.id === db.projects.find((x) => x.id === projectId)?.postId)?.title ?? "프로젝트";
+    const soon = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+    return wait({
+      pendingClubs: db.clubs.filter((c) => c.status === "PENDING").length,
+      students: users.filter((u) => u.role === "student").length,
+      residents: users.filter((u) => u.role === "resident").length,
+      posts: db.posts.length,
+      urgentOpen: db.posts.filter((p) => p.urgent && p.status === "open").length,
+      operating: db.operations.filter((o) => o.status === "WARRANTY" || o.status === "OPERATING").length,
+      handoverOpen: db.operations.filter((o) => o.status === "HANDOVER_OPEN").length,
+      warrantyEndingSoon: db.operations.filter((o) => o.warrantyDefectUntil && o.warrantyDefectUntil <= soon)
+        .map((o) => ({ projectId: o.projectId, title: title(o.projectId), until: o.warrantyDefectUntil! })),
+      downSites: db.operations.filter((o) => o.lastCheckOk === false).map((o) => ({ projectId: o.projectId, title: title(o.projectId) })),
+      openTickets: db.tickets.filter((t) => t.status === "OPEN").length,
+    });
+  },
+
+  async assignMaintainer(projectId, studentId, actorId) { return tx(() => {
+    const o = db.operations.find((x) => x.projectId === projectId);
+    if (!o) throw new Error("운영 중인 프로젝트가 아니에요");
+    if (!o.clubId) throw new Error("단체가 맡은 프로젝트만 내부에서 담당자를 바꿀 수 있어요");
+    const leader = db.clubMembers.some((m) => m.clubId === o.clubId && m.studentId === actorId && m.role === "LEADER" && m.status === "ACTIVE");
+    if (o.maintainerId !== actorId && !leader) throw new Error("현재 담당자나 단체 대표만 담당자를 바꿀 수 있어요");
+    if (!db.clubMembers.some((m) => m.clubId === o.clubId && m.studentId === studentId && m.status === "ACTIVE")) throw new Error("같은 단체 소속 학생에게만 넘길 수 있어요");
+    const term = db.terms.find((t) => t.projectId === projectId && t.studentId === o.maintainerId && !t.endedOn);
+    if (term) term.endedOn = new Date().toISOString().slice(0, 10);
+    o.maintainerId = studentId;
+    if (o.status === "HANDOVER_OPEN") o.status = "OPERATING";
+    db.terms.push({ id: `mt${Date.now()}`, projectId, studentId, startedOn: new Date().toISOString().slice(0, 10), ticketsClosed: 0 });
+    pushNotification({ userId: studentId, kind: "HANDOVER_TAKEN", href: `/projects/handover?id=${projectId}`, text: "단체에서 맡고 있는 서비스의 담당자가 되었어요." });
+  }); },
 
   async trustSummary(studentId) {
     ensure();

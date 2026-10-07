@@ -23,7 +23,7 @@ export default function NewPost() {
   const [l, setL] = useState({ problem: "", deliverables: "", completionCriteria: "", deadline: "", revisionLimit: 2, compensationType: "NON_MONETARY" as CompensationType, paidAmount: "", domain: null as DomainKey | null });
   const [slots, setSlots] = useState<RoleSlot[]>([{ label: "디자이너", category: "디자인", count: 1, filled: [] }]);
   // 계속 운영되는 결과물(웹사이트 등)이면 완료 후 유지보수·인수인계가 따라붙는다
-  const [ops, setOps] = useState({ ongoing: false, touched: false, requestDays: 30, requestCount: 3, defectDays: 90, clientBilling: true });
+  const [ops, setOps] = useState({ ongoing: false, touched: false, requestDays: 30, requestCount: 3, defectDays: 90, clientBilling: true, preferClub: true });
   const [urgent, setUrgent] = useState({ on: false, colleges: [] as string[], open: null as string | null });
   const [memo, setMemo] = useState("");
   const [draft, setDraft] = useState<PostDraft | null>(null);
@@ -51,6 +51,7 @@ export default function NewPost() {
         deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: l.compensationType, compensationDescription: f.reward.trim(), paidAmount: paid,
         urgent: urgent.on, urgentColleges: urgent.on ? urgent.colleges : [],
         ongoing, warrantyRequestDays: ops.requestDays, warrantyRequestCount: ops.requestCount, warrantyDefectDays: ops.defectDays, clientOwnedBilling: ops.clientBilling,
+        preferClub: ongoing && ops.preferClub,
       });
       router.replace(`/posts/detail?id=${p.id}`);
     });
@@ -148,6 +149,11 @@ export default function NewPost() {
               <label className="text-xs">오류·버그 무상 기간(일)
                 <input type="number" min={0} className={`${inputCls} mt-1`} value={ops.defectDays || ""} onChange={(e) => setOps({ ...ops, defectDays: +e.target.value, touched: true })} />
                 <span className="sub mt-1 block">학생 작업 자체의 문제는 더 길게 잡는 게 보통이에요. 이 기간이 지나면 새 공고로 올려서 다시 맡길 수 있어요.</span>
+              </label>
+              <label className="flex items-start gap-2 text-xs">
+                <input type="checkbox" className="mt-0.5" checked={ops.preferClub} onChange={(e) => setOps({ ...ops, preferClub: e.target.checked, touched: true })} />
+                <span>가능하면 <b>동아리·학회 같은 단체</b>에 맡길게요
+                  <span className="sub block">학생 한 명이 졸업하거나 바빠져도 단체 안에서 다음 사람이 이어받아요. 개인 지원도 계속 받을 수 있어요.</span></span>
               </label>
               <label className="flex items-start gap-2 text-xs">
                 <input type="checkbox" className="mt-0.5" checked={ops.clientBilling} onChange={(e) => setOps({ ...ops, clientBilling: e.target.checked, touched: true })} />

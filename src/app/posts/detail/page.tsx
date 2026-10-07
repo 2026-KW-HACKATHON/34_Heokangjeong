@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import StatusBadge from "@/components/StatusBadge";
 import { collegeLabel } from "@/lib/colleges";
+import { clubKindLabel } from "@/lib/clubs";
+import type { Club } from "@/types";
 import Icon from "@/components/Icon";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
@@ -31,9 +33,12 @@ function PostDetail() {
   const [trust, setTrust] = useState<TrustSummary | null>(null);
   const [msg, setMsg] = useState("");
   const [roleId, setRoleId] = useState("");
+  const [clubId, setClubId] = useState("");                 // 단체 이름으로 지원하기 (소속이 확정된 단체만)
+  const [myClubs, setMyClubs] = useState<{ club: Club; role: string }[]>([]);
   const act = useAction();
   const reload = () => { repo.getPost(id).then((p) => setPost(p ?? null)); repo.listApplications(id).then(setApps); repo.getProjectByPost(id).then(setProject).catch(() => setProject(undefined)); };
   useEffect(reload, [id]);
+  useEffect(() => { if (user?.role === "student") repo.myClubs(user.id).then(setMyClubs); }, [user]);
   useEffect(() => { if (user?.role === "student") repo.trustSummary(user.id).then(setTrust); }, [user]);
   if (!post) return <><TopBar title="공고" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const author = users.find((u) => u.id === post.authorId) as Extract<User, { role: "resident" }> | undefined;
@@ -47,7 +52,7 @@ function PostDetail() {
     if (!user || user.role !== "student") return;
     await act.run(async () => {
       if (post!.isTeam && !roleId) throw new Error("지원할 역할을 선택해 주세요");
-      await repo.apply(post!.id, user.id, msg || "지원합니다!", roleId || undefined);
+      await repo.apply(post!.id, user.id, msg || "지원합니다!", roleId || undefined, clubId || undefined);
       setMsg(""); reload();
     });
   }
@@ -146,6 +151,18 @@ function PostDetail() {
                         </label>;
                       })}
                     </div>
+                  </fieldset>
+                )}
+                {myClubs.length > 0 && (
+                  <fieldset className="mb-2">
+                    <legend className="mb-1.5 text-sm font-semibold">누구 이름으로 지원하나요?{post.preferClub && <span className="ml-1 text-xs text-[var(--primary)]">사장님이 단체를 원해요</span>}</legend>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" aria-pressed={clubId === ""} onClick={() => setClubId("")} className={`chip ${clubId === "" ? "chip-on" : ""}`}>개인</button>
+                      {myClubs.map(({ club }) => (
+                        <button key={club.id} type="button" aria-pressed={clubId === club.id} onClick={() => setClubId(club.id)} className={`chip ${clubId === club.id ? "chip-on" : ""}`}>{club.name}</button>
+                      ))}
+                    </div>
+                    {clubId && <p className="sub mt-1 text-xs">단체 이름으로 맡으면 담당자가 바뀌어도 단체가 계속 관리해요. ({clubKindLabel(myClubs.find((m) => m.club.id === clubId)!.club)})</p>}
                   </fieldset>
                 )}
                 <textarea aria-label="지원 메시지" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="할 수 있는 것과 가능한 시간을 간단히 적어 주세요" className="h-24 w-full rounded-xl bg-[var(--line)] p-3 text-sm outline-none" />

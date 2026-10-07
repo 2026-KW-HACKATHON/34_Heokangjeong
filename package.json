@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:e2e": "node e2e/design-scenario.mjs",
     "check:functions": "cd supabase/functions && npx --yes deno check portfolio-ai/index.ts notion/index.ts draft-post/index.ts handover-ai/index.ts",
-    "seed:demo": "node scripts/seed-maintenance-demo.mjs"
+    "seed:demo": "node scripts/seed-maintenance-demo.mjs",
+    "seed:admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

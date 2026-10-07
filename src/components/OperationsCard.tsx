@@ -5,7 +5,7 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { ErrorText, useAction } from "@/components/ui";
 import { COVERAGE_LABEL, OPERATION_LABEL, TICKET_KIND_LABEL, canOpenHandover, daysLeft, handoverReadiness } from "@/lib/maintenance";
-import type { OperationsBundle, Post, TicketKind, User } from "@/types";
+import type { ClubMember, OperationsBundle, Post, TicketKind, User } from "@/types";
 
 /**
  * 완료 후 운영 카드. 점주는 담당자·보증 기간·인수인계 준비도를 보고 유지보수를 요청하고,
@@ -16,10 +16,15 @@ export default function OperationsCard({ projectId, post, users }: { projectId: 
   const [b, setB] = useState<OperationsBundle | null | undefined>(undefined);
   const [kind, setKind] = useState<TicketKind>("BUG");
   const [body, setBody] = useState("");
+  const [mates, setMates] = useState<ClubMember[]>([]);   // 같은 단체 소속 (담당자 넘기기용)
   const act = useAction();
   const reload = () => repo.getOperations(projectId).then(setB);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { reload(); }, [projectId]);
+  useEffect(() => {
+    const clubId = b && b !== null ? b.operations.clubId : undefined;
+    if (clubId) repo.listClubMembers(clubId).then((list) => setMates(list.filter((m) => m.status === "ACTIVE")));
+  }, [b]);
 
   if (b === undefined) return null;
   if (b === null) return null;                    // 운영이 아직 시작되지 않음(완료 전) 또는 만들고 끝나는 일
@@ -42,7 +47,7 @@ export default function OperationsCard({ projectId, post, users }: { projectId: 
       </div>
 
       <dl className="grid grid-cols-[88px_1fr] gap-y-1.5 text-sm">
-        <dt className="sub">담당 학생</dt><dd>{name(o.maintainerId)}</dd>
+        <dt className="sub">담당 학생</dt><dd>{name(o.maintainerId)}{o.clubId && <span className="sub"> · 단체가 관리</span>}</dd>
         <dt className="sub">내용 수정</dt>
         <dd>{req === null ? "—" : req > 0 ? `D-${req} · ${left}회 남음` : <span className="text-[var(--sub)]">기간 지남</span>}</dd>
         <dt className="sub">오류·버그</dt>
@@ -70,6 +75,21 @@ export default function OperationsCard({ projectId, post, users }: { projectId: 
       </div>
 
       {b.doc && <Link href={`/projects/handover?id=${projectId}`} className="text-sm text-[var(--primary)]">📄 인수인계서 보기 ›</Link>}
+
+      {/* 단체가 맡은 서비스: 같은 단체 안에서는 사장님 승인 없이 담당자를 넘긴다 */}
+      {o.clubId && (isMaintainer || mates.some((m) => m.studentId === user?.id && m.role === "LEADER")) && mates.length > 1 && (
+        <div className="rounded-xl bg-[var(--line)] p-3">
+          <p className="text-sm font-semibold">단체 안에서 담당자 넘기기</p>
+          <p className="sub mb-2 text-xs">같은 단체 부원에게 넘기면 사장님 승인 없이 바로 바뀌어요. 단체 밖으로 넘길 때만 이어받기 공고가 올라가요.</p>
+          <div className="flex flex-wrap gap-1.5">
+            {mates.filter((m) => m.studentId !== o.maintainerId).map((m) => (
+              <button key={m.studentId} onClick={() => run(() => repo.assignMaintainer(projectId, m.studentId, user!.id))} disabled={act.busy} className="chip bg-white">
+                {name(m.studentId)}에게
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 담당 학생: 인수인계 작성 · 인계 요청 */}
       {isMaintainer && (
