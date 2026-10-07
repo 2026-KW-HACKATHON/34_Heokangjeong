@@ -115,19 +115,26 @@ export default function NewPost() {
           </Field>
           <Field label="예상 기간(일)"><input type="number" min={1} className={inputCls} value={f.durationDays || ""} onChange={(e) => setF({ ...f, durationDays: +e.target.value })} /></Field>
           <fieldset>
-            <legend className="mb-1 text-sm font-semibold">누가 지원할 수 있나요?</legend>
+            <legend className="mb-1 text-sm font-semibold">모집 방식</legend>
+            <p className="sub mb-2 text-xs">① 누구 이름으로 지원받을지, ② 몇 명이 필요한지를 각각 고르세요.</p>
+
+            <p className="mb-1 text-sm">① 누가 지원할 수 있나요?</p>
             <div className="flex flex-wrap gap-2">
               {([["ANY", "개인·단체 모두"], ["INDIVIDUAL", "개인만"], ["CLUB", "단체만"]] as const).map(([v, label]) => (
                 <button key={v} type="button" aria-pressed={scope === v} onClick={() => setScope(v)} className={`chip ${scope === v ? "chip-on" : ""}`}>{label}</button>
               ))}
             </div>
             <p className="sub mt-1 text-xs">
-              {scope === "CLUB" ? "동아리·학회 같은 단체 이름으로만 지원받아요. 담당자가 바뀌어도 단체가 계속 관리해요."
+              {scope === "CLUB" ? "이미 있는 동아리·학회·학생회 이름으로만 지원받아요. 담당자가 바뀌어도 그 단체가 계속 관리해요."
                 : scope === "INDIVIDUAL" ? "학생 개인만 지원할 수 있어요."
-                : "개인도 단체도 지원할 수 있어요. 오래 운영할 결과물이면 단체를 추천해요."}
+                : "학생 개인도, 동아리 같은 단체도 지원할 수 있어요."}
             </p>
           </fieldset>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.isTeam} onChange={(e) => setF({ ...f, isTeam: e.target.checked })} /> 여러 명이 필요한 팀 프로젝트예요</label>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" checked={f.isTeam} onChange={(e) => setF({ ...f, isTeam: e.target.checked })} />
+            <span>② 역할을 나눠 여러 명을 모집할게요
+              <span className="sub block text-xs">예: 디자인 1명 + 개발 1명처럼 역할별로 따로 뽑아요. 한 명이면 체크하지 않아요.</span></span>
+          </label>
           {f.isTeam && (
             <div className="rounded-xl bg-[var(--line)] p-3 text-sm">
               {slots.map((s, i) => (
