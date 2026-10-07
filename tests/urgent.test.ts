@@ -101,9 +101,11 @@ describe("긴급 공고 지원 자격", () => {
   const apply = (postId: string, student: string) =>
     db.query("insert into applications (post_id, student_id, message) values ($1,$2,'지원')", [postId, student]);
 
-  it("평소 유료 공고는 검증 경험이 없으면 지원할 수 없다", async () => {
+  it("평소 공고도 검증 경험 없이 지원할 수 있다 (지원 자격 제한 폐지)", async () => {
     const id = await newPost("평소 유료 공고", false);
-    await expect(apply(id, U.ai)).rejects.toThrow(/PAID_NOT_ELIGIBLE/);
+    await apply(id, U.ai);
+    const n = (await db.query<{ n: number }>("select count(*)::int n from applications where post_id = $1", [id])).rows[0].n;
+    expect(n).toBe(1);
   });
 
   it("긴급 공고는 유료여도 검증 경험 없이 지원할 수 있다", async () => {

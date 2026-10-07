@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none">
+  <defs>
+    <linearGradient id="palm" x1="24" y1="40" x2="42" y2="79" gradientUnits="userSpaceOnUse"><stop stop-color="#FFF4E8"/><stop offset="1" stop-color="#E4C7AE"/></linearGradient>
+    <linearGradient id="tile" x1="40" y1="18" x2="80" y2="62" gradientUnits="userSpaceOnUse"><stop stop-color="#3B3E44"/><stop offset="1" stop-color="#23262B"/></linearGradient>
+  </defs>
+  <ellipse cx="60" cy="84" rx="35" ry="5" fill="#536370" opacity=".1"/>
+  <rect x="38" y="17" width="44" height="47" rx="14" fill="url(#tile)" stroke="#FFFFFF" stroke-opacity=".6"/>
+  <path d="m47 30 6 17 7-15" stroke="#247CB6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m60 32 7 15" stroke="#F6D44B" stroke-width="5" stroke-linecap="round"/>
+  <path d="m67 47 6-17" stroke="#E9AE27" stroke-width="5" stroke-linecap="round"/>
+  <g id="hand" stroke="#BDA68F" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m13 70 9-10 2-14c.4-3 4-4 5-1l1 10 2-18c.4-3 4-3 5 0l1 19 4-6c2-3 6 0 4 3l-5 12c-2 5-8 8-13 12l-5 5Z" fill="url(#palm)"/>
+    <path d="m30 55 1 7m7-6-3 9m6 0-8 5"/>
+    <path d="m7 70 10-9 17 18-10 10Z" fill="#D6E3EB" stroke="#A7BBC7"/>
+    <path d="m17 66 13 13" stroke="#F9FCFF" stroke-width="2"/>
+  </g>
+  <g transform="translate(120 0) scale(-1 1)" stroke="#BDA68F" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m13 70 9-10 2-14c.4-3 4-4 5-1l1 10 2-18c.4-3 4-3 5 0l1 19 4-6c2-3 6 0 4 3l-5 12c-2 5-8 8-13 12l-5 5Z" fill="url(#palm)"/>
+    <path d="m30 55 1 7m7-6-3 9m6 0-8 5"/>
+    <path d="m7 70 10-9 17 18-10 10Z" fill="#EEE2C6" stroke="#CAB996"/>
+    <path d="m17 66 13 13" stroke="#FFFAEB" stroke-width="2"/>
+  </g>
+</svg>

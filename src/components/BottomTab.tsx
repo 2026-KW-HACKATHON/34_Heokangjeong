@@ -9,7 +9,7 @@ const tabs = [
   { href: "/", label: "홈", icon: "home" },
   { href: "/map", label: "지도", icon: "map" },
   { href: "/chats", label: "채팅", icon: "chat" },
-  { href: "/ranking", label: "랭킹", icon: "trophy" },
+  { href: "/activity", label: "기록", icon: "folder" },
   { href: "/me", label: "나", icon: "user" },
 ];
 
@@ -31,7 +31,7 @@ export default function BottomTab() {
   if (path.startsWith("/login") || path.startsWith("/onboarding")) return null;
   if (["/projects/log", "/projects/evidence", "/projects/submit", "/projects/review", "/projects/outcome", "/portfolio/build"].some(p => path.startsWith(p))) return null;
   return (
-    <nav aria-label="주 메뉴" className="glass-nav fixed bottom-0 left-1/2 z-[1000] w-full max-w-[480px] -translate-x-1/2 border-t border-[var(--line)] pb-[env(safe-area-inset-bottom)]">
+    <nav aria-label="주 메뉴" className="glass-nav bottom-tab-bar fixed left-1/2 z-[1000] -translate-x-1/2">
       <ul className="flex">
         {list.map((t) => {
           const on = t.href === "/" ? path === "/" : path.startsWith(t.href);

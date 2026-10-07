@@ -3,7 +3,7 @@ import { chatReads } from "./chatReads";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import type {
   ActivityLog, Application, Badge, ChatMessage, ChatRoom, ClientReview, ClientVerification, Evidence, MemberVerification, Notification, Outcome, PortfolioCard,
-  PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, RankRow, Review, TeamPeerReview,
+  PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle, ProjectMember, Review, TeamPeerReview,
   SubmissionVersion, TierScoreEvent, User, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
@@ -14,6 +14,7 @@ import { listingOf } from "../listing";
 import { sourceFromBundle } from "../portfolio/source";
 import { sanitizeContent } from "../workflow/engine";
 import { summarizeTrust } from "../trust";
+import { publicationFromSource } from "../portfolio/publication";
 
 // ── DB 행(snake_case) ↔ 도메인 타입(camelCase) 변환 ────────────────────────────
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -24,7 +25,7 @@ let realtimeChannelSequence = 0;
 export const toUser = (r: Row): User => r.role === "admin"
   ? { id: r.id, role: "admin", name: r.name, location: { lat: r.lat, lng: r.lng } }
   : r.role === "student"
-  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
+  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
   : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
@@ -37,7 +38,7 @@ const toPost = (r: Row): Post => ({
   ongoing: r.ongoing ?? false, warrantyRequestCount: r.warranty_request_count ?? 3, handoverOfProject: u(r.handover_of_project), preferClub: r.prefer_club ?? false, applicantScope: r.applicant_scope ?? "ANY",
   problem: r.problem ?? "", domain: u(r.domain), expectedDeliverables: r.expected_deliverables ?? [], completionCriteria: r.completion_criteria ?? "",
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
-  compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount),
+  compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount), minimumTier: r.minimum_tier ?? "SEED",
 });
 const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, clubId: u(r.club_id), message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
 /** Edge Function 이 보낸 한국어 에러 메시지를 꺼낸다 */
@@ -161,6 +162,19 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     ...chatReads(`supabase:${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`),
     async listUsers() { return ok(await db.from("profiles").select("*")).map(toUser); },
     async getUser(id) { const r = maybe(await db.from("profiles").select("*").eq("id", id).maybeSingle()); return r ? toUser(r) : undefined; },
+    async updatePortfolioProfile(studentId, data) {
+      const { data: auth } = await db.auth.getUser();
+      if (auth.user?.id !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
+      done(await db.from("profiles").update({ about: data.about, ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
+    },
+    async uploadPortfolioImage(studentId, file) {
+      const { data: auth } = await db.auth.getUser();
+      if (auth.user?.id !== studentId) throw new Error("본인의 이미지만 올릴 수 있어요.");
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5_000_000) throw new Error("JPG, PNG, WebP 이미지를 5MB 이하로 올려 주세요.");
+      const path = `${studentId}/${crypto.randomUUID()}.${file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'}`;
+      done(await db.storage.from("portfolio-images").upload(path, file, { contentType: file.type, upsert: false }));
+      return db.storage.from("portfolio-images").getPublicUrl(path).data.publicUrl;
+    },
     async listPosts() { return (await postsWithRoles()).map(toPost); },
     async getPost(id) { const r = await postWithRoles(id); return r ? toPost(r) : undefined; },
     async createPost(p) {
@@ -170,11 +184,14 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         urgent: p.urgent ?? false, urgent_colleges: p.urgentColleges ?? [], applicant_scope: p.applicantScope ?? "ANY",
         problem: p.problem ?? "", domain: p.domain ?? null, expected_deliverables: p.expectedDeliverables ?? [], completion_criteria: p.completionCriteria ?? "",
         deadline: p.deadline || null, revision_limit: p.revisionLimit ?? 2, compensation_type: p.compensationType ?? "VOLUNTEER",
-        compensation_description: p.compensationDescription ?? "", paid_amount: p.compensationType === "PAID" ? p.paidAmount ?? null : null,
+        compensation_description: p.compensationDescription ?? "",
+        // 평소 공고는 가게 쿠폰(NON_MONETARY). 긴급 공고일 때만 현금 사례비를 받는다
+        paid_amount: p.urgent && p.compensationType === "PAID" ? p.paidAmount ?? null : null,
+        minimum_tier: "SEED",
       };
-      // 0014 를 아직 실행하지 않은 DB 에서도 등록 자체는 되게 한다 (긴급 공고 기능만 빠진다)
+      // 새 컬럼이 아직 없는 DB 에서도 등록 자체는 되게 한다 (긴급·유지보수 기능만 빠진다)
       let res = await db.from("posts").insert(row).select().single();
-      if (res.error && /urgent|schema cache/i.test(res.error.message)) {
+      if (res.error && /urgent|applicant_scope|schema cache/i.test(res.error.message)) {
         const { urgent, urgent_colleges, applicant_scope, ...legacy } = row; void urgent; void urgent_colleges; void applicant_scope;
         res = await db.from("posts").insert(legacy).select().single();
       }
@@ -234,6 +251,23 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         id: r.id, studentId: r.student_id, postId: r.post_id, title: r.title, roleLabel: r.role_label, tasks: r.tasks, durationDays: r.duration_days, rating: r.rating, verified: r.verified,
       }));
     },
+    async listPublishedPortfolio(studentId) {
+      return ok(await db.from("portfolio_publications").select("*").eq("student_id", studentId).order("published_at", { ascending: false })).map((r: Row) => ({
+        studentId: r.student_id, sourceId: r.source_id, sourceKind: r.source_kind, title: r.title, summary: r.summary, category: r.category, sections: r.sections, publishedAt: r.published_at, coverUrl: u(r.cover_url),
+      }));
+    },
+    async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {
+      const { data, error } = await db.auth.getUser();
+      if (error || data.user?.id !== studentId) throw new Error("본인의 포트폴리오만 공개할 수 있어요.");
+      const p = await publicationFromSource(repo, studentId, sourceId, sourceKind);
+      const existing = maybe(await db.from("portfolio_publications").select("cover_url").eq("student_id", studentId).eq("source_kind", sourceKind).eq("source_id", sourceId).maybeSingle());
+      done(await db.from("portfolio_publications").upsert({ student_id: studentId, source_id: sourceId, source_kind: sourceKind, title: p.title, summary: p.summary, category: p.category, sections: p.sections, published_at: p.publishedAt, cover_url: coverUrl ?? existing?.cover_url ?? null }, { onConflict: "student_id,source_kind,source_id" }));
+    },
+    async unpublishPortfolio(studentId, sourceId, sourceKind) {
+      const { data, error } = await db.auth.getUser();
+      if (error || data.user?.id !== studentId) throw new Error("본인의 공개 설정만 변경할 수 있어요.");
+      done(await db.from("portfolio_publications").delete().eq("student_id", studentId).eq("source_id", sourceId).eq("source_kind", sourceKind));
+    },
     async listNotifications(userId) {
       return ok(await db.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false })).map(toNotification);
     },
@@ -244,24 +278,6 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         .subscribe();
       return () => { db.removeChannel(ch); };
     },
-    async ranking(kind) {
-      // mock 과 같은 임시 공식: 해결 수×10 + 평가 평균×4 + 난이도 합×3
-      const [users, cards, posts] = await Promise.all([repo.listUsers(), db.from("portfolio_cards").select("*").then(ok), repo.listPosts()]);
-      const rows: RankRow[] = users.filter((u) => u.role === "student").map((s) => {
-        const mine = (cards as Row[]).filter((c) => c.student_id === s.id);
-        const avg = mine.length ? mine.reduce((a, c) => a + c.rating, 0) / mine.length : 0;
-        const diff = mine.reduce((a, c) => a + (posts.find((p) => p.id === c.post_id)?.difficulty ?? 0), 0);
-        return { id: s.id, label: s.name, sub: s.role === "student" ? s.department : "", solved: mine.length, score: mine.length * 10 + Math.round(avg * 4) + diff * 3 };
-      });
-      if (kind === "department") {
-        const by: Record<string, RankRow> = {};
-        for (const r of rows) { by[r.sub] ??= { id: r.sub, label: r.sub, sub: "학과", score: 0, solved: 0 }; by[r.sub].score += r.score; by[r.sub].solved += r.solved; }
-        return Object.values(by).sort((a, b) => b.score - a.score);
-      }
-      if (kind === "team") return []; // 팀 랭킹은 팀 확정 기능 이후
-      return rows.sort((a, b) => b.score - a.score);
-    },
-
     // ── 검증형 포트폴리오 파이프라인 (규칙은 DB 함수가 강제: supabase/migrations/0005) ──────
     async selectApplicant(applicationId) {
       const app = await repo.getApplication(applicationId);

@@ -22,6 +22,7 @@ interface Session {
   signInWithKakao: () => Promise<void>;
   signOut: () => Promise<void>;
   saveProfile: (p: ProfileInput) => Promise<void>;
+  refreshUsers: () => Promise<void>;
 }
 const Ctx = createContext<Session>(null as unknown as Session);
 
@@ -63,6 +64,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     authId: id,
     user: users.find((u) => u.id === id) ?? null,
     users,
+    refreshUsers: refresh,
     setUserId: (v) => { setId(v); try { localStorage.setItem("wolgye-user", v); } catch {} },
     async signIn(email, password) {
       const { error } = await supabase!.auth.signInWithPassword({ email, password });

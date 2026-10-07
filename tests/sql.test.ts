@@ -82,6 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -163,10 +164,10 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     const v2 = await submit(projectId, ev);
     await expect(rpc(U.owner, "request_revision", [v2, "b"])).rejects.toThrow(/REVISION_LIMIT/);
   });
-  it("유료 공고: 검증 이력 없으면 지원 불가, 생기면 가능", async () => {
+  it("이전 유료 공고도 순위·등급·검증 이력과 무관하게 지원 가능", async () => {
     const paid = await newPost("paid", "PAID");
-    await expect(as(U.stu2, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu2])).rejects.toThrow(/PAID_NOT_ELIGIBLE/);
-    await as(U.stu, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu]); // stu 는 앞 테스트에서 검증됨
+    await expect(as(U.stu2, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu2])).resolves.toHaveLength(0);
+    await as(U.stu, "insert into applications (post_id, student_id) values ($1, $2)", [paid, U.stu]);
   });
 });
 
@@ -277,6 +278,12 @@ describe("SQL: 답변·성과·포트폴리오·Notion 권한", () => {
     await as(U.stu, "insert into storage.objects (bucket_id, name) values ('evidence', $1)", [`${U.stu}/${projectId}/a.png`]);
     await expect(as(U.stu2, "insert into storage.objects (bucket_id, name) values ('evidence', $1)", [`${U.stu}/${projectId}/b.png`])).rejects.toThrow(/row-level security/);
   });
+  it("프로필 소개와 공개 이미지는 소유자만 수정·업로드한다", async () => {
+    expect(await as(U.stu, "update profiles set about='동네를 위한 디자인', avatar_url='https://example.com/avatar.jpg' where id=$1 returning id", [U.stu])).toHaveLength(1);
+    expect(await as(U.stu2, "update profiles set about='변조' where id=$1 returning id", [U.stu])).toHaveLength(0);
+    await as(U.stu, "insert into storage.objects (bucket_id, name) values ('portfolio-images', $1)", [`${U.stu}/cover.jpg`]);
+    await expect(as(U.stu2, "insert into storage.objects (bucket_id, name) values ('portfolio-images', $1)", [`${U.stu}/other.jpg`])).rejects.toThrow(/row-level security/);
+  });
   it("0003/0004 는 검증형 포트폴리오 표의 권한을 바꾸지 않는다", async () => {
     const r = await db.query<{ tablename: string }>("select distinct tablename from pg_policies where schemaname = 'public' and policyname like '개발 중%'");
     expect(r.rows).toHaveLength(0); // 0004 로 개방 정책이 모두 사라졌다
@@ -309,10 +316,10 @@ describe("SQL: Notion 저장 잠금과 사용자 격리", () => {
 });
 
 describe("SQL: 새 DB 에 번호 순서대로", () => {
-  it("0001 부터 0025 까지 번호 순서대로 오류 없이 적용된다", async () => {
+  it("0001 부터 0026 까지 번호 순서대로 오류 없이 적용된다", async () => {
     const fresh = new PGlite();
     await fresh.exec(STUBS);
-    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_urgent_posts.sql", "0015_urgent_rules.sql", "0016_urgent_apply.sql", "0017_urgent_min_reward.sql", "0018_maintenance.sql", "0019_handover_doc_write.sql", "0020_handover_post.sql", "0021_handover_apply.sql", "0022_clubs.sql", "0023_club_approval.sql", "0024_applicant_scope.sql", "0025_post_delete.sql"]) await fresh.exec(sql(f));
+    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_urgent_posts.sql", "0015_urgent_rules.sql", "0016_urgent_apply.sql", "0017_urgent_min_reward.sql", "0018_maintenance.sql", "0019_handover_doc_write.sql", "0020_handover_post.sql", "0021_handover_apply.sql", "0022_clubs.sql", "0023_club_approval.sql", "0024_applicant_scope.sql", "0025_post_delete.sql", "0026_drop_paid_gate.sql"]) await fresh.exec(sql(f));
     const t = await fresh.query<{ n: number }>("select count(*)::int n from information_schema.tables where table_schema = 'public'");
     expect(t.rows[0].n).toBe(33);
     await fresh.close();

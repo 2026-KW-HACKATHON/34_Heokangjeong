@@ -7,10 +7,9 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
 import { draftPost, type PostDraft } from "@/lib/ai/draft";
-import { COMPENSATION_LABEL } from "@/lib/listing";
 import { COLLEGES, urgentMinReward } from "@/lib/colleges";
 import { DOMAINS, DOMAIN_KEYS, domainForCategory } from "@shared/portfolio/domains";
-import type { Category, CompensationType, DomainKey, RoleSlot } from "@/types";
+import type { Category, DomainKey, RoleSlot } from "@/types";
 
 const CATS: Category[] = ["디자인", "영상", "사진", "SNS홍보", "웹/앱", "디지털도움", "기타"];
 
@@ -22,7 +21,8 @@ export default function NewPost() {
   // difficulty 는 사장님이 고르지 않는다 (주관적이라서). AI 초안이 추정하고, 없으면 보통(2)
   const [f, setF] = useState({ title: "", category: "디자인" as Category, description: "", reward: "", durationDays: 7, difficulty: 2 as 1 | 2 | 3, isTeam: false });
   const [scope, setScope] = useState<"ANY" | "INDIVIDUAL" | "CLUB">("ANY");
-  const [l, setL] = useState({ problem: "", deliverables: "", completionCriteria: "", deadline: "", revisionLimit: 2, compensationType: "NON_MONETARY" as CompensationType, paidAmount: "", domain: null as DomainKey | null });
+  const [urgentPay, setUrgentPay] = useState("");            // 긴급 공고일 때만 받는 현금 사례비
+  const [l, setL] = useState({ problem: "", deliverables: "", completionCriteria: "", deadline: "", revisionLimit: 2, domain: null as DomainKey | null });
   const [slots, setSlots] = useState<RoleSlot[]>([{ label: "디자이너", category: "디자인", count: 1, filled: [] }]);
   // 계속 운영되는 결과물(웹사이트 등)이면 완료 후 유지보수·인수인계가 따라붙는다
   const [ops, setOps] = useState({ ongoing: false, touched: false, requestDays: 30, requestCount: 3, defectDays: 90, clientBilling: true });
@@ -41,16 +41,19 @@ export default function NewPost() {
       if (!l.problem.trim()) throw new Error("어떤 문제를 해결하고 싶은지 적어 주세요");
       if (!(f.durationDays >= 1)) throw new Error("예상 기간은 1일 이상으로 적어 주세요");
       if (f.isTeam && slots.some((s) => !(s.count >= 1))) throw new Error("팀 역할 인원은 1명 이상으로 적어 주세요");
-      const paid = l.compensationType === "PAID" ? Number(l.paidAmount.replace(/,/g, "")) : undefined;
-      if (l.compensationType === "PAID" && (!paid || paid <= 0)) throw new Error("유료 의뢰는 금액을 적어 주세요");
-      // 긴급 공고는 학생에게 즉시 알림이 가므로 최소 사례비를 둔다 (DB 제약과 같은 기준)
-      const min = urgentMinReward(f.difficulty);
-      if (urgent.on && (l.compensationType !== "PAID" || !paid || paid < min))
-        throw new Error(`긴급 공고는 사례비가 ${min.toLocaleString()}원 이상이어야 해요`);
+      if (!f.reward.trim()) throw new Error("제공할 가게 쿠폰을 적어 주세요");
+      // 긴급 공고는 즉시 알림이 가므로 현금 사례비 최소 금액을 요구한다 (DB 제약과 같은 기준)
+      const paid = urgent.on ? Number(urgentPay.replace(/,/g, "")) : undefined;
+      if (urgent.on) {
+        const min = urgentMinReward(f.difficulty);
+        if (!paid || paid < min) throw new Error(`긴급 공고는 사례비가 ${min.toLocaleString()}원 이상이어야 해요`);
+      }
+      if (!f.reward.trim()) throw new Error("제공할 가게 쿠폰을 적어 주세요");
       const p = await repo.createPost({
         ...f, authorId: user!.id, location: user!.location ?? WOLGYE_CENTER, address: (user as { address?: string }).address ?? "월계1동", teamSlots: f.isTeam ? slots : undefined,
         problem: l.problem.trim(), domain, expectedDeliverables: l.deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria: l.completionCriteria.trim(),
-        deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: l.compensationType, compensationDescription: f.reward.trim(), paidAmount: paid,
+        deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: urgent.on ? "PAID" : "NON_MONETARY", compensationDescription: f.reward.trim(),
+        paidAmount: paid,
         urgent: urgent.on, urgentColleges: urgent.on ? urgent.colleges : [],
         ongoing, warrantyRequestDays: ops.requestDays, warrantyRequestCount: ops.requestCount, warrantyDefectDays: ops.defectDays, clientOwnedBilling: ops.clientBilling,
         applicantScope: scope,
@@ -64,7 +67,7 @@ export default function NewPost() {
     let d: PostDraft;
     try { d = await draftPost(memo); } catch (e) { setDrafting(false); return act.setError((e as Error).message); }
     setDraft(d);
-    setF({ title: d.title, category: d.category, description: d.description, reward: d.reward ?? f.reward, durationDays: d.durationDays, difficulty: d.difficulty, isTeam: d.isTeam });
+    setF({ title: d.title, category: d.category, description: d.description, reward: f.reward, durationDays: d.durationDays, difficulty: d.difficulty, isTeam: d.isTeam });
     setL({ ...l, problem: l.problem || memo.trim(), deliverables: d.deliverables.join("\n") || l.deliverables });
     if (d.teamSlots) setSlots(d.teamSlots);
     setDrafting(false);
@@ -103,13 +106,14 @@ export default function NewPost() {
             <Field label="마감일"><input type="date" className={inputCls} value={l.deadline} onChange={(e) => setL({ ...l, deadline: e.target.value })} /></Field>
             <Field label="보완 요청 횟수"><select className={inputCls} value={l.revisionLimit} onChange={(e) => setL({ ...l, revisionLimit: +e.target.value })}>{[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}번</option>)}</select></Field>
           </div>
-          <fieldset>
-            <legend className="mb-1 text-sm font-semibold">보상</legend>
-            <div className="flex gap-2">{(Object.keys(COMPENSATION_LABEL) as CompensationType[]).map((c) => <button key={c} type="button" aria-pressed={l.compensationType === c} onClick={() => setL({ ...l, compensationType: c })} className={`chip ${l.compensationType === c ? "chip-on" : ""}`}>{COMPENSATION_LABEL[c]}</button>)}</div>
-            {l.compensationType !== "VOLUNTEER" && <input className={`${inputCls} mt-2`} aria-label="보상 내용" placeholder={l.compensationType === "PAID" ? "보상 설명 (선택)" : "예: 식사권 5장, 음료 쿠폰"} value={f.reward} onChange={(e) => setF({ ...f, reward: e.target.value })} />}
-            {l.compensationType === "PAID" && <input inputMode="numeric" className={`${inputCls} mt-2`} aria-label="금액(원)" placeholder="금액(원)" value={l.paidAmount} onChange={(e) => setL({ ...l, paidAmount: e.target.value })} />}
-            {l.compensationType === "PAID" && <p className="sub mt-1 text-xs">{urgent.on ? "긴급 공고는 유료여도 모든 학생이 지원할 수 있어요." : "유료 의뢰는 검증된 프로젝트 경험이 있는 학생만 지원할 수 있어요."}</p>}
-          </fieldset>
+          <Field label="완료 시 제공할 가게 쿠폰" hint="이 공고를 완료한 학생에게 약속한 쿠폰을 동일하게 제공해요.">
+            <input className={inputCls} aria-label="가게 쿠폰" placeholder="예: 음료 쿠폰 5장 · 유효기간 3개월" value={f.reward} onChange={(e) => setF({ ...f, reward: e.target.value })} />
+          </Field>
+          {urgent.on && (
+            <Field label="긴급 사례비(원)" hint={`급하게 와 주는 학생에게 주는 현금이에요. 최소 ${urgentMinReward(f.difficulty).toLocaleString()}원.`}>
+              <input inputMode="numeric" className={inputCls} aria-label="긴급 사례비(원)" placeholder={`${urgentMinReward(f.difficulty).toLocaleString()}`} value={urgentPay} onChange={(e) => setUrgentPay(e.target.value)} />
+            </Field>
+          )}
           <Field label="포트폴리오 기록 방식" hint="학생이 이 분야의 질문에 답하며 과정을 기록해요.">
             <select className={inputCls} value={domain} onChange={(e) => setL({ ...l, domain: e.target.value as DomainKey })}>{DOMAIN_KEYS.map((k) => <option key={k} value={k}>{DOMAINS[k].label}</option>)}</select>
           </Field>
@@ -188,7 +192,7 @@ export default function NewPost() {
             <div className="rounded-xl bg-[var(--primary-weak)] p-3 text-xs leading-5">
               <p>긴급 공고는 사례비 <b>{urgentMinReward(f.difficulty).toLocaleString()}원 이상</b>이 필요해요.</p>
               <p className="mt-1.5">급하게 와 주는 학생에게 최소한의 보상을 보장하고, 긴급 알림이 남용되지 않게 하려는 기준이에요.</p>
-              {l.compensationType !== "PAID" && <p className="mt-1.5 font-semibold text-[var(--red)]">위 보상에서 ‘사례비’를 고르고 금액을 적어 주세요.</p>}
+              <p className="mt-1.5">아래 <b>긴급 사례비</b> 칸에 금액을 적어 주세요.</p>
             </div>
           )}
           {urgent.on && (

@@ -1,6 +1,6 @@
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
-  PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, RankRow, Review, SubmissionVersion, TeamPeerReview, TrustSummary, User, VerificationClaims, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, TicketKind, Club, ClubInput, ClubMember,
+  Club, ClubInput, ClubMember, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TicketKind, TrustSummary, User, VerificationClaims
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
 
@@ -22,6 +22,8 @@ export interface AdminOverview {
 export interface Repo {
   listUsers(): Promise<User[]>;
   getUser(id: string): Promise<User | undefined>;
+  updatePortfolioProfile(studentId: string, data: { about: string; avatarUrl?: string }): Promise<void>;
+  uploadPortfolioImage(studentId: string, file: File): Promise<string>;
   listPosts(): Promise<Post[]>;
   getPost(id: string): Promise<Post | undefined>;
   createPost(p: Omit<Post, "id" | "createdAt" | "status">): Promise<Post>;
@@ -40,10 +42,12 @@ export interface Repo {
   onMessage(applicationId: string, cb: (m: ChatMessage) => void): () => void; // 새 메시지 구독, 반환값으로 해제
   listReviews(studentId?: string): Promise<Review[]>;
   listPortfolio(studentId: string): Promise<PortfolioCard[]>;
+  listPublishedPortfolio(studentId: string): Promise<PublishedPortfolio[]>;
+  publishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"], coverUrl?: string): Promise<void>;
+  unpublishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"]): Promise<void>;
   listNotifications(userId: string): Promise<Notification[]>;
   markNotificationRead(id: string, userId: string): Promise<void>;
   onNotification(userId: string, cb: (notification: Notification) => void): () => void;
-  ranking(kind: "individual" | "team" | "department"): Promise<RankRow[]>;
 
   // ── 검증형 포트폴리오 파이프라인 ───────────────────────────────────────────
   /** 점주가 지원자를 선정 → 프로젝트 생성(또는 팀원 추가) */

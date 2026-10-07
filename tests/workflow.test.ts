@@ -55,9 +55,9 @@ describe("지원·선정", () => {
     expect(wf.selectApplicant(db, { applicationId: app.id, actorId: "owner" }, c).id).toBe(project.id);
     expect(db.members).toHaveLength(1);
   });
-  it("유료 공고는 검증 이력이 없으면 지원할 수 없다", () => {
+  it("이전 유료 공고도 검증 이력 없이 지원할 수 있다", () => {
     const db = seed(); db.posts[0].compensationType = "PAID";
-    expect(() => wf.apply(db, { postId: "post", studentId: "stu", message: "" }, ctx())).toThrow(/유료/);
+    expect(() => wf.apply(db, { postId: "post", studentId: "stu", message: "" }, ctx())).not.toThrow();
   });
 });
 

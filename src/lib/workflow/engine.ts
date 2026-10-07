@@ -8,7 +8,7 @@ import type {
 import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
 import { sourceHash } from "@shared/portfolio/snapshot";
-import { MIN_VERIFIED_FOR_PAID, POINTS } from "@shared/portfolio/policy";
+import { POINTS } from "@shared/portfolio/policy";
 import { listingOf } from "../listing";
 import { sourceFromBundle } from "../portfolio/source";
 export { roleLabelOf } from "../portfolio/source";
@@ -118,9 +118,6 @@ export function apply(db: WorkflowDB, a: { postId: string; studentId: string; me
   const scope = post.applicantScope ?? "ANY";
   if (scope === "CLUB" && !a.clubId) fail("CLUB_ONLY", "단체 이름으로만 지원할 수 있는 공고예요");
   if (scope === "INDIVIDUAL" && a.clubId) fail("INDIVIDUAL_ONLY", "개인으로만 지원할 수 있는 공고예요");
-  // 긴급 공고와 이어받기 공고는 유료여도 누구나 지원할 수 있다 (급하거나, 방치되면 안 되는 자리라서)
-  if (!post.urgent && !post.handoverOfProject && listingOf(post).compensationType === "PAID" && verifiedCount(db, a.studentId) < MIN_VERIFIED_FOR_PAID)
-    fail("PAID_NOT_ELIGIBLE", `유료 의뢰는 검증된 프로젝트가 ${MIN_VERIFIED_FOR_PAID}개 이상일 때 지원할 수 있어요`);
   const app: Application = { id: ctx.id(), postId: a.postId, studentId: a.studentId, message: a.message, roleId: a.roleId, status: "pending", createdAt: ctx.now() };
   db.applications.push(app);
   return app;

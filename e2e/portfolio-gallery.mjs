@@ -1,0 +1,41 @@
+// Isolated mock browser: publish, view from ranking, withdraw, and verify empty gallery.
+import { chromium } from "playwright";
+import assert from "node:assert/strict";
+const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+try {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", e => errors.push(e.message));
+  const base = process.env.BASE_URL ?? "http://localhost:3000";
+  await page.goto(base);
+  await page.getByRole("button", { name: "모든 재능의 공고 보기" }).click();
+  await page.waitForFunction(() => scrollY > 200);
+  assert(await page.getByRole("heading", { name: "이웃이 기다리는 도움" }).isVisible());
+  const as = async id => { await page.evaluate(id => localStorage.setItem("wolgye-user", id), id); };
+  await as("s4");
+  await page.goto(`${base}/portfolio/`);
+  await page.getByRole("button", { name: "갤러리에 공개", exact: true }).click();
+  await page.getByRole("button", { name: "이 내용을 갤러리에 공개", exact: true }).click();
+  await page.getByText("갤러리에 공개 중", { exact: true }).waitFor();
+  await as("s1");
+  await page.goto(`${base}/ranking/`);
+  await page.getByRole("link", { name: "최지우님의 공개 포트폴리오 보기" }).click();
+  await page.getByRole("button", { name: "월계 커피 홍보 프로젝트 자세히 보기" }).waitFor();
+  if (process.env.GALLERY_SCREENSHOT) await page.screenshot({ path: process.env.GALLERY_SCREENSHOT });
+  await page.getByRole("button", { name: "월계 커피 홍보 프로젝트 자세히 보기" }).click();
+  await page.getByRole("dialog", { name: "공개 포트폴리오 상세" }).waitFor();
+  assert(await page.getByText("홍보 게시물 6개 제작", { exact: false }).isVisible());
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await as("s4");
+  await page.goto(`${base}/portfolio/`);
+  await page.getByRole("button", { name: "비공개로 전환" }).click();
+  await page.getByText("비공개", { exact: true }).waitFor();
+  await as("s1");
+  await page.goto(`${base}/portfolio/gallery/?s=s4`);
+  await page.getByRole("heading", { name: "아직 공개한 포트폴리오가 없어요" }).waitFor();
+  assert.equal(await page.locator(".portfolio-gallery-tile").count(), 0);
+  assert.deepEqual(errors, []);
+  console.log("PASS: W scroll, ranking gallery, consent preview, publication, modal close, withdrawal.");
+} finally { await browser.close(); }
