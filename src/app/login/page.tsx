@@ -32,10 +32,11 @@ export default function Login() {
         {err && <p className="text-sm text-[var(--red)]">{err}</p>}
         <button disabled={busy} className="btn btn-primary w-full disabled:opacity-50">{busy ? "잠시만요…" : isNew ? "가입하기" : "로그인"}</button>
       </form>
-      {kakao && (
-        <button onClick={async () => { setErr(""); try { await signInWithKakao(); } catch (x) { setErr((x as Error).message); } }}
-          className="btn w-full bg-[#FEE500] text-[#191600]">카카오로 시작하기</button>
-      )}
+      {/* 카카오 공급자를 Supabase 에서 켜면 '준비 중' 표시가 사라진다 */}
+      <button onClick={async () => { setErr(""); try { await signInWithKakao(); } catch (x) { setErr((x as Error).message); } }}
+        className={`btn w-full bg-[#FEE500] text-[#191600] ${kakao ? "" : "opacity-60"}`}>
+        카카오로 시작하기{kakao ? "" : " (준비 중)"}
+      </button>
       <button onClick={() => { setIsNew(!isNew); setErr(""); }} className="sub text-sm">{isNew ? "이미 계정이 있어요 · 로그인" : "처음이에요 · 가입하기"}</button>
     </section>
   );
