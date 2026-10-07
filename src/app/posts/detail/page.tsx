@@ -85,9 +85,8 @@ function PostDetail() {
           <h2 className="page-title">{post.title}</h2>
           <p className="sub mt-1 text-sm">{author?.name} · {post.address}{user && <> · 📍 {formatDistance(distanceM(user.location, post.location))}</>}</p>
           <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed">{post.description}</p>
-          <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
+          <dl className="mt-4 grid grid-cols-2 gap-2 text-center text-sm">
             <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">기간</dt><dd className="font-semibold">{post.durationDays}일</dd></div>
-            <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">난이도</dt><dd className="font-semibold">{"★".repeat(post.difficulty)}</dd></div>
             <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">{listing.compensationType === "PAID" ? "기존 보상" : "가게 쿠폰"}</dt><dd className="truncate font-semibold">{listing.compensationType === "PAID" && listing.paidAmount ? `${listing.paidAmount.toLocaleString()}원` : listing.compensationDescription || "미기재"}</dd></div>
           </dl>
         </div>
