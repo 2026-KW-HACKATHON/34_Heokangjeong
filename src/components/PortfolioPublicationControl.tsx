@@ -9,10 +9,13 @@ export default function PortfolioPublicationControl({ studentId, sourceId, sourc
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<PublishedPortfolio | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [currentCover, setCurrentCover] = useState<string | undefined>();
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     let active = true;
-    repo.listPublishedPortfolio(studentId).then(items => { if (active) setPublished(items.some(p => p.sourceId === sourceId && p.sourceKind === sourceKind)); }).catch(() => { if (active) setError("공개 설정을 불러오지 못했어요."); }).finally(() => { if (active) setBusy(false); });
+    repo.listPublishedPortfolio(studentId).then(items => { if (active) { const item = items.find(p => p.sourceId === sourceId && p.sourceKind === sourceKind); setPublished(!!item); setCurrentCover(item?.coverUrl); } }).catch(() => { if (active) setError("공개 설정을 불러오지 못했어요."); }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
   }, [studentId, sourceId, sourceKind]);
   useEffect(() => { if (preview) dialog.current?.showModal(); }, [preview]);
@@ -25,9 +28,15 @@ export default function PortfolioPublicationControl({ studentId, sourceId, sourc
   async function save(visible: boolean) {
     setBusy(true); setError("");
     try {
-      if (visible) await repo.publishPortfolio(studentId, sourceId, sourceKind);
+      if (visible) {
+        const coverUrl = coverFile ? await repo.uploadPortfolioImage(studentId, coverFile) : currentCover;
+        await repo.publishPortfolio(studentId, sourceId, sourceKind, coverUrl);
+        setCurrentCover(coverUrl);
+      }
       else await repo.unpublishPortfolio(studentId, sourceId, sourceKind);
-      setPublished(visible); dialog.current?.close(); setPreview(null);
+      setPublished(visible); dialog.current?.close(); setPreview(null); setCoverFile(null);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverPreview(null);
     } catch { setError("공개 설정을 저장하지 못했어요. 다시 시도해 주세요."); }
     finally { setBusy(false); }
   }
@@ -41,7 +50,10 @@ export default function PortfolioPublicationControl({ studentId, sourceId, sourc
     <dialog ref={dialog} className="portfolio-gallery-dialog" aria-label="포트폴리오 공개 미리보기" onClose={() => setPreview(null)} onClick={e => { if (e.target === e.currentTarget && !busy) dialog.current?.close(); }}>
       {preview && <div className="p-6">
         <div className="mb-4 flex items-center justify-between"><h2 className="font-bold">공개할 내용 확인</h2><button autoFocus disabled={busy} onClick={() => dialog.current?.close()} aria-label="공개 미리보기 닫기" className="gallery-close">×</button></div>
-        <p className="sub mb-5 text-sm">아래 제목과 본문이 공개 갤러리에 표시됩니다. 원본 증빙과 의뢰인 평가는 포함하지 않아요. 이후 편집한 내용은 다시 공개할 때 반영됩니다.</p>
+        <p className="sub mb-5 text-sm">아래 제목과 본문, 직접 선택한 대표 사진만 공개됩니다. 원본 증빙과 의뢰인 평가는 포함하지 않아요.</p>
+        <label className="portfolio-cover-picker">피드 대표 사진 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 5_000_000) { setError("5MB 이하 이미지를 선택해 주세요."); return; } if (coverPreview) URL.revokeObjectURL(coverPreview); setCoverFile(file); setCoverPreview(URL.createObjectURL(file)); }} /></label>
+        {(coverPreview || currentCover) && <img className="portfolio-cover-preview" src={coverPreview ?? currentCover} alt="선택한 대표 사진 미리보기" />}
+        <p className="sub mb-4 text-xs">사진이 없으면 분야별 기본 표지가 표시됩니다. JPG, PNG, WebP · 최대 5MB</p>
         <h3 className="text-xl font-bold">{preview.title}</h3><p className="my-4 whitespace-pre-wrap text-sm">{preview.summary}</p>
         {preview.sections.map((s, i) => <section key={i} className="mb-4"><h4 className="font-semibold">{s.title}</h4><p className="sub mt-1 whitespace-pre-wrap text-sm">{s.body}</p></section>)}
         {error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}

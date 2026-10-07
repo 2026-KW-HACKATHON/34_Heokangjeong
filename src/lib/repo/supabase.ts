@@ -23,7 +23,7 @@ const u = <T,>(v: T | null | undefined) => v ?? undefined;
 let realtimeChannelSequence = 0;
 
 export const toUser = (r: Row): User => r.role === "student"
-  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), age: u(r.age), phone: u(r.phone), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
+  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
   : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
@@ -118,6 +118,19 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     ...chatReads(`supabase:${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`),
     async listUsers() { return ok(await db.from("profiles").select("*")).map(toUser); },
     async getUser(id) { const r = maybe(await db.from("profiles").select("*").eq("id", id).maybeSingle()); return r ? toUser(r) : undefined; },
+    async updatePortfolioProfile(studentId, data) {
+      const { data: auth } = await db.auth.getUser();
+      if (auth.user?.id !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
+      done(await db.from("profiles").update({ about: data.about, ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
+    },
+    async uploadPortfolioImage(studentId, file) {
+      const { data: auth } = await db.auth.getUser();
+      if (auth.user?.id !== studentId) throw new Error("본인의 이미지만 올릴 수 있어요.");
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5_000_000) throw new Error("JPG, PNG, WebP 이미지를 5MB 이하로 올려 주세요.");
+      const path = `${studentId}/${crypto.randomUUID()}.${file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'}`;
+      done(await db.storage.from("portfolio-images").upload(path, file, { contentType: file.type, upsert: false }));
+      return db.storage.from("portfolio-images").getPublicUrl(path).data.publicUrl;
+    },
     async listPosts() { return (await postsWithRoles()).map(toPost); },
     async getPost(id) { const r = await postWithRoles(id); return r ? toPost(r) : undefined; },
     async createPost(p) {
@@ -184,14 +197,15 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     },
     async listPublishedPortfolio(studentId) {
       return ok(await db.from("portfolio_publications").select("*").eq("student_id", studentId).order("published_at", { ascending: false })).map((r: Row) => ({
-        studentId: r.student_id, sourceId: r.source_id, sourceKind: r.source_kind, title: r.title, summary: r.summary, category: r.category, sections: r.sections, publishedAt: r.published_at,
+        studentId: r.student_id, sourceId: r.source_id, sourceKind: r.source_kind, title: r.title, summary: r.summary, category: r.category, sections: r.sections, publishedAt: r.published_at, coverUrl: u(r.cover_url),
       }));
     },
-    async publishPortfolio(studentId, sourceId, sourceKind) {
+    async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {
       const { data, error } = await db.auth.getUser();
       if (error || data.user?.id !== studentId) throw new Error("본인의 포트폴리오만 공개할 수 있어요.");
       const p = await publicationFromSource(repo, studentId, sourceId, sourceKind);
-      done(await db.from("portfolio_publications").upsert({ student_id: studentId, source_id: sourceId, source_kind: sourceKind, title: p.title, summary: p.summary, category: p.category, sections: p.sections, published_at: p.publishedAt }, { onConflict: "student_id,source_kind,source_id" }));
+      const existing = maybe(await db.from("portfolio_publications").select("cover_url").eq("student_id", studentId).eq("source_kind", sourceKind).eq("source_id", sourceId).maybeSingle());
+      done(await db.from("portfolio_publications").upsert({ student_id: studentId, source_id: sourceId, source_kind: sourceKind, title: p.title, summary: p.summary, category: p.category, sections: p.sections, published_at: p.publishedAt, cover_url: coverUrl ?? existing?.cover_url ?? null }, { onConflict: "student_id,source_kind,source_id" }));
     },
     async unpublishPortfolio(studentId, sourceId, sourceKind) {
       const { data, error } = await db.auth.getUser();

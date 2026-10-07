@@ -27,6 +27,8 @@ export interface Student {
   school?: string;
   age?: number;
   phone?: string;
+  about?: string;
+  avatarUrl?: string;
 }
 
 export interface Resident {
@@ -129,6 +131,7 @@ export interface PublishedPortfolio {
   category: string;
   sections: { title: string; body: string }[];
   publishedAt: string;
+  coverUrl?: string;
 }
 
 export interface ChatMessage {           // 채팅 메시지. 채팅방 = 지원서 하나 (공고 작성자 ↔ 지원 학생)

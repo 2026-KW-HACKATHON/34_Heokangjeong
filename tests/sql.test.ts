@@ -82,7 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -277,6 +277,12 @@ describe("SQL: 답변·성과·포트폴리오·Notion 권한", () => {
     const { projectId } = await startProject("storage");
     await as(U.stu, "insert into storage.objects (bucket_id, name) values ('evidence', $1)", [`${U.stu}/${projectId}/a.png`]);
     await expect(as(U.stu2, "insert into storage.objects (bucket_id, name) values ('evidence', $1)", [`${U.stu}/${projectId}/b.png`])).rejects.toThrow(/row-level security/);
+  });
+  it("프로필 소개와 공개 이미지는 소유자만 수정·업로드한다", async () => {
+    expect(await as(U.stu, "update profiles set about='동네를 위한 디자인', avatar_url='https://example.com/avatar.jpg' where id=$1 returning id", [U.stu])).toHaveLength(1);
+    expect(await as(U.stu2, "update profiles set about='변조' where id=$1 returning id", [U.stu])).toHaveLength(0);
+    await as(U.stu, "insert into storage.objects (bucket_id, name) values ('portfolio-images', $1)", [`${U.stu}/cover.jpg`]);
+    await expect(as(U.stu2, "insert into storage.objects (bucket_id, name) values ('portfolio-images', $1)", [`${U.stu}/other.jpg`])).rejects.toThrow(/row-level security/);
   });
   it("0003/0004 는 검증형 포트폴리오 표의 권한을 바꾸지 않는다", async () => {
     const r = await db.query<{ tablename: string }>("select distinct tablename from pg_policies where schemaname = 'public' and policyname like '개발 중%'");

@@ -16,6 +16,8 @@ export interface UploadedFile { url: string; fileName: string; mimeType: string 
 export interface Repo {
   listUsers(): Promise<User[]>;
   getUser(id: string): Promise<User | undefined>;
+  updatePortfolioProfile(studentId: string, data: { about: string; avatarUrl?: string }): Promise<void>;
+  uploadPortfolioImage(studentId: string, file: File): Promise<string>;
   listPosts(): Promise<Post[]>;
   getPost(id: string): Promise<Post | undefined>;
   createPost(p: Omit<Post, "id" | "createdAt" | "status">): Promise<Post>;
@@ -34,7 +36,7 @@ export interface Repo {
   listReviews(studentId?: string): Promise<Review[]>;
   listPortfolio(studentId: string): Promise<PortfolioCard[]>;
   listPublishedPortfolio(studentId: string): Promise<PublishedPortfolio[]>;
-  publishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"]): Promise<void>;
+  publishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"], coverUrl?: string): Promise<void>;
   unpublishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"]): Promise<void>;
   listNotifications(userId: string): Promise<Notification[]>;
   markNotificationRead(id: string, userId: string): Promise<void>;
