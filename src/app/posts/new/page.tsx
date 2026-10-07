@@ -7,7 +7,7 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
 import { draftPost, type PostDraft } from "@/lib/ai/draft";
-import { COLLEGES, urgentMinReward } from "@/lib/colleges";
+import { COLLEGES, URGENT_MIN_REWARD } from "@/lib/colleges";
 import { DOMAINS, DOMAIN_KEYS, domainForCategory } from "@shared/portfolio/domains";
 import type { Category, DomainKey, RoleSlot } from "@/types";
 
@@ -45,8 +45,7 @@ export default function NewPost() {
       // 긴급 공고는 즉시 알림이 가므로 현금 사례비 최소 금액을 요구한다 (DB 제약과 같은 기준)
       const paid = urgent.on ? Number(urgentPay.replace(/,/g, "")) : undefined;
       if (urgent.on) {
-        const min = urgentMinReward(f.difficulty);
-        if (!paid || paid < min) throw new Error(`긴급 공고는 사례비가 ${min.toLocaleString()}원 이상이어야 해요`);
+        if (!paid || paid < URGENT_MIN_REWARD) throw new Error(`긴급 공고는 사례비가 ${URGENT_MIN_REWARD.toLocaleString()}원 이상이어야 해요`);
       }
       if (!f.reward.trim()) throw new Error("제공할 가게 쿠폰을 적어 주세요");
       const p = await repo.createPost({
@@ -110,8 +109,8 @@ export default function NewPost() {
             <input className={inputCls} aria-label="가게 쿠폰" placeholder="예: 음료 쿠폰 5장 · 유효기간 3개월" value={f.reward} onChange={(e) => setF({ ...f, reward: e.target.value })} />
           </Field>
           {urgent.on && (
-            <Field label="긴급 사례비(원)" hint={`급하게 와 주는 학생에게 주는 현금이에요. 최소 ${urgentMinReward(f.difficulty).toLocaleString()}원.`}>
-              <input inputMode="numeric" className={inputCls} aria-label="긴급 사례비(원)" placeholder={`${urgentMinReward(f.difficulty).toLocaleString()}`} value={urgentPay} onChange={(e) => setUrgentPay(e.target.value)} />
+            <Field label="긴급 사례비(원)" hint={`급하게 와 주는 학생에게 주는 현금이에요. 최소 ${URGENT_MIN_REWARD.toLocaleString()}원.`}>
+              <input inputMode="numeric" className={inputCls} aria-label="긴급 사례비(원)" placeholder={`${URGENT_MIN_REWARD.toLocaleString()}`} value={urgentPay} onChange={(e) => setUrgentPay(e.target.value)} />
             </Field>
           )}
           <Field label="포트폴리오 기록 방식" hint="학생이 이 분야의 질문에 답하며 과정을 기록해요.">
@@ -190,7 +189,7 @@ export default function NewPost() {
           </label>
           {urgent.on && (
             <div className="rounded-xl bg-[var(--primary-weak)] p-3 text-xs leading-5">
-              <p>긴급 공고는 사례비 <b>{urgentMinReward(f.difficulty).toLocaleString()}원 이상</b>이 필요해요.</p>
+              <p>긴급 공고는 사례비 <b>{URGENT_MIN_REWARD.toLocaleString()}원 이상</b>이 필요해요.</p>
               <p className="mt-1.5">급하게 와 주는 학생에게 최소한의 보상을 보장하고, 긴급 알림이 남용되지 않게 하려는 기준이에요.</p>
               <p className="mt-1.5">아래 <b>긴급 사례비</b> 칸에 금액을 적어 주세요.</p>
             </div>

@@ -125,18 +125,15 @@ describe("긴급 공고 최소 보상", () => {
     await expect(insert("긴급 무료", 2, "VOLUNTEER", null)).rejects.toThrow();
   });
 
-  it("최소 금액보다 적으면 거절된다 (난이도 ★★ → 3만원)", async () => {
-    await expect(insert("긴급 2만원", 2, "PAID", 20000)).rejects.toThrow();
+  it("최소 금액(1만원)보다 적으면 거절된다", async () => {
+    await expect(insert("긴급 5천원", 2, "PAID", 5000)).rejects.toThrow();
   });
 
-  it("쉬움은 1만원부터 가능하다 (난이도 ★ → 1만원)", async () => {
-    await expect(insert("긴급 5천원 쉬움", 1, "PAID", 5000)).rejects.toThrow();
+  it("난이도와 상관없이 기준은 1만원으로 같다", async () => {
     await insert("긴급 1만원 쉬움", 1, "PAID", 10000);
-  });
-
-  it("난이도가 높으면 기준도 올라간다 (★★★ → 5만원)", async () => {
-    await expect(insert("긴급 3만원 어려움", 3, "PAID", 30000)).rejects.toThrow();
-    await insert("긴급 5만원 어려움", 3, "PAID", 50000);
+    await insert("긴급 1만원 어려움", 3, "PAID", 10000);
+    const n = (await db.query<{ n: number }>("select count(*)::int n from posts where title like '긴급 1만원%'")).rows[0].n;
+    expect(n).toBe(2);
   });
 
   it("기준을 넘으면 등록된다", async () => {
