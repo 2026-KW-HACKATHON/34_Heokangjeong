@@ -308,10 +308,20 @@ log("21 디자인 바꾸기 → 글은 그대로, 버전 v4");
 // 19. Notion 은 '⋯' 메뉴 안의 선택 기능
 await page.getByRole("button", { name: "더보기" }).click();
 await expectText("Notion으로도 내보내기");
-await expectText("데모 모드에서는 실제 계정 연결·저장을 사용할 수 없어요.");
+// 버튼 하나 → 연결 → '내보내기' → 위치 → 내용 확인, 각 단계 '뒤로'는 한 단계 전 (데모는 실제 저장 없음)
+await click("Notion 계정 연결", { exact: true });
+await click("Notion으로 내보내기", { exact: true });
+await expectText("저장 위치 선택");
+await click("뒤로", { exact: true });
+await click("Notion으로 내보내기", { exact: true });
+await page.getByText("내 워크스페이스 최상위").click();
+await click("저장 내용 확인", { exact: true });
+await expectText("개 블록");
+await click("확인한 내용을 Notion에 저장", { exact: true });
+await expectText("실제 Notion 에는 저장되지 않았어요");
 await shot("16c-menu");
 await page.getByRole("button", { name: "닫기" }).click();
-log("22 Notion 내보내기는 더보기 메뉴의 선택 기능");
+log("22 Notion 내보내기: 버튼 하나 → 연결 → 내보내기 → 위치 → 내용 확인 → 저장 (데모)");
 
 // 20. 재생성해도 편집본 유지 + 새 초안 안내
 await go(`/portfolio/build/?id=${projectId}`);
