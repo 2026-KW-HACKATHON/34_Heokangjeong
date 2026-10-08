@@ -40,7 +40,14 @@ describe("데모 완료 프로젝트", () => {
     expect(seedDemoProjects(db)).toBe(true);
     expect(db.projects).toHaveLength(5);
     expect(db.posts.some((p) => p.id === "user-post")).toBe(true);
-    expect(db.evidence.find((e) => e.type === "BEFORE_IMAGE")?.url).toBeUndefined();   // 작업 전 증빙에 완성본 사진을 쓰지 않는다
+    expect(db.evidence.find((e) => e.type === "BEFORE_IMAGE")?.url).toBe("/portfolio-samples/menu-before.png");   // 작업 전 증빙은 완성본이 아닌 작업 전 사진
+  });
+  it("메뉴판 HTML 포트폴리오의 작업 전·후 섹션에 작업 전 사진이 붙는다", () => {
+    const db = fresh();
+    seedDemoProjects(db);
+    const edit = db.edits.find((e) => e.content.title.includes("메뉴판"))!;
+    const ids = edit.content.sections.find((s) => s.key === "beforeAfter")!.evidenceIds;
+    expect(ids.map((id) => db.evidence.find((e) => e.id === id)?.url)).toEqual(["/portfolio-samples/menu-before.png"]);
   });
   it("피드 게시물은 프로젝트 작업 5개, 김하늘에게는 예전 샘플 카드가 겹치지 않는다", () => {
     const db = fresh();

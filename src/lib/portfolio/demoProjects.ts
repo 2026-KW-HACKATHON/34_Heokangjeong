@@ -14,7 +14,7 @@ interface Spec {
   title: string; category: Category; clientId: string; address: string; reward: string;
   problem: string; deliverables: string[]; criteria: string;
   answers: Record<string, string | string[]>;          // 질문 id → 글 또는 선택지
-  evidence: { type: EvidenceType; description: string; noImage?: boolean }[];   // noImage: 맞는 샘플 사진이 없어 설명만 남긴다
+  evidence: { type: EvidenceType; description: string; noImage?: boolean; image?: string }[];   // noImage: 맞는 샘플 사진이 없어 설명만 남긴다 · image: 대표 사진 대신 쓸 파일(public/portfolio-samples)
   review: { satisfaction: number; deadline: number; communication: number; handoff: number; deliverableQuality: number; comment: string };
   card: { summary: string; intro: string; problem: string; solution: string; result: string; insight: string };
   /** 피드 게시물 이름·분류: 예전 샘플 카드와 같게 둔다 (팀원 화면 테스트·피드 모습 유지). 공고·포트폴리오 제목은 title */
@@ -48,7 +48,7 @@ const SPECS: Spec[] = [
       d_reflection: "처음엔 번역이 핵심이라고 생각했는데, 손님에게 필요한 건 음식을 떠올릴 단서였어요. 다음엔 시안 전에 사용자에게 먼저 물어보겠어요",
     },
     evidence: [
-      { type: "BEFORE_IMAGE", description: "작업 전: 흑백 A4 한 장에 한글 메뉴 24개와 가격만 적힌 메뉴판", noImage: true },
+      { type: "BEFORE_IMAGE", description: "작업 전: 흑백 A4 한 장에 한글 메뉴 24개와 가격만 적힌 메뉴판", image: "menu-before.png" },
       { type: "DELIVERABLE_FILE", description: "최종 영문 메뉴판 (A4 인쇄용)" },
       { type: "USAGE_PROOF", description: "코팅해서 테이블 10곳에 비치 (의뢰인 확인)", noImage: true },
     ],
@@ -205,7 +205,7 @@ const COVER = (key: Spec["key"]) => `/portfolio-samples/${key}.png`;
 const postId = (key: Spec["key"]) => `demo-post-${key}`;
 
 /** 데모 내용을 바꾸면 올린다 → 이미 넣어 둔 브라우저도 데모 프로젝트만 새로 만든다 */
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;   // 3: 메뉴판 작업 전 사진 추가
 const isDemo = (v: unknown) => typeof v === "string" && v.startsWith("demo-");
 
 /**
@@ -258,7 +258,8 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
   // 엔진은 http(s)·업로드 파일만 받으므로 설명으로 등록한 뒤, 앱에 들어 있는 샘플 이미지(public/portfolio-samples)를 붙인다 (데모 전용)
   const ev = s.evidence.map((e) => {
     const added = wf.addEvidence(db, { projectId: project.id, actorId: DEMO_STUDENT, type: e.type, description: e.description }, ctx);
-    return e.noImage ? added : Object.assign(added, { url: COVER(s.key), fileName: `${s.key}.png`, mimeType: "image/png", source: "STUDENT_UPLOAD" as const });
+    const file = e.image ?? `${s.key}.png`;
+    return e.noImage ? added : Object.assign(added, { url: `/portfolio-samples/${file}`, fileName: file, mimeType: "image/png", source: "STUDENT_UPLOAD" as const });
   });
   const deliverables = ev.filter((e) => e.type !== "BEFORE_IMAGE").map((e) => e.id);
   const v = wf.submitVersion(db, { projectId: project.id, actorId: DEMO_STUDENT, note: "최종본입니다", evidenceIds: deliverables }, ctx);
