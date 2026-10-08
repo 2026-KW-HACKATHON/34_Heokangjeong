@@ -335,7 +335,7 @@ body[data-home-bars="hidden"] .category-dock { transform: translateY(calc(-100% 
 .portfolio-identity-main { display: contents; }
 .portfolio-identity-text { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 22px; background: white; }
 .portfolio-identity-name-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 9px; min-width: 0; }
-.portfolio-identity-nick { margin: 0; color: #777a7d; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.portfolio-identity-name-row .portfolio-identity-nick { margin: 0; color: #777a7d; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .profile-interest-options { display: flex; flex-wrap: wrap; gap: 8px; }
 .profile-interest-options legend { margin-bottom: 8px; font-size: 12px; font-weight: 600; }
 .profile-interest-options label { display: flex !important; flex-direction: row; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; background: #fff; font-size: 11px; }
@@ -498,7 +498,6 @@ input.pf-edit { display: inline-block; font-size: 14px; }
 .pf-dialog { width: 100%; max-width: 340px; border-radius: 20px; background: #fff; padding: 22px; box-shadow: 0 12px 32px rgba(0,0,0,.2); }
 
 /* 프로필 이름 아래 닉네임 (동명이인 구분) */
-.portfolio-identity-nick { margin-top: 2px; font-size: 13px; color: var(--sub); }
 /* 앱 포트폴리오와 다운로드용 웹 포트폴리오 비교 */
 .pf-mode-bar { position: sticky; top: 8px; z-index: 35; display: flex; width: max-content; max-width: calc(100% - 24px); margin: 8px auto 14px; padding: 4px; border: 1px solid #dedede; border-radius: 14px; background: rgba(255,255,255,.94); box-shadow: 0 8px 24px rgba(0,0,0,.08); backdrop-filter: blur(12px); }
 .pf-mode-bar button { min-height: 36px; padding: 7px 13px; border-radius: 10px; color: #747474; font-size: 12px; font-weight: 700; white-space: nowrap; }
