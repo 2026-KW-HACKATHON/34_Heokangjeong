@@ -40,6 +40,7 @@ const PROJECT_COLOR: Record<ProjectStatus, string> = {
   REVIEW_PENDING: "text-[var(--primary)] bg-[var(--primary-weak)]",
   REVISION_REQUESTED: "text-[#c2410c] bg-orange-50",
   COMPLETED: "text-[#1a8f4b] bg-green-50",
+  CANCELLED: "text-[var(--sub)] bg-[var(--line)]",
 };
 export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
   return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PROJECT_COLOR[status]}`}>{STATUS_LABEL[status]}</span>;

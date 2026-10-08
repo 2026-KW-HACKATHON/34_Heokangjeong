@@ -1,6 +1,6 @@
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
-  Club, ClubInput, ClubMember, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TicketKind, TrustSummary, User, VerificationClaims
+  Club, ClubInput, ClubMember, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TicketKind, ProjectCancellation, TrustSummary, User, VerificationClaims,
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
 import type { AgreementTerms, WorkAgreement } from "../agreement";
@@ -30,6 +30,10 @@ export interface Repo {
   createPost(p: Omit<Post, "id" | "createdAt" | "status">): Promise<Post>;
   updatePostStatus(id: string, status: Post["status"]): Promise<void>;
   deletePost(postId: string, actorId: string): Promise<void>;   // 작성자만, 선정 전에만
+  // ── 합의 취소 (진행 중 프로젝트를 양쪽 합의로 끝낸다) ─────────────────────
+  getCancellation(projectId: string): Promise<ProjectCancellation | null>;   // 가장 최근 요청 (기한 지난 건 거절로 정리된다)
+  requestCancellation(projectId: string, reason: string, actorId: string): Promise<void>;
+  respondCancellation(cancellationId: string, accept: boolean, actorId: string): Promise<void>;
   listApplications(postId?: string): Promise<Application[]>;
   apply(postId: string, studentId: string, message: string, roleId?: string, clubId?: string): Promise<Application>;
   getApplication(id: string): Promise<Application | undefined>;
@@ -100,6 +104,9 @@ export interface Repo {
   createClub(actorId: string, input: ClubInput): Promise<Club>;
   joinClub(clubId: string, actorId: string): Promise<void>;                  // 가입 신청 (대표 수락 필요)
   reviewMember(clubId: string, studentId: string, approve: boolean, actorId: string): Promise<void>;   // 대표의 수락·거절
+  transferLeader(clubId: string, studentId: string, actorId: string): Promise<void>;                  // 대표 넘기기
+  addClubWorker(projectId: string, studentId: string, roleLabel: string, actorId: string): Promise<void>; // 실제 작업한 부원 기록
+  listClubProjects(clubId: string): Promise<{ project: Project; post: Post }[]>;                      // 단체 활동 기록
   leaveClub(clubId: string, actorId: string): Promise<void>;
   assignMaintainer(projectId: string, studentId: string, actorId: string): Promise<void>; // 단체 안에서 담당자 넘기기
   // ── 관리자 ────────────────────────────────────────────────────────────────

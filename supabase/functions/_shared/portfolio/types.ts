@@ -6,7 +6,7 @@ export type Stage = "START" | "PROGRESS" | "FINISH";
 export type AnswerStatus = "UNANSWERED" | "SKIPPED" | "NOT_APPLICABLE" | "ANSWERED";
 export type AnswerOrigin = "SCHEMA" | "AI_FOLLOWUP" | "RULE_FOLLOWUP";
 
-export type ProjectStatus = "RECRUITING" | "IN_PROGRESS" | "REVIEW_PENDING" | "REVISION_REQUESTED" | "COMPLETED";
+export type ProjectStatus = "RECRUITING" | "IN_PROGRESS" | "REVIEW_PENDING" | "REVISION_REQUESTED" | "COMPLETED" | "CANCELLED";
 export type ProjectEvent = "SELECT" | "START" | "SUBMIT" | "REQUEST_REVISION" | "RESUBMIT" | "APPROVE";
 
 export type CompensationType = "VOLUNTEER" | "NON_MONETARY" | "PAID";

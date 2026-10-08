@@ -82,7 +82,7 @@ function Room() {
           <span className="truncate">{post.title}</span><span className="sub shrink-0">공고 보기 ›</span>
         </Link>
       )}
-      <section className="flex flex-col gap-2 px-4 pb-20">
+      <section className="flex flex-col gap-2 px-4 pb-[calc(72px+env(safe-area-inset-bottom))]">
         {app && <p className="sub rounded-xl bg-[var(--line)] p-3 text-xs">지원 메시지: &ldquo;{app.message}&rdquo;</p>}
         {msgs.map((m) => {
           const mine = m.senderId === user?.id;
@@ -95,7 +95,7 @@ function Room() {
         })}
         <div ref={bottom} />
       </section>
-      <form onSubmit={send} className="fixed bottom-[60px] left-1/2 z-[1001] flex w-full max-w-[480px] -translate-x-1/2 gap-2 border-t border-[var(--line)] bg-white p-2">
+      <form onSubmit={send} className="fixed bottom-0 left-1/2 z-[1001] pb-[env(safe-area-inset-bottom)] flex w-full max-w-[480px] -translate-x-1/2 gap-2 border-t border-[var(--line)] bg-white p-2">
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="메시지 보내기" className="flex-1 rounded-full bg-[var(--line)] px-4 py-2.5 text-[15px] outline-none" />
         <button disabled={!text.trim()} className="btn btn-primary rounded-full px-4 py-2.5 disabled:opacity-40">전송</button>
       </form>

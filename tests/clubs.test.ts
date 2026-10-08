@@ -212,12 +212,13 @@ describe("지원 대상 (개인만 / 단체만)", () => {
 });
 
 describe("단체가 맡은 서비스", () => {
-  it("소속이 확정되지 않은 단체 이름으로는 지원할 수 없다", async () => {
+  it("부원은 단체 이름으로 지원할 수 없다 (대표만 가능)", async () => {
     const club = await makeClub();
-    await as(U.member, "select join_club($1)", [club]);   // 대표 수락 전
+    await joinClub(club, U.member);                        // 소속은 확정됐지만 부원
     const [post] = await as<{ id: string }>(U.owner,
       `insert into posts (title, category, description, author_id, lat, lng, domain) values ('공고','웹/앱','x',$1,37.6,127.0,'DEVELOPMENT') returning id`, [U.owner]);
-    await expect(as(U.member, "insert into applications (post_id, student_id, message, club_id) values ($1,$2,'지원',$3)", [post.id, U.member, club])).rejects.toThrow(/NOT_MEMBER/);
+    await expect(as(U.member, "insert into applications (post_id, student_id, message, club_id) values ($1,$2,'지원',$3)", [post.id, U.member, club])).rejects.toThrow(/LEADER_ONLY/);
+    await as(U.leader, "insert into applications (post_id, student_id, message, club_id) values ($1,$2,'지원',$3)", [post.id, U.leader, club]);
   });
 
   it("단체 이름으로 지원하면 운영에도 단체가 기록된다", async () => {
@@ -266,9 +267,42 @@ describe("단체가 맡은 서비스", () => {
     const projectId = await clubProject(club);
     await expect(as(U.leader, "select leave_club($1)", [club])).rejects.toThrow(/HAS_DUTY/);
 
-    await as(U.leader, "select assign_maintainer($1,$2)", [projectId, U.member]);   // 담당자를 넘기면
-    await as(U.leader, "select leave_club($1)", [club]);                            // 탈퇴할 수 있다
+    await as(U.leader, "select assign_maintainer($1,$2)", [projectId, U.member]);   // 담당자를 넘기고
+    await expect(as(U.leader, "select leave_club($1)", [club])).rejects.toThrow(/LAST_LEADER/);  // 대표도 넘겨야 한다
+    await as(U.leader, "select transfer_leader($1,$2)", [club, U.member]);
+    await as(U.leader, "select leave_club($1)", [club]);
     const n = (await db.query<{ n: number }>("select count(*)::int n from club_members where club_id = $1", [club])).rows[0].n;
     expect(n).toBe(1);
+  });
+
+  it("대표를 부원에게 넘길 수 있다", async () => {
+    const club = await makeClub();
+    await joinClub(club, U.member);
+    await as(U.leader, "select transfer_leader($1,$2)", [club, U.member]);
+    const rows = (await db.query<{ student_id: string; role: string }>("select * from club_members where club_id = $1", [club])).rows;
+    expect(rows.find((r) => r.student_id === U.member)?.role).toBe("LEADER");
+    expect(rows.find((r) => r.student_id === U.leader)?.role).toBe("MEMBER");
+  });
+
+  it("대표가 아니면 대표를 넘길 수 없다", async () => {
+    const club = await makeClub();
+    await joinClub(club, U.member);
+    await expect(as(U.member, "select transfer_leader($1,$2)", [club, U.member])).rejects.toThrow(/FORBIDDEN/);
+  });
+
+  it("대표가 실제 작업한 부원을 참여자로 추가하면 그 부원에게도 기록이 남는다", async () => {
+    const club = await makeClub();
+    await joinClub(club, U.member);
+    const projectId = await clubProject(club);
+    await as(U.leader, "select add_club_worker($1,$2,$3)", [projectId, U.member, "디자인"]);
+    const rows = (await db.query<{ student_id: string; role_label: string }>("select * from project_members where project_id = $1", [projectId])).rows;
+    expect(rows.map((r) => r.student_id).sort()).toEqual([U.leader, U.member].sort());
+    expect(rows.find((r) => r.student_id === U.member)?.role_label).toBe("디자인");
+  });
+
+  it("단체 밖 학생은 참여자로 추가할 수 없다", async () => {
+    const club = await makeClub();
+    const projectId = await clubProject(club);
+    await expect(as(U.leader, "select add_club_worker($1,$2,null)", [projectId, U.outsider])).rejects.toThrow(/NOT_MEMBER/);
   });
 });

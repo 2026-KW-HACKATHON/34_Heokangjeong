@@ -32,11 +32,11 @@ function PostDetail() {
   const [msg, setMsg] = useState("");
   const [roleId, setRoleId] = useState("");
   const [clubId, setClubId] = useState("");                 // 단체 이름으로 지원하기 (소속이 확정된 단체만)
-  const [myClubs, setMyClubs] = useState<{ club: Club; role: string }[]>([]);
+  const [myClubs, setMyClubs] = useState<{ club: Club; role: string }[]>([]);   // 단체 이름으로 지원은 대표만
   const act = useAction();
   const reload = () => { repo.getPost(id).then((p) => setPost(p ?? null)); repo.listApplications(id).then(setApps); repo.getProjectByPost(id).then(setProject).catch(() => setProject(undefined)); };
   useEffect(reload, [id]);
-  useEffect(() => { if (user?.role === "student") repo.myClubs(user.id).then(setMyClubs); }, [user]);
+  useEffect(() => { if (user?.role === "student") repo.myClubs(user.id).then((list) => setMyClubs(list.filter((m) => m.role === "LEADER"))); }, [user]);
   if (!post) return <><TopBar title="공고" back /><p className="sub p-6 text-center text-sm">불러오는 중…</p></>;
   const author = users.find((u) => u.id === post.authorId) as Extract<User, { role: "resident" }> | undefined;
   const mine = apps.find((a) => a.studentId === user?.id);
@@ -156,8 +156,8 @@ function PostDetail() {
                     <legend className="mb-1.5 text-sm font-semibold">누구 이름으로 지원하나요?</legend>
                     {myClubs.length === 0 ? (
                       <p className="sub text-xs">{scope === "CLUB"
-                        ? "단체만 지원할 수 있는 공고예요. ‘나 › 단체’ 에서 동아리·학회에 가입한 뒤 지원해 주세요."
-                        : "소속 단체가 있으면 단체 이름으로도 지원할 수 있어요."}</p>
+                        ? "단체만 지원할 수 있는 공고예요. 단체 이름으로는 대표만 지원할 수 있어요. 부원이면 대표에게 알려 주세요."
+                        : "내가 대표인 단체가 있으면 단체 이름으로도 지원할 수 있어요."}</p>
                     ) : (
                       <>
                         <div className="flex flex-wrap gap-2">

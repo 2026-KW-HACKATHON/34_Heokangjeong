@@ -6,6 +6,8 @@ import TopBar from "@/components/TopBar";
 import EvidenceItem from "@/components/EvidenceItem";
 import Verification from "@/components/Verification";
 import OperationsCard from "@/components/OperationsCard";
+import ClubWorkers from "@/components/ClubWorkers";
+import CancelProject from "@/components/CancelProject";
 import Readiness from "@/components/Readiness";
 import MissingRequired from "@/components/MissingRequired";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
@@ -71,6 +73,8 @@ function Project() {
             <dt>참여 학생</dt><dd className="flex flex-col items-start gap-1">{b.members.map((m) => <Link key={m.studentId} href={`/profiles/view?id=${m.studentId}`} className="font-semibold text-[var(--primary)] underline underline-offset-2">{name(m.studentId)}{m.isLead ? " (팀장)" : ""} · {m.roleLabel}</Link>)}</dd>
             <dt>시작 날짜</dt><dd>{fmtDate(b.project.startedAt ?? b.project.createdAt)}</dd>
           </dl>
+          {/* 단체가 맡은 프로젝트: 대표가 실제 작업한 부원을 참여자로 추가하면 그 부원에게도 기록이 남는다 */}
+          <ClubWorkers projectId={id} members={b.members} onChange={reload} />
           <ol className="mt-4 flex items-center justify-between gap-1 text-[11px]" aria-label="진행 단계">
             {FLOW.map((f) => (
               <li key={f.key} className="flex flex-1 flex-col items-center gap-1">
@@ -191,6 +195,9 @@ function Project() {
         )}
 
         {/* 계속 운영되는 결과물이면 완료 후 운영·유지보수·인수인계가 이어진다 */}
+        {/* 합의 취소: 요청 → 상대 1명 수락, 3일 무응답은 거절 */}
+        <CancelProject bundle={b} onChange={reload} />
+
         {status === "COMPLETED" && <OperationsCard projectId={id} post={b.post} users={users} />}
 
         {status !== "RECRUITING" && (

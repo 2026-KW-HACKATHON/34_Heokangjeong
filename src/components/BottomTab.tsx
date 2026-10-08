@@ -29,9 +29,13 @@ export default function BottomTab() {
   const list = isAdmin ? adminTabs : tabs;
   const unread = useUnreadChats(isAdmin ? undefined : user?.id);
   if (path.startsWith("/login") || path.startsWith("/onboarding")) return null;
-  if (["/projects/log", "/projects/evidence", "/projects/submit", "/projects/review", "/projects/outcome", "/portfolio/build"].some(p => path.startsWith(p))) return null;
+  // 대화·작성 화면은 그 화면에만 집중하도록 하단 메뉴를 숨긴다
+  if (["/chats/room", "/projects/log", "/projects/evidence", "/projects/submit", "/projects/review", "/projects/outcome", "/portfolio/build"].some(p => path.startsWith(p))) return null;
   return (
-    <nav aria-label="주 메뉴" className="glass-nav bottom-tab-bar fixed left-1/2 z-[1000] -translate-x-1/2">
+    <>
+    {/* 메뉴가 보일 때만 그만큼 자리를 비워 둔다 (채팅방처럼 메뉴를 숨기는 화면에는 빈 공간이 생기지 않게) */}
+    <div aria-hidden="true" className="h-[var(--bottom-tab-h)]" />
+    <nav aria-label="주 메뉴" className="glass-nav min-h-[var(--bottom-tab-h)] bottom-tab-bar fixed left-1/2 z-[1000] -translate-x-1/2">
       <ul className="flex">
         {list.map((t) => {
           const on = t.href === "/" ? path === "/" : path.startsWith(t.href);
@@ -45,5 +49,6 @@ export default function BottomTab() {
         })}
       </ul>
     </nav>
+    </>
   );
 }

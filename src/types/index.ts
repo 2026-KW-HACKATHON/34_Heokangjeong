@@ -256,3 +256,16 @@ export interface Club {
 }
 export interface ClubMember { clubId: string; studentId: string; role: "LEADER" | "MEMBER"; status: "PENDING" | "ACTIVE"; joinedAt: string }
 export interface ClubInput { name: string; kind: ClubKind; kindOther?: string; description: string; college?: string }
+
+// ── 합의 취소 (진행 중 프로젝트를 양쪽 합의로 끝낸다. 기록은 지우지 않는다) ──
+export interface ProjectCancellation {
+  id: string;
+  projectId: string;
+  requestedBy: string;
+  responderId: string;        // 수락·거절 권한을 가진 한 명
+  reason: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+  expiresAt: string;          // 이때까지 응답이 없으면 거절로 처리
+  createdAt: string;
+  respondedAt?: string;
+}
