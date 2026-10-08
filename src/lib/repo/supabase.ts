@@ -8,7 +8,7 @@ import type {
   SubmissionVersion, TierScoreEvent, User, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
-import { DOMAINS, QUESTION_SET_VERSION, coreQuestions, domainForCategory } from "@shared/portfolio/domains";
+import { QUESTION_SET_VERSION, coreQuestions, domainForCategory } from "@shared/portfolio/domains";
 import { templateDraft } from "@shared/portfolio/narrative";
 import { sourceHash } from "@shared/portfolio/snapshot";
 import { listingOf } from "../listing";
