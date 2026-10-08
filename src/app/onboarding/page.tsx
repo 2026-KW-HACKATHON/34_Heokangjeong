@@ -4,14 +4,15 @@ import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
 import { COLLEGES, guessCollege } from "@/lib/colleges";
 import type { Category } from "@/types";
+import { NICKNAME_HINT, nicknameProblem } from "@/lib/nickname";
 
 const CATS: Category[] = ["디자인", "영상", "사진", "SNS홍보", "웹/앱", "디지털도움", "기타"];
 
 /** 가입 직후 프로필 만들기: 학생이면 학과·기술·관심, 주민·상인이면 상호·주소 */
 export default function Onboarding() {
-  const { saveProfile, signOut } = useSession();
+  const { saveProfile, signOut, users, authId } = useSession();
   const [role, setRole] = useState<"student" | "resident">("student");
-  const [f, setF] = useState({ name: "", department: "", school: "광운대학교", college: "", age: "", phone: "", skills: "", interests: [] as Category[], availableHours: "", maxDistanceM: 1500, kind: "상인" as "상인" | "주민", address: "" });
+  const [f, setF] = useState({ name: "", nickname: "", department: "", school: "광운대학교", college: "", age: "", phone: "", skills: "", interests: [] as Category[], availableHours: "", maxDistanceM: 1500, kind: "상인" as "상인" | "주민", address: "" });
   const [err, setErr] = useState("");
   const [triedSubmit, setTriedSubmit] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -19,6 +20,7 @@ export default function Onboarding() {
 
   const missing = {
     name: !f.name.trim(),
+    nickname: !!nicknameProblem(f.nickname, users, authId ?? undefined),
     department: role === "student" && !f.department.trim(),
     skills: role === "student" && skills.length === 0,
     interests: role === "student" && f.interests.length === 0,
@@ -29,12 +31,12 @@ export default function Onboarding() {
 
   async function submit() {
     setTriedSubmit(true);
-    if (hasMissing) return setErr("필수 항목을 모두 입력해 주세요");
+    if (hasMissing) return setErr(missing.nickname && f.nickname.trim() ? nicknameProblem(f.nickname, users, authId ?? undefined)! : "필수 항목을 모두 입력해 주세요");
     setBusy(true); setErr("");
     try {
       await saveProfile(role === "student"
-        ? { role, name: f.name.trim(), department: f.department.trim(), school: f.school.trim(), college: f.college || guessCollege(f.department), age: f.age ? Number(f.age) : undefined, phone: f.phone.trim() || undefined, skills, interests: f.interests, availableHours: f.availableHours, maxDistanceM: f.maxDistanceM, location: WOLGYE_CENTER }
-        : { role, name: f.name.trim(), kind: f.kind, address: f.address.trim(), location: WOLGYE_CENTER });
+        ? { role, name: f.name.trim(), nickname: f.nickname.trim(), department: f.department.trim(), school: f.school.trim(), college: f.college || guessCollege(f.department), age: f.age ? Number(f.age) : undefined, phone: f.phone.trim() || undefined, skills, interests: f.interests, availableHours: f.availableHours, maxDistanceM: f.maxDistanceM, location: WOLGYE_CENTER }
+        : { role, name: f.name.trim(), nickname: f.nickname.trim(), kind: f.kind, address: f.address.trim(), location: WOLGYE_CENTER });
     } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
   }
   const field = (invalid = false) => `w-full rounded-xl border bg-[var(--line)] p-3 text-[15px] outline-none ${invalid ? "border-[var(--red)]" : "border-transparent"}`;
@@ -49,6 +51,11 @@ export default function Onboarding() {
       </div>
       <div className="card flex flex-col gap-3">
         <label className="text-sm">{role === "student" ? "이름" : "상호 또는 이름"}{required}<input required aria-invalid={triedSubmit && missing.name} className={`${field(triedSubmit && missing.name)} mt-1`} placeholder={role === "student" ? "예: 홍길동" : "예: 월계 커피"} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
+        {/* 닉네임: 동명이인 구분·검색용, 중복 불가 */}
+        <label className="text-sm">닉네임{required}<span className="sub block text-xs">{NICKNAME_HINT}. 같은 이름이 있어도 닉네임으로 구분하고 찾을 수 있어요</span>
+          <input required aria-invalid={triedSubmit && missing.nickname} className={`${field(triedSubmit && missing.nickname)} mt-1`} placeholder="예: 하늘그림" maxLength={16} value={f.nickname} onChange={(e) => setF({ ...f, nickname: e.target.value.replace(/\s/g, "") })} />
+          {f.nickname.trim() && <span className={`mt-1 block text-xs ${missing.nickname ? "text-[var(--red)]" : "text-[var(--green)]"}`}>{nicknameProblem(f.nickname, users, authId ?? undefined) ?? "쓸 수 있는 닉네임이에요"}</span>}
+        </label>
         {role === "student" ? (
           <>
             <label className="text-sm">학과{required}<input required aria-invalid={triedSubmit && missing.department} className={`${field(triedSubmit && missing.department)} mt-1`} placeholder="예: 소프트웨어학부" value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} /></label>

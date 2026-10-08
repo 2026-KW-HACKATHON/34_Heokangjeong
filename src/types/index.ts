@@ -18,6 +18,7 @@ export interface Student {
   id: string;
   role: "student";
   name: string;
+  nickname?: string;         // 동명이인 구분·검색용, 중복 불가 (예전 계정은 비어 있을 수 있음)
   department: string;        // 학과
   skills: string[];          // 보유 기술
   interests: Category[];     // 관심 카테고리
@@ -36,13 +37,14 @@ export interface Resident {
   id: string;
   role: "resident";
   name: string;              // 상호 또는 이름
+  nickname?: string;
   kind: "상인" | "주민";
   location: GeoPoint;
   address: string;
 }
 
 /** 앱 관리자 (단체 등록 심사 등). 화면은 /admin 하나만 쓴다 */
-export interface Admin { id: string; role: "admin"; name: string; location: GeoPoint }
+export interface Admin { id: string; role: "admin"; name: string; nickname?: string; location: GeoPoint }
 
 export type User = Student | Resident | Admin;
 
