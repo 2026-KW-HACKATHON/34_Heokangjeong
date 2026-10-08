@@ -11,7 +11,7 @@ import MissingRequired from "@/components/MissingRequired";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { STAGES, domainForMember, myAnswers, stageProgress, useBundle } from "@/lib/useBundle";
+import { domainForMember, myAnswers, questionsForMember, stageProgress, STAGES, useBundle } from "@/lib/useBundle";
 import { listingOf } from "@/lib/listing";
 import { DOMAINS } from "@shared/portfolio/domains";
 import { computeReadiness } from "@shared/portfolio/readiness";
@@ -52,7 +52,7 @@ function Project() {
   const status = b.project.status;
   const canSubmit = isMember && (b.project.mode !== "TEAM" || me?.isLead) && (status === "IN_PROGRESS" || status === "REVISION_REQUESTED");
   const approved = b.versions.find((v) => v.id === b.project.approvedVersionId);
-  const readiness = isMember ? computeReadiness({ domain: domainForMember(b, user.id), answers: myAnswers(b, user.id), evidenceTypes: b.evidence.filter((e) => e.authorId === user.id).map((e) => e.type), outcomeCount: b.outcomes.filter((o) => o.authorId === user.id).length }) : null;
+  const readiness = isMember ? computeReadiness({ domain: domainForMember(b, user.id), questionIds: questionsForMember(b, user.id).map((q) => q.id), answers: myAnswers(b, user.id), evidenceTypes: b.evidence.filter((e) => e.authorId === user.id).map((e) => e.type), outcomeCount: b.outcomes.filter((o) => o.authorId === user.id).length }) : null;
   const visibleLogs = isOwner ? b.logs : b.logs.filter((l) => l.authorId === user.id);
   const visibleEvidence = isOwner ? b.evidence : b.evidence.filter((e) => e.authorId === user.id);
   const myMemberVerification = b.memberVerifications.find((v) => v.studentId === user.id);

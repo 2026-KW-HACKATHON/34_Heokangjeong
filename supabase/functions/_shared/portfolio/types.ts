@@ -37,12 +37,14 @@ export interface QuestionDefinition {
   stage: Stage;
   title: string;             // 한 화면의 큰 질문
   help?: string;             // 짧은 설명
+  example?: string;          // 화면에 늘 보이는 답변 예시 (placeholder 와 달리 입력해도 사라지지 않는다)
   input: QuestionInput;
   allowNA?: boolean;         // "해당 없음" 버튼 노출
   followUp?: {               // Layer B: 답이 짧거나 이유가 빠졌을 때만 후속 질문
     minChars?: number;       // 이보다 짧으면 후속 질문 후보
     askWhy?: boolean;        // 이유(왜)가 안 보이면 후속 질문 후보
     hints: string[];         // AI 가 없을 때 쓰는 규칙 기반 후속 질문
+    hintExamples?: string[]; // hints 와 같은 순서의 답변 예시
   };
 }
 /** 프로젝트 시작 시점의 질문 목록. 이후 설정이 바뀌어도 진행 중인 프로젝트는 이 목록을 쓴다. */

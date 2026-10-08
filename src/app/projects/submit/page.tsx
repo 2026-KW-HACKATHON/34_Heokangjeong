@@ -7,7 +7,7 @@ import EvidenceItem from "@/components/EvidenceItem";
 import { ErrorText, Field, inputCls, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { useBundle } from "@/lib/useBundle";
+import { questionsForMember, useBundle } from "@/lib/useBundle";
 import { listingOf } from "@/lib/listing";
 import { domainForMember, myAnswers } from "@/lib/useBundle";
 import { computeReadiness } from "@shared/portfolio/readiness";
@@ -51,7 +51,7 @@ function Submit() {
           <div className="card bg-orange-50 text-sm"><p className="font-bold">v{latest.version} 보완 요청</p><p className="mt-1">“{latest.reviewComment}”</p></div>
         )}
         <div className="card"><h3 className="font-bold">제출 전 확인</h3>
-          <MissingRequired r={computeReadiness({ domain: domainForMember(b, user.id), answers: myAnswers(b, user.id), evidenceTypes: b.evidence.filter((e) => e.authorId === user.id).map((e) => e.type), outcomeCount: b.outcomes.filter((o) => o.authorId === user.id).length })}
+          <MissingRequired r={computeReadiness({ domain: domainForMember(b, user.id), questionIds: questionsForMember(b, user.id).map((q) => q.id), answers: myAnswers(b, user.id), evidenceTypes: b.evidence.filter((e) => e.authorId === user.id).map((e) => e.type), outcomeCount: b.outcomes.filter((o) => o.authorId === user.id).length })}
             href={(q) => `/projects/log?id=${id}&q=${q}&set=${q}&back=${encodeURIComponent(`/projects/submit?id=${id}`)}`} />
           <p className="sub mt-2 text-[11px]">비어 있어도 제출할 수 있어요. 다만 포트폴리오에서 그 부분은 빠져요.</p>
         </div>

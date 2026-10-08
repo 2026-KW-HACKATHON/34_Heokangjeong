@@ -13,7 +13,11 @@ export interface ReadinessResult {
   missingRequired: ReadinessItem[];
 }
 export type AnswerLike = Pick<ProjectAnswer, "field" | "status" | "value" | "choices" | "origin">;
-export interface ReadinessInput { domain: DomainKey; answers: AnswerLike[]; evidenceTypes: EvidenceType[]; outcomeCount: number }
+export interface ReadinessInput {
+  domain: DomainKey; answers: AnswerLike[]; evidenceTypes: EvidenceType[]; outcomeCount: number;
+  /** 이 학생의 질문 스냅샷 id. 주면 스냅샷에 없는 질문에 묶인 항목은 뺀다 (예전 프로젝트에 새 질문 항목이 뜨지 않게) */
+  questionIds?: string[];
+}
 
 export const hasContent = (a: { value: string; choices: string[] }) => a.value.trim().length > 0 || a.choices.length > 0;
 
@@ -45,7 +49,8 @@ function evaluate(check: ReadinessCheck, input: ReadinessInput): ItemState {
 }
 
 export function computeReadiness(input: ReadinessInput): ReadinessResult {
-  const items: ReadinessItem[] = DOMAINS[input.domain].readiness.map((d) => ({ key: d.key, label: d.label, level: d.level, questionId: d.questionId, state: evaluate(d.check, input) }));
+  const asked = input.questionIds && new Set(input.questionIds);
+  const items: ReadinessItem[] = DOMAINS[input.domain].readiness.filter((d) => !asked || !d.questionId || asked.has(d.questionId)).map((d) => ({ key: d.key, label: d.label, level: d.level, questionId: d.questionId, state: evaluate(d.check, input) }));
   const levels: ReadinessResult["levels"] = { REQUIRED: { done: 0, applicable: 0, total: 0 }, RECOMMENDED: { done: 0, applicable: 0, total: 0 }, OPTIONAL: { done: 0, applicable: 0, total: 0 } };
   for (const it of items) {
     const l = levels[it.level];

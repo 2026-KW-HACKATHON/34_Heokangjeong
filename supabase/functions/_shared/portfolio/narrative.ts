@@ -82,7 +82,8 @@ export const NARRATIVE_SYSTEM = `너는 대학생 포트폴리오 편집자다. 
 
 서사 구조: 문제(Problem) → 판단(Decision) → 실행(Action) → 증빙(Evidence) → 결과(Result) → 회고(Reflection)
 - 무슨 문제가 있었는지, 왜 그 선택을 했는지, 실제로 무엇을 했는지, 무엇으로 증명되는지, 무엇이 달라졌는지, 무엇을 배웠는지를 잇는다.
-- 필드를 나열하거나 요약하지 말고, 판단의 이유와 행동의 연결이 보이게 문단으로 쓴다. 섹션마다 2~4문장, "~했습니다" 체.
+- 필드를 나열하거나 요약하지 말고, 판단의 이유와 행동의 연결이 보이게 문단으로 쓴다. "~했습니다" 체.
+- 분량은 재료에 맞춘다: 그 섹션 재료가 답 하나뿐이면 2문장, 후속 답·증빙·성과까지 있으면 3~5문장. 재료를 늘려 쓰려고 꾸미지 않는다.
 
 절대 규칙 (어기면 결과를 버린다):
 1. SOURCE 에 없는 사실을 쓰지 않는다. 특히 숫자, 매출·조회수·방문자 변화, 고객 반응, 사용한 기술·도구, 인과관계를 지어내지 않는다.
@@ -90,7 +91,17 @@ export const NARRATIVE_SYSTEM = `너는 대학생 포트폴리오 편집자다. 
 3. OMITTED 목록의 항목(학생이 건너뛰었거나 해당 없음)은 추측해서 채우지 않는다.
 4. 의뢰인 확인(verification)이 true 인 항목만 "의뢰인이 확인했다"고 쓸 수 있다.
 5. sections 에는 SECTIONS 에 있는 key 만, 재료가 있는 만큼만 쓴다. 증빙을 언급하면 evidenceIds 에 그 id 를 넣는다.
-6. tools 는 SOURCE 의 도구 답변에 있는 것만. why 는 SOURCE 에 이유가 있을 때만, 없으면 빈 문자열.`;
+6. tools 는 SOURCE 의 도구 답변에 있는 것만. why 는 SOURCE 에 이유가 있을 때만, 없으면 빈 문자열.
+7. 학생이 적지 않은 행동을 했다고 쓰지 않는다. 인터뷰, 설문, 시험 사용(테스트), 관찰, 조사, 회의, 비교 분석 같은 활동은 SOURCE 에 그 활동이 있을 때만 쓴다.
+
+참고 예시 (형식만 참고한다. 예시의 가게·숫자·사실은 절대 쓰지 않는다):
+SOURCE 일부 →
+ - 문제: "사장님이 네이버 지도에 가게 사진이 3장뿐이라 길을 묻는 전화가 많다고 하셨어요"
+ - 결정: "입구와 간판이 보이는 사진을 맨 앞에 두었어요" / 후속 답: "전화 질문이 대부분 '입구가 어디냐'였어요"
+ - 다른 방법: "블로그 글도 생각했지만 지도에서 바로 보이는 사진이 먼저라고 판단했어요"
+ - 성과: 없음
+좋은 문단 → "사장님은 지도에 올라간 사진이 3장뿐이라 가게 위치를 묻는 전화가 잦다고 하셨습니다. 전화 질문의 대부분이 입구 위치였기 때문에, 입구와 간판이 보이는 사진을 지도 첫 화면에 두기로 했습니다. 블로그 글도 고려했지만 손님이 지도에서 바로 확인할 수 있는 사진을 먼저 정비했습니다."
+나쁜 문단 → "고객 인터뷰와 경쟁 매장 조사를 바탕으로 사진을 개선해 문의 전화가 크게 줄었습니다." (인터뷰·조사·문의 감소가 SOURCE 에 없음)`;
 
 export function narrativeUserPrompt(src: PortfolioSource, plans: SectionPlan[]): string {
   const facts = {
@@ -136,8 +147,28 @@ export function sourceCorpus(src: PortfolioSource): string {
 }
 const numbersIn = (t: string) => (t.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((n) => n.replace(/,/g, "").replace(/\.0+$/, ""));
 /** 성과·인과를 주장하는 단어. SOURCE 에 그 단어가 없으면 그 문장은 근거 없는 주장으로 본다 */
-const CLAIM_WORDS = ["매출", "증가", "상승", "늘었", "늘어", "향상", "조회수", "팔로워", "방문자", "재방문", "만족도", "호평", "반응이 좋"];
+export const CLAIM_WORDS = ["매출", "증가", "상승", "늘었", "늘어", "향상", "조회수", "팔로워", "방문자", "재방문", "만족도", "호평", "반응이 좋"];
+/**
+ * 학생이 했다고 적어야만 쓸 수 있는 활동 → SOURCE 에서 그 활동을 뜻하는 말들.
+ * AI 문장에 활동 단어가 있는데 SOURCE 에 어느 말도 없으면 지어낸 행동으로 본다 ("지켜보니" 라고 적었으면 "관찰" 은 허용).
+ */
+export const ACTION_WORDS: Record<string, string[]> = {
+  "인터뷰": ["인터뷰", "여쭤", "물어", "여쭈", "질문", "말씀", "이야기"],
+  "설문": ["설문"],
+  "테스트": ["테스트", "시험", "확인", "시범"],
+  "시범 운영": ["시범"],
+  "A/B": ["a/b", "두 가지", "2가지", "비교"],
+  "관찰": ["관찰", "지켜", "봤", "보니", "보았"],
+  "조사": ["조사", "찾아", "비교", "살펴", "참고"],
+  "벤치마킹": ["벤치마킹", "비교", "참고"],
+  "회의": ["회의", "미팅", "만나", "논의"],
+  "워크숍": ["워크숍"],
+  "사용성": ["사용성"],
+  "포커스 그룹": ["포커스 그룹"],
+};
 const splitSentences = (t: string) => t.split(/(?<=[.!?。])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+
+const lowerIncludes = (t: string, w: string) => t.toLowerCase().includes(w.toLowerCase());
 
 export interface GuardResult { content: PortfolioContent; report: GuardReport }
 
@@ -157,6 +188,8 @@ export function guardNarrative(raw: unknown, src: PortfolioSource, plans = planS
       if (badNum) { report.droppedSentences.push({ section, sentence: s, reason: `근거 없는 숫자 ${badNum}` }); continue; }
       const badClaim = CLAIM_WORDS.find((w) => s.includes(w) && !corpus.includes(w));
       if (badClaim) { report.droppedSentences.push({ section, sentence: s, reason: `근거 없는 성과 주장(${badClaim})` }); continue; }
+      const badAction = Object.keys(ACTION_WORDS).find((w) => lowerIncludes(s, w) && !ACTION_WORDS[w].some((x) => lowerIncludes(corpus, x)));
+      if (badAction) { report.droppedSentences.push({ section, sentence: s, reason: `기록에 없는 활동(${badAction})` }); continue; }
       kept.push(s);
     }
     return kept.join(" ");
