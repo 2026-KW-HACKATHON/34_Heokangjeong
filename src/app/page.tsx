@@ -58,6 +58,18 @@ function Home() {
     const list = posts.filter((p) => p.status !== "done" && categoryMatches(cat, p.category));
     return user?.role === "student" ? list.sort((a, b) => recommendScore(user, b) - recommendScore(user, a)) : list;
   }, [posts, cat, user]);
+  // 아래로 내리면 상단을 숨기고, 조금이라도 위로 올리면 다시 보여 준다 (맨 위 근처에서는 항상 보임)
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 6) return;
+      document.body.dataset.homeBars = y > last && y > 160 ? "hidden" : "shown";
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); delete document.body.dataset.homeBars; };
+  }, []);
   function explore() {
     setQuery("");
     setOnlyOpen(true);

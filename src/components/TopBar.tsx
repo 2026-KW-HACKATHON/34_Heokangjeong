@@ -16,7 +16,7 @@ export default function TopBar({ title, back, right, brand = false }: { title: s
   const showCreate = (path === "/" || path === "/me") && user?.role !== "admin";
   const showSearch = ["/", "/me"].includes(path.replace(/(.)\/$/, "$1"));   // 프로필 검색 (이름·닉네임·학과)
   return (
-    <header className="sticky top-0 z-[900] flex h-16 items-center justify-between bg-[#f5f5f7]/95 px-5 backdrop-blur">
+    <header className={`${brand ? "home-topbar " : ""}sticky top-0 z-[900] flex h-16 items-center justify-between bg-[#f5f5f7]/95 px-5 backdrop-blur`}>
       <div className={`flex items-center gap-2 ${brand ? "brand-with-companion" : ""}`}>
         {back && <button onClick={() => router.back()} aria-label="뒤로" className="icon-button -ml-3"><Icon name="back" /></button>}
         <h1 className="text-lg font-bold">{brand ? <Link href="/" aria-label="WOLINK 재능 나눔 홈"><BrandLogo /></Link> : title}</h1>
