@@ -15,5 +15,5 @@ export function assertArchiveCapacity(item: PublishedPortfolio, items: Published
   if (!isArchive(item) || item.visible === false) return;
   const count = items.filter(other => other.studentId === item.studentId && other.visible !== false && isArchive(other)
     && !(other.sourceId === item.sourceId && other.sourceKind === item.sourceKind)).length;
-  if (count >= ARCHIVE_PUBLIC_LIMIT) throw new Error("개인 아카이브는 최대 3개까지 공개할 수 있어요. 기존 기록을 비공개로 바꾼 뒤 다시 시도해 주세요.");
+  if (count >= ARCHIVE_PUBLIC_LIMIT) throw new Error("개인 작업는 최대 3개까지 공개할 수 있어요. 기존 기록을 비공개로 바꾼 뒤 다시 시도해 주세요.");
 }
