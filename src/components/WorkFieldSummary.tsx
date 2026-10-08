@@ -24,18 +24,12 @@ export default function WorkFieldSummary({ studentId, detailed = false }: { stud
   const verifiedCount = data?.trust.verifiedCount ?? 0;
   const reputationScore = data?.trust.reputationScore ?? 0;
   const reputationRating = reputationScore / 20;
-  const completionRate = data?.trust.completionRate ?? 0;
-  const deadlineReliability = data?.trust.deadlineReliability ?? 0;
-  const handoverReliability = data?.trust.handoverReliability ?? 0;
   return <section className="card" aria-label="분야별 작업 기록">
     <h2 className="text-base font-bold">분야별 작업 기록</h2>
     {!summary ? <p role="status" className="sub mt-3 text-sm">{error ? "작업 기록을 불러오지 못했어요." : "작업 기록을 불러오는 중…"}</p> : <>
       <dl className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">검증 프로젝트</dt><dd className="mt-1 font-bold">{verifiedCount}건</dd></div>
         <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">평판 별점</dt><dd className="mt-1">{reviewCount > 0 ? <StarRating value={reputationRating} size="sm" /> : <b>평가 전</b>}</dd></div>
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">프로젝트 완료율</dt><dd className="mt-1 font-bold">{completionRate}%</dd></div>
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">기한 준수율</dt><dd className="mt-1 font-bold">{deadlineReliability}%</dd></div>
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">인수인계 완료율</dt><dd className="mt-1 font-bold">{handoverReliability}%</dd></div>
         <div className="col-span-2 rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">제일 많이 한 분야</dt><dd className="mt-1 font-bold">{summary.mostFrequent.length ? summary.mostFrequent.join(" · ") : "아직 없음"}</dd></div>
       </dl>
       <p className="sub mt-3 text-xs">의뢰인이 완료를 인증한 작업 {summary.total}건 기준</p>
