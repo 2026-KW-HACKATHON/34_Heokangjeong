@@ -142,13 +142,14 @@ export interface PublishedPortfolio {
   visible?: boolean;
   studentId: string;
   sourceId: string;
-  sourceKind: "project" | "card";
+  sourceKind: "project" | "card" | "manual";
   title: string;
   summary: string;
   category: string;
   sections: { title: string; body: string }[];
   publishedAt: string;
   coverUrl?: string;
+  imageUrls?: string[];
 }
 
 export interface ChatMessage {           // 채팅 메시지. 채팅방 = 지원서 하나 (공고 작성자 ↔ 지원 학생)

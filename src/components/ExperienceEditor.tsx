@@ -9,7 +9,7 @@ export function experienceSections(item: PublishedPortfolio) {
   return [...EXPERIENCE_FIELDS.map(title => ({ title, body: item.sections.find(s => key(s.title) === key(title))?.body ?? "" })), ...item.sections.filter(s => !EXPERIENCE_FIELDS.some(title => key(title) === key(s.title)))];
 }
 export default function ExperienceEditor({ item, onSave, onCancel }: { item: PublishedPortfolio; onSave: (item: PublishedPortfolio) => void; onCancel: () => void }) {
-  const [draft, setDraft] = useState(() => ({ ...item, sections: experienceSections(item) }));
+  const [draft, setDraft] = useState(() => ({ ...item, sections: item.sourceKind === "manual" ? item.sections : experienceSections(item) }));
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false);
@@ -19,7 +19,7 @@ export default function ExperienceEditor({ item, onSave, onCancel }: { item: Pub
     e.preventDefault(); setBusy(true); setError("");
     try {
       const coverUrl = photo ? await repo.uploadPortfolioImage(item.studentId, photo) : draft.coverUrl;
-      const updated = { ...draft, title: draft.title.trim(), coverUrl };
+      const updated = { ...draft, title: draft.title.trim(), coverUrl, imageUrls: item.sourceKind === "manual" && coverUrl && !draft.imageUrls?.includes(coverUrl) ? [...(draft.imageUrls ?? []), coverUrl] : draft.imageUrls };
       await repo.updatePublishedPortfolio(item.studentId, updated); onSave(updated);
     } catch(e) { setError((e as Error).message); }
     finally { setBusy(false); }

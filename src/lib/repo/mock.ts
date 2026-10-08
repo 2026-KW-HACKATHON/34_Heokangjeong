@@ -383,6 +383,15 @@ export const mockRepo: Repo = {
   onMessage(applicationId, cb) { const l = (m: ChatMessage) => { if (m.applicationId === applicationId) cb(m); }; listeners.add(l); return () => { listeners.delete(l); }; },
   async listReviews(studentId) { ensure(); return wait(db.legacyReviews.filter((r) => !studentId || r.studentId === studentId)); },
   async listPortfolio(studentId) { ensure(); return wait(db.legacyCards.filter((c) => c.studentId === studentId)); },
+  async createPortfolioFeed(actorId, item) {
+    ensure();
+    if (actorId !== item.studentId || item.sourceKind !== "manual" || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 피드만 올릴 수 있어요.");
+    if (!item.title.trim() || !item.coverUrl || !item.imageUrls?.includes(item.coverUrl) || !item.sections.some(section => section.body.trim())) throw new Error("제목, 대표사진, 내용을 확인해 주세요.");
+    if (publications.some(p => p.studentId === actorId && p.sourceKind === "manual" && p.sourceId === item.sourceId)) throw new Error("이미 등록된 피드예요.");
+    const previous = publications;
+    publications = [structuredClone(item), ...publications];
+    try { save(); } catch (e) { publications = previous; throw e; }
+  },
   async updatePublishedPortfolio(actorId, item) {
     ensure();
     if (actorId !== item.studentId || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 게시물만 수정할 수 있어요.");

@@ -50,6 +50,7 @@ export interface Repo {
   onMessage(applicationId: string, cb: (m: ChatMessage) => void): () => void; // 새 메시지 구독, 반환값으로 해제
   listReviews(studentId?: string): Promise<Review[]>;
   listPortfolio(studentId: string): Promise<PortfolioCard[]>;
+  createPortfolioFeed(actorId: string, item: PublishedPortfolio): Promise<void>;
   updatePublishedPortfolio(actorId: string, item: PublishedPortfolio): Promise<void>;
   listPublishedPortfolio(studentId: string, includeHidden?: boolean): Promise<PublishedPortfolio[]>;
   publishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"], coverUrl?: string): Promise<void>;
