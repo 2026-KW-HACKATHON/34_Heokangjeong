@@ -348,7 +348,7 @@ export const mockRepo: Repo = {
     ensure();
     if (actorId !== item.studentId || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 게시물만 수정할 수 있어요.");
     const existing = publications.find(p => p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind);
-    if (!existing && !["demo-real2sim", "demo-driving", "demo-menu", "demo-banner", "demo-cafe"].includes(item.sourceId)) throw new Error("공개된 게시물을 찾을 수 없어요.");
+    if (!existing && !["demo-real2sim", "demo-driving", "demo-menu", "demo-banner", "demo-cafe"].includes(item.sourceId) && !demoProjectPublications(db, actorId).some(p => p.sourceId === item.sourceId && p.sourceKind === item.sourceKind)) throw new Error("공개된 게시물을 찾을 수 없어요.");
     if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
     const previous = publications;
     publications = [structuredClone(item), ...publications.filter(p => !(p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind))];

@@ -348,7 +348,7 @@ input.pf-edit { display: inline-block; font-size: 14px; }
 /* 에디토리얼 */
 .pf-ed { background: #fbfbf9; color: #111; padding: 28px 20px 120px; word-break: keep-all; overflow-wrap: anywhere; }
 .pf-ed-head { padding-bottom: 28px; border-bottom: 1px solid #111; }
-.pf-ed-title { display: block; font-size: clamp(30px, 8vw, 56px); font-weight: 600; line-height: 1.08; letter-spacing: -.02em; }
+.pf-ed-title { display: block; font-size: clamp(28px, 8cqi, 56px); font-weight: 600; line-height: 1.08; letter-spacing: -.02em; }
 .pf-ed-summary { margin-top: 14px; font-size: 17px; line-height: 1.6; color: #444; }
 .pf-ed-facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 16px; padding: 22px 0; border-bottom: 1px solid #ddd; font-size: 13px; }
 .pf-ed-facts dt { color: #8a8a8a; margin-bottom: 2px; } .pf-ed-facts dd { margin: 0; }
@@ -357,12 +357,14 @@ input.pf-edit { display: inline-block; font-size: 14px; }
 .pf-ed-text { font-size: 17px; line-height: 1.7; }
 .pf-ed-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .pf-ed-quote { margin: 0; padding: 44px 0; border-bottom: 1px solid #e3e3e0; }
-.pf-ed-quote blockquote { margin: 0; font-size: clamp(24px, 6vw, 40px); line-height: 1.25; letter-spacing: -.01em; }
+.pf-ed-quote blockquote { margin: 0; font-size: clamp(22px, 6cqi, 40px); line-height: 1.25; letter-spacing: -.01em; }
 .pf-ed-quote figcaption { margin-top: 14px; font-size: 12px; color: #8a8a8a; }
 .pf-ed-lines { display: flex; flex-direction: column; gap: 6px; font-size: 16px; }
 .pf-ed-chip { display: inline-block; border: 1px solid #111; border-radius: 999px; padding: 3px 10px; font-size: 12px; }
 .pf-ed-foot { margin-top: 48px; padding: 28px 0; border-top: 1px solid #111; font-size: 12px; color: #8a8a8a; }
-@media (min-width: 720px) {
+/* 넓은 배치는 화면 폭이 아니라 포트폴리오 칸 폭으로 정한다 → 앱 틀(480px) 안에서는 PC 에서도 폰과 같은 배치 */
+.pf-frame, .pf-preview-inner { container-type: inline-size; }
+@container (min-width: 720px) {
   .pf-ed { padding: 56px 48px 140px; }
   .pf-ed-facts { grid-template-columns: repeat(4, 1fr); }
   .pf-ed-row { grid-template-columns: 1fr 2fr; gap: 24px; padding: 56px 0; }
@@ -398,14 +400,4 @@ input.pf-edit { display: inline-block; font-size: 14px; }
 .pf-file .pf-fig-cap { margin-top: 0; justify-content: flex-start; } .pf-file .pf-fig-desc { text-align: left; flex-basis: 100%; }
 .pf-file-icon { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 6px; background: #efece6; font-size: 14px; flex: none; }
 .pf-file-link { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (min-width: 720px) { .pf-fig-grid-2 { grid-template-columns: 1fr 1fr; } }
-/* 포트폴리오 페이지: 앱의 480px 틀을 벗어나 화면 전체 폭 */
-.pf-bleed { width: 100vw; margin-left: calc(50% - 50vw); }
-html:has(.pf-bleed) { overflow-x: clip; }
-.pf-bleed .pf-basic { max-width: 760px; margin-inline: auto; }
-@media (min-width: 720px) {
-  .pf-bleed .pf-ed { padding-inline: max(48px, calc((100% - 1180px) / 2)); }
-  .pf-bleed .pf-ed-title { font-size: clamp(44px, 5.4vw, 72px); max-width: 16em; }
-  .pf-bleed .pf-ed-summary { max-width: 46em; font-size: 19px; }
-  .pf-bleed .pf-ed-quote blockquote { max-width: 22em; }
-}
+@container (min-width: 720px) { .pf-fig-grid-2 { grid-template-columns: 1fr 1fr; } }
