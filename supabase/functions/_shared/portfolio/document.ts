@@ -26,6 +26,8 @@ export interface DocInput {
   review: ClientReview | null;
   evidence: Evidence[];
   outcomes: Outcome[];
+  /** 편집 중: 글을 다 지운 섹션도 자리를 남긴다 (입력칸이 사라지지 않게) */
+  keepEmpty?: boolean;
 }
 export type DocBlock =
   | { kind: "info"; rows: [string, string][] }
@@ -50,10 +52,10 @@ export function buildDocument(i: DocInput): DocBlock[] {
   for (const def of DOMAINS[i.domain].sections) {
     if (def.locked === "clientFeedback") { if (i.review?.comment) blocks.push({ kind: "feedback", review: i.review }); continue; }
     const s = i.content.sections.find((x) => x.key === def.key);
-    if (s && s.body.trim()) section({ ...s, title: def.title }); // 제목은 항상 현재 템플릿 기준 (옛 편집본의 영어 제목 대신)
+    if (s && (s.body.trim() || i.keepEmpty)) section({ ...s, title: def.title }); // 제목은 항상 현재 템플릿 기준 (옛 편집본의 영어 제목 대신)
   }
-  for (const s of i.content.sections) if (!used.has(s.key) && s.body.trim()) section(s); // 템플릿 밖 섹션(예전 버전)도 잃지 않는다
-  if (i.content.tools.length || i.content.skills.length) blocks.push({ kind: "tools", tools: i.content.tools, skills: i.content.skills });
+  for (const s of i.content.sections) if (!used.has(s.key) && (s.body.trim() || i.keepEmpty)) section(s); // 템플릿 밖 섹션(예전 버전)도 잃지 않는다
+  if (i.content.tools.length || i.content.skills.length || i.keepEmpty) blocks.push({ kind: "tools", tools: i.content.tools, skills: i.content.skills });
   if (i.outcomes.length) blocks.push({ kind: "outcomes", lines: i.outcomes.map((o) => ({ text: outcomeLine(o), verified: o.verified, measured: o.measured })) });
   blocks.push({ kind: "verification", verification: i.verification, outcomeVerified: i.outcomes.filter((o) => o.verified).length, outcomeTotal: i.outcomes.filter((o) => o.measured).length, approvedVersion: i.info.approvedVersion });
   if (i.evidence.length) blocks.push({ kind: "evidenceList", evidence: i.evidence });

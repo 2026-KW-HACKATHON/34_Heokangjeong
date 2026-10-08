@@ -121,6 +121,8 @@ export interface PortfolioContent {
   sections: PortfolioSection[];
   skills: string[];
   tools: { name: string; why: string }[];
+  /** 고른 포트폴리오 템플릿 id (앱의 src/templates/portfolio). 없으면 기본 템플릿. AI 는 이 값을 만들지 않는다 */
+  templateId?: string;
 }
 export type DraftGenerator = "AI" | "TEMPLATE";
 export interface GuardReport {

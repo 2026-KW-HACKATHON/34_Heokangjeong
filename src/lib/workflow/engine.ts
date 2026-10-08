@@ -1,5 +1,6 @@
 // 프로젝트 워크플로 엔진 (순수 로직). mock 저장소가 이 엔진으로 동작하고, 단위 테스트가 이 엔진을 검증한다.
 // Supabase 에서는 같은 규칙을 DB 함수(supabase/migrations/0005_verified_portfolio.sql)가 서버에서 강제한다.
+import { templateIdOf } from "@/templates/portfolio/meta";
 import type {
   ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, MemberVerification, Outcome, PortfolioCard,
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
@@ -420,5 +421,6 @@ export function sanitizeContent(c: PortfolioContent): PortfolioContent {
     sections: (c.sections ?? []).slice(0, 20).map((x) => ({ key: s(x.key, 40), title: s(x.title, 60), body: s(x.body, 4000), evidenceIds: (x.evidenceIds ?? []).filter((i) => typeof i === "string").slice(0, 20) })).filter((x) => x.key),
     skills: (c.skills ?? []).map((x) => s(x, 30)).filter(Boolean).slice(0, 12),
     tools: (c.tools ?? []).map((t) => ({ name: s(t.name, 40), why: s(t.why, 300) })).filter((t) => t.name).slice(0, 12),
+    templateId: templateIdOf(c.templateId),   // 디자인 선택. 글이 아니라서 내용 검사 대상이 아니다
   };
 }

@@ -261,25 +261,81 @@ await click("기록이 바뀌었으면 새 초안 만들기");
 await expectText("기존 초안을 그대로");
 log("18 중복 생성 방지");
 
-// 16. 학생 편집 → 저장
-await page.getByLabel(/^제목/).fill("행복분식 메뉴판 정보 구조 개선");
-await page.getByLabel(/^한 줄 요약/).fill("38개 메뉴를 4개 구역으로 재구성해 손님이 대표 메뉴를 먼저 찾도록 만든 디자인 프로젝트");
-await click("포트폴리오 저장");
+// 16. 초안 → 포트폴리오 페이지: 처음이면 디자인부터 고른다 (초안 화면에는 글 편집 칸이 없다)
+if (await page.getByLabel(/^제목/).count()) throw new Error("초안 화면에 폼 편집기가 남아 있음");
+await click("이 초안으로 포트폴리오 만들기");
+await page.waitForURL(/portfolio\/templates/);
+await expectText("포트폴리오 디자인을 골라 주세요");
+await page.getByRole("option", { name: "에디토리얼" }).click();
+await shot("16a-templates");
+await click("‘에디토리얼’ 디자인 쓰기");
 await page.waitForURL(/portfolio\/view/);
+await expectText("월계 재능나눔 · 의뢰인 검증 포트폴리오");          // 에디토리얼 템플릿의 꼬리말
+await expectText("편집본 v2");                                      // v1 초안 + 디자인 선택 = v2
+log("19 템플릿 넘겨 보고 고르기 → 포트폴리오 페이지");
+
+// 17. 같은 페이지에서 편집 → 저장하면 버전이 쌓인다. 잠긴 원본에는 입력칸이 없다
+await click("편집", { exact: true });
+await expectText("잠김 · 의뢰인 원본");
+for (const box of await page.locator("[data-locked]").all()) {
+  if (await box.locator("textarea, input").count()) throw new Error("잠긴 블록에 입력칸이 있음");
+}
+await page.getByLabel("제목", { exact: true }).fill("행복분식 메뉴판 정보 구조 개선");
+await page.getByLabel("한 줄 요약", { exact: true }).fill("38개 메뉴를 4개 구역으로 재구성해 손님이 대표 메뉴를 먼저 찾도록 만든 디자인 프로젝트");
+await shot("16b-editing");
+await click("v3 저장");
+await expectText("편집본 v3");
 await expectText("행복분식 메뉴판 정보 구조 개선");
 await expectText("의뢰인 평가");
 await expectText("손님들이 메뉴를 훨씬 빨리");
-await expectText("데모 모드에서는 실제 계정 연결·저장을 사용할 수 없어요.");
-await shot("16-portfolio");
-log("19 학생 편집 저장 → 포트폴리오 상세 (검증·평가 원문 표시, mock 에서는 Notion 비활성 안내)");
+if (await page.locator("textarea").count()) throw new Error("저장 뒤에도 입력칸이 남아 있음");
+log("20 페이지에서 바로 편집 → v3 저장 (잠긴 원본은 입력칸 없음)");
 
-// 17. 재생성해도 편집본 유지
+// 18. 디자인 바꾸기 → 글은 그대로
+await click("디자인", { exact: true });
+await page.waitForURL(/portfolio\/templates/);
+await expectText("지금 쓰는 디자인");
+await page.getByRole("option", { name: "기본" }).click();
+await click("‘기본’ 디자인 쓰기");
+await page.waitForURL(/portfolio\/view/);
+await expectText("편집본 v4");
+await expectText("행복분식 메뉴판 정보 구조 개선");
+if (await page.getByText("월계 재능나눔 · 의뢰인 검증 포트폴리오").count()) throw new Error("기본 템플릿으로 바뀌지 않음");
+log("21 디자인 바꾸기 → 글은 그대로, 버전 v4");
+
+// 19. Notion 은 '⋯' 메뉴 안의 선택 기능
+await page.getByRole("button", { name: "더보기" }).click();
+await expectText("Notion으로도 내보내기");
+await expectText("데모 모드에서는 실제 계정 연결·저장을 사용할 수 없어요.");
+await shot("16c-menu");
+await page.getByRole("button", { name: "닫기" }).click();
+log("22 Notion 내보내기는 더보기 메뉴의 선택 기능");
+
+// 20. 재생성해도 편집본 유지 + 새 초안 안내
 await go(`/portfolio/build/?id=${projectId}`);
+await expectText("저장된 편집본 v4");
 await click("같은 기록으로 다시 생성");
 await page.waitForTimeout(500);
 await go(`/portfolio/view/?id=${projectId}&s=s1`);
 await expectText("행복분식 메뉴판 정보 구조 개선");
-log("20 재생성 후에도 학생 편집본 유지");
+await expectText("새 초안이 있어요");
+log("23 재생성 후에도 편집본 유지 + 새 초안 안내");
+
+// 21. 갤러리에 공개 → 다른 학생이 피드에서 누르면 같은 디자인의 페이지가 읽기 전용으로 열린다
+await go("/portfolio/");
+await page.getByRole("button", { name: "갤러리에 공개" }).first().click();
+await expectText("의뢰인 평가 원문·검증 결과·증빙도 함께 보여요");
+await click("이 내용을 갤러리에 공개");
+await page.waitForTimeout(500);
+await as("s2"); await go("/portfolio/gallery/?s=s1");
+await page.getByRole("link", { name: /행복분식 메뉴판 정보 구조 개선/ }).first().click();
+await page.waitForURL(/portfolio\/view/);
+await expectText("손님들이 메뉴를 훨씬 빨리");
+await expectText("38개 메뉴를 4개 구역으로");
+if (await page.getByRole("button", { name: "편집", exact: true }).count()) throw new Error("소유자가 아닌데 편집 버튼이 보임");
+if (await page.locator("textarea, [data-editable]").count()) throw new Error("소유자가 아닌데 입력칸이 있음");
+await shot("16d-public");
+log("24 피드 → 남의 포트폴리오 페이지 (읽기 전용)");
 
 // (예전 21단계 '티어·뱃지 표시'는 main 에서 티어 화면이 분야 표시로 바뀌어(0017) 뺐다)
 

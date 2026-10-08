@@ -189,3 +189,11 @@ MIT
 - 비공개 포스트는 본인의 나 화면에 남아 다시 공개하거나 수정할 수 있습니다. 다른 사용자의 목록과 직접 링크에서는 숨깁니다.
 - Supabase에는 `0031_portfolio_visibility.sql`을 적용해야 합니다. 비공개 내용은 소유자만 조회하도록 RLS를 적용합니다. 원격 DB에는 자동 적용하지 않습니다.
 - 검증: `node e2e/profile-visibility.mjs`, `npx vitest run tests/sql.test.ts`.
+
+### HTML 포트폴리오 페이지 (템플릿)
+
+- 포트폴리오의 기본 형태는 앱 안의 HTML 페이지(`/portfolio/view`)입니다. 디자인은 코드로 만든 템플릿(`src/templates/portfolio`)이, 글은 AI 초안 + 학생 편집이 맡습니다. 고른 템플릿은 편집본 `content.templateId` 에 저장돼 버전으로 쌓입니다.
+- `/portfolio/templates` 에서 옆으로 넘겨 보며 디자인을 고르고 언제든 바꿉니다. 소유자는 페이지에서 '편집'을 눌러 그 자리에서 글을 고칩니다. 의뢰인 평가 원문·검증·증빙·성과·프로젝트 정보는 잠겨 있습니다.
+- Notion 내보내기는 페이지의 '⋯' 메뉴 안 선택 기능입니다 (연동 방식은 그대로).
+- 피드에서 공개한 프로젝트 작업을 누르면 그 사람의 포트폴리오 페이지가 읽기 전용으로 열립니다. Supabase에는 `0033_public_portfolio_page.sql`(공개 중인 작업 한 건만 돌려주는 `get_public_portfolio` 함수)을 적용해야 하며, 원격 DB에는 자동 적용하지 않습니다.
+- 템플릿을 추가하면 `tests/portfolio-templates.test.ts` 가 모든 내용을 담는지 자동으로 검사합니다.

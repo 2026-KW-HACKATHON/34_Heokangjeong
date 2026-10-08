@@ -29,7 +29,7 @@ export default function BottomTab() {
   const list = isAdmin ? adminTabs : tabs;
   const unread = useUnreadChats(isAdmin ? undefined : user?.id);
   if (path.startsWith("/login") || path.startsWith("/onboarding")) return null;
-  if (["/projects/log", "/projects/evidence", "/projects/submit", "/projects/review", "/projects/outcome", "/portfolio/build"].some(p => path.startsWith(p))) return null;
+  if (["/projects/log", "/projects/evidence", "/projects/submit", "/projects/review", "/projects/outcome", "/portfolio/build", "/portfolio/templates"].some(p => path.startsWith(p))) return null;
   return (
     <nav aria-label="주 메뉴" className="glass-nav bottom-tab-bar fixed left-1/2 z-[1000] -translate-x-1/2">
       <ul className="flex">

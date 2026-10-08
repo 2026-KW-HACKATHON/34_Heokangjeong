@@ -1,3 +1,4 @@
+import { pageFromBundle, type PortfolioPage } from "../portfolio/page";
 import type {
   Application, ChatMessage, Club, HandoverDoc, MaintenanceTicket, Notification, Post, PortfolioCard, PortfolioDoc, Review, User,
 } from "@/types";
@@ -425,6 +426,19 @@ export const mockRepo: Repo = {
     const latest = new Map<string, (typeof db.edits)[number]>();
     for (const e of db.edits.filter((x) => x.studentId === studentId)) if ((latest.get(e.projectId)?.version ?? 0) < e.version) latest.set(e.projectId, e);
     return wait([...latest.values()].map((edit) => { const project = wf.getProject(db, edit.projectId); return { edit, project, post: db.posts.find((p) => p.id === project.postId)! }; }));
+  },
+  async getPublicPortfolio(projectId, studentId) {
+    ensure();
+    // DB 의 get_public_portfolio 와 같은 규칙: 피드에 공개 중인 작업만 (본인은 숨김이어도)
+    const me = typeof localStorage !== "undefined" ? localStorage.getItem("wolgye-user") || "s1" : "";
+    const pub = publications.find((p) => p.studentId === studentId && p.sourceKind === "project" && p.sourceId === projectId);
+    if (!pub || (pub.visible === false && me !== studentId)) return wait<PortfolioPage | undefined>(undefined);
+    const edit = db.edits.filter((e) => e.projectId === projectId && e.studentId === studentId).sort((a, b) => b.version - a.version)[0];
+    if (!edit) return wait<PortfolioPage | undefined>(undefined);
+    const b = wf.getBundle(db, projectId);
+    const approved = b.versions.find((v) => v.id === b.project.approvedVersionId);
+    const page = pageFromBundle({ ...b, drafts: [], evidence: b.evidence.filter((e) => e.authorId === studentId || e.source === "CLIENT" || approved?.evidenceIds.includes(e.id)), outcomes: b.outcomes.filter((o) => o.authorId === studentId) }, edit, studentId, users);
+    return wait<PortfolioPage | undefined>({ ...page, latestDraft: undefined });
   },
   async getPortfolioDoc(projectId, studentId) {
     ensure();
