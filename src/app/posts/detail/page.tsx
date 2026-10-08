@@ -207,7 +207,7 @@ function PostDetail() {
                     <button onClick={() => cancelSelect(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">선정 취소</button>
                   </div> : a.status === "pending" && !individualDecisionComplete ? <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
                     <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">채팅창으로 가기</Link>
-                    <button data-demo-tour={a.studentId === "s5" && post.authorId === "r7" && post.title === "월계 미용실 시술 안내 포스터" ? "merchant-select" : undefined} onClick={() => select(a)} disabled={act.busy || (!post.isTeam && shortlisting)} title={!post.isTeam && shortlisting ? "선정 중인 지원자가 있어요" : undefined} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
+                    <button data-demo-tour={mode === "mock" && a.studentId === "s5" && post.authorId === "r7" && getDemoTour()?.role === "merchant" ? "merchant-select" : undefined} onClick={() => select(a)} disabled={act.busy || (!post.isTeam && shortlisting)} title={!post.isTeam && shortlisting ? "선정 중인 지원자가 있어요" : undefined} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
                     <button onClick={() => reject(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
                   </div> : <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
                     <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>

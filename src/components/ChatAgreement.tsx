@@ -43,7 +43,7 @@ const initialTerms = (post: Post, salonDemo: boolean): AgreementTerms => {
 export default function ChatAgreement({ application, post, actorId, studentName, ownerName, onChange, autoOpen, canPropose, openRequest }: { application: Application; post: Post; actorId: string; studentName: string; ownerName: string; onChange?: () => void; autoOpen?: boolean; openRequest?: number; canPropose?: boolean }) {
   const { mode } = useSession();
   const salonPriceboard = mode === "mock" && application.id === "a13" && post.id === "p10";
-  const salonPoster = mode === "mock" && post.authorId === "r7" && post.title === "월계 미용실 시술 안내 포스터";
+  const salonPoster = mode === "mock" && post.authorId === "r7" && getDemoTour()?.role === "merchant";
   const salonDemo = salonPriceboard || salonPoster;
   const tour = mode === "mock" ? getDemoTour() : null;
   const guidedAgreement = (tour?.role === "student" && tour.step === 4 && salonPriceboard)

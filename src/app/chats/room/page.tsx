@@ -116,7 +116,7 @@ function Room() {
     <>
       <TopBar title={other?.name ?? "채팅"} back />
       {/* 선정 → 대화·계약서(매칭 대기) → 계약서 확정 = 선정 확정. 틀어지면 선정 취소 */}
-      <div data-demo-tour={post.authorId === "r7" && post.title === "월계 미용실 시술 안내 포스터" ? "merchant-match-status" : undefined} className="mx-4 mb-2 rounded-xl bg-white px-3 py-2 text-sm">
+      <div data-demo-tour={mode === "mock" && post.authorId === "r7" && getDemoTour()?.role === "merchant" ? "merchant-match-status" : undefined} className="mx-4 mb-2 rounded-xl bg-white px-3 py-2 text-sm">
         {app.status === "accepted" ? <p className="flex items-center justify-between gap-2"><span className="font-semibold text-[var(--green)]">선정 확정 · 계약서 확정됨</span>{projectId && <Link href={`/projects/detail?id=${projectId}`} className="shrink-0 text-xs font-semibold underline">프로젝트 보기 ›</Link>}</p>
         : app.status === "rejected" ? <p className="sub">이번에는 함께하지 않기로 했어요.</p>
         : chatOpen ? <div className="flex items-center justify-between gap-2"><span><b>매칭 대기</b><span className="sub"> · 계약서를 양쪽이 확정하면 선정이 확정돼요</span></span>
