@@ -147,9 +147,8 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
         <div className="pf-sheet-backdrop" onClick={() => setMenu(false)}>
           <div className="pf-sheet" role="dialog" aria-label="더보기" onClick={(e) => e.stopPropagation()}>
             <div className="mb-1 flex items-center justify-between"><h2 className="font-bold">더보기</h2><button className="sub text-sm" onClick={() => setMenu(false)}>닫기</button></div>
-            <p className="sub mb-3 text-xs">편집본 v{page.edit.version} · {page.edit.createdAt.slice(0, 10)} 저장 · {tpl.name} 디자인</p>
+            <p className="sub mb-3 text-xs">{page.edit.createdAt.slice(0, 10)} 저장</p>
             <div className="flex flex-col gap-2">
-              <Link className="btn btn-ghost w-full" href={`/portfolio/experience?s=${encodeURIComponent(page.studentId)}&kind=project&id=${encodeURIComponent(page.projectId)}`}>공개 게시물 설정 (대표 사진·공개 여부)</Link>
               <Link className="btn btn-ghost w-full" href={`/portfolio/build?id=${page.projectId}`}>초안 다시 만들기</Link>
               <p className="mt-2 text-sm font-bold">Notion으로도 내보내기 <span className="sub text-xs font-normal">· 선택</span></p>
               <NotionPanel edit={page.edit} doc={pageBlocks(page)} />

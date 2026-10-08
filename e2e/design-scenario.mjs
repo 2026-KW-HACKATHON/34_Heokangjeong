@@ -27,7 +27,7 @@ const click = (name, opts = {}) => page.getByRole("button", { name, exact: opts.
 const shot = (n) => page.screenshot({ path: `${SHOTS}/${n}.png`, fullPage: true });
 const expectText = async (t) => { await page.getByText(t, { exact: false }).first().waitFor({ timeout: 8000 }); };
 /** 포트폴리오 페이지의 편집본 버전 (⋯ 메뉴 안에 있다) */
-const version = async (v) => { await page.getByRole("button", { name: "더보기" }).click(); await expectText(`편집본 v${v}`); await page.getByRole("button", { name: "닫기" }).click(); };
+const version = async (v) => { await click("편집", { exact: true }); await expectText(`v${v + 1} 저장`); await click("취소", { exact: true }); };   // 편집 저장 버튼 = 다음 버전
 
 process.on("unhandledRejection", async (e) => { console.error("FAIL:", e?.message ?? e); try { await shot("fail"); console.error("URL:", page.url()); } catch {} process.exit(1); });
 try {
