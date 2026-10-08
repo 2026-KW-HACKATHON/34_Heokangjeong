@@ -30,7 +30,7 @@ export default function BottomTab() {
   const unread = useUnreadChats(isAdmin ? undefined : user?.id);
   if (path.startsWith("/login") || path.startsWith("/onboarding")) return null;
   // 대화·작성 화면은 그 화면에만 집중하도록 하단 메뉴를 숨긴다
-  if (["/chats/room", "/projects/log", "/projects/evidence", "/projects/submit", "/projects/review", "/projects/outcome", "/portfolio/build"].some(p => path.startsWith(p))) return null;
+  if (["/chats/room", "/projects/log", "/projects/evidence", "/projects/submit", "/projects/review", "/projects/outcome", "/portfolio/build", "/portfolio/templates"].some(p => path.startsWith(p))) return null;
   return (
     <>
     {/* 메뉴가 보일 때만 그만큼 자리를 비워 둔다 (채팅방처럼 메뉴를 숨기는 화면에는 빈 공간이 생기지 않게) */}

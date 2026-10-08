@@ -9,6 +9,8 @@ import { useSession } from "@/lib/session";
 import { STAGES, domainForMember, myAnswers, pendingQuestions, questionsForMember, schemaAnswer, useBundle } from "@/lib/useBundle";
 import { suggestFollowUps, type FollowUpSuggestion } from "@/lib/ai/followup";
 import { EVIDENCE_LABEL } from "@shared/portfolio/document";
+import { exampleFor } from "@shared/portfolio/domains";
+import AnswerExample from "@/components/AnswerExample";
 import type { AnswerStatus, EvidenceType, ProjectBundle, QuestionDefinition, Stage } from "@/types";
 
 /**
@@ -146,6 +148,7 @@ function QuestionStep({ bundle, q, userId, onDone }: { bundle: ProjectBundle; q:
       <div className="flex-1 pt-2">
         <h2 id={labelId} className="text-[22px] font-bold leading-snug">{q.title}</h2>
         {q.help && <p className="sub mt-2 text-sm">{q.help}</p>}
+        <AnswerExample text={exampleFor(domainForMember(bundle, userId), q)} className="mt-3" />
         {prev && prev.status !== "ANSWERED" && prev.status !== "UNANSWERED" && <p className="mt-2 text-xs font-semibold text-[#c2410c]">이전에 {prev.status === "SKIPPED" ? "건너뛴" : "해당 없음으로 표시한"} 질문이에요. 답하면 바뀌어요.</p>}
 
         <div className="mt-6 flex flex-col gap-3" role="group" aria-labelledby={labelId}>
@@ -173,6 +176,7 @@ function QuestionStep({ bundle, q, userId, onDone }: { bundle: ProjectBundle; q:
             {fu.questions.map((text, i) => (
               <label key={i} className="mt-3 block">
                 <span className="block text-[15px] font-semibold">{text}</span>
+                <AnswerExample text={fu.examples[i]} className="mt-1" />
                 <textarea className={`${inputCls} mt-1 h-20 bg-white`} value={fuAnswers[i] ?? ""} onChange={(e) => { fuTouched.current = true; setFuAnswers(fuAnswers.map((x, j) => (j === i ? e.target.value : x))); }} />
               </label>
             ))}

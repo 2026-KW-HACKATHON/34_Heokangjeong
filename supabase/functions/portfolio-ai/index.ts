@@ -33,12 +33,15 @@ async function followup(b: { question?: string; answer?: string; domain?: string
   const question = String(b.question ?? "").slice(0, 200), answer = String(b.answer ?? "").slice(0, 1000);
   if (!question || !answer.trim()) throw new HttpError(400, "질문과 답이 필요해요");
   const domain = (b.domain && b.domain in DOMAINS ? b.domain : "GENERAL") as DomainKey;
-  const schema = { type: "OBJECT", properties: { questions: { type: "ARRAY", items: { type: "STRING" } } }, required: ["questions"] };
+  const schema = { type: "OBJECT", properties: { questions: { type: "ARRAY", items: { type: "OBJECT", properties: { question: { type: "STRING" }, example: { type: "STRING" } }, required: ["question", "example"] } } }, required: ["questions"] };
   try {
     const { data } = await geminiJson(FOLLOWUP_PROMPT, `분야: ${DOMAINS[domain].label}\n질문: ${question}\n학생 답: ${answer}`, schema, 25_000, { thinking: "minimal", perModelMs: 12_000 });
-    const qs = ((data as { questions?: unknown }).questions ?? []) as unknown[];
-    const questions = qs.filter((q): q is string => typeof q === "string" && q.trim().length > 3).map((q) => q.trim().slice(0, 80)).map((q) => (/[?？]$/.test(q) ? q : `${q}?`)).slice(0, MAX_FOLLOW_UPS);
-    return { questions, source: "AI" };
+    const qs = ((data as { questions?: unknown }).questions ?? []) as { question?: unknown; example?: unknown }[];
+    const items = qs
+      .filter((q) => typeof q?.question === "string" && q.question.trim().length > 3)
+      .map((q) => { const t = String(q.question).trim().slice(0, 80); return { question: /[?？]$/.test(t) ? t : `${t}?`, example: typeof q.example === "string" ? q.example.trim().slice(0, 80) : "" }; })
+      .slice(0, MAX_FOLLOW_UPS);
+    return { questions: items.map((x) => x.question), examples: items.map((x) => x.example), source: "AI" };
   } catch (e) {
     if (e instanceof AiUnavailable) return { questions: [], source: "UNAVAILABLE", error: e.message };
     throw e;

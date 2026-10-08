@@ -21,6 +21,8 @@ function Experience() {
   const menu = useRef<HTMLDetailsElement>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  // 프로젝트 작업이고 HTML 포트폴리오(의뢰인 검증 포함)가 있으면 "자세한 포트폴리오 보기" 버튼을 붙인다
+  const [detailed, setDetailed] = useState(false);
   const sample = mode === "mock" && id.startsWith("demo-");
   const html = useMemo(() => item ? portfolioHtml(item, name) : "", [item, name]);
   useEffect(() => {
@@ -30,6 +32,11 @@ function Experience() {
     }).catch(() => { if (active) setError("경험을 불러오지 못했어요. 다시 시도해 주세요."); });
     return () => { active = false; };
   }, [studentId, id, kind, sample, user?.id]);
+  useEffect(() => {
+    let active = true; setDetailed(false);
+    if (kind === "project" && id && studentId && user) repo.getPublicPortfolio(id, studentId).then((p) => { if (active) setDetailed(!!p); }).catch(() => {});
+    return () => { active = false; };
+  }, [kind, id, studentId, user]);
   return <><TopBar title="경험 포트폴리오" back /><main className="experience-page">
     {error ? <p role="alert">{error}</p> : item === undefined ? <p role="status">경험을 불러오는 중…</p> : !item ? <div><h1>공개된 경험을 찾을 수 없어요</h1><p>비공개로 전환되었거나 삭제된 게시물입니다.</p></div> : <article>
       {!editing && <div className="experience-toolbar">
@@ -48,6 +55,13 @@ function Experience() {
         {item.sections.map((section, i) => <section key={i}><h2>{section.title}</h2><p>{section.body}</p></section>)}
         {!!item.imageUrls?.length && <section className="experience-photos" aria-label="게시물 사진">{item.imageUrls.filter(url => url !== item.coverUrl).map((url, i) => <img key={`${url}:${i}`} src={url} alt={`${item.title} 사진 ${i + 2}`} loading="lazy" />)}</section>}
       </> : experienceSections(item).map((section, i) => <section key={i}><h2>{section.title}</h2><p>{section.body || "아직 작성한 내용이 없어요."}</p></section>)}
+      {detailed && (
+        <section className="experience-detail-cta">
+          <h2>더 자세히 보고 싶다면</h2>
+          <p>문제·결정·과정·결과를 정리한 포트폴리오 페이지예요. 의뢰인 평가 원문과 검증 결과, 증빙이 함께 들어 있어요.</p>
+          <Link className="btn btn-primary w-full" href={`/portfolio/view?id=${encodeURIComponent(id)}&s=${encodeURIComponent(studentId)}`}>자세한 포트폴리오 보기</Link>
+        </section>
+      )}
       </>}
       </>}
     </article>}
