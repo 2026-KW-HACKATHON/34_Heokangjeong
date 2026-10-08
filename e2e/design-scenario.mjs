@@ -41,6 +41,7 @@ await page.getByPlaceholder("예: 메뉴가 한 판에 섞여 있어").fill("메
 await page.getByPlaceholder("원하는 결과물, 가능한 시간, 제공할 자료").fill("벽에 붙일 메뉴판이 필요해요");
 await page.locator("textarea").nth(3).fill("A2 메뉴판 인쇄 파일 1종\n원본 디자인 파일");
 await page.getByPlaceholder("예: 인쇄소에 바로 넘길 수 있는 PDF").fill("인쇄소에 바로 넘길 수 있는 PDF");
+await page.getByPlaceholder(/예: 음료 쿠폰/).fill("음료 쿠폰 5장 · 유효기간 3개월");   // main 에서 필수가 된 보상 쿠폰
 await click("등록하기");
 await page.waitForURL(/posts\/detail/);
 const postId = new URL(page.url()).searchParams.get("id");
@@ -75,7 +76,10 @@ await expectText("자동 저장됨");
 await shot("05-question");
 await click("다음", { exact: true });
 await page.waitForURL(/q=d_problem/);
+// 모든 질문에 답변 예시가 보이고, 입력해도 사라지지 않는다
+await expectText("답변 예시");
 await page.locator("textarea").first().fill("메뉴가 너무 복잡함");
+await expectText("답변 예시");
 // 새로고침해도 답이 남는지 (자동 저장)
 await page.waitForTimeout(1200); await page.reload(); await page.waitForLoadState("networkidle");
 const kept = await page.locator("textarea").first().inputValue();
@@ -85,6 +89,7 @@ await click("다음", { exact: true });
 await expectText("추천 질문");
 await shot("06-followup");
 await page.locator("textarea").nth(1).fill("손님들이 주문할 때마다 대표 메뉴가 뭐냐고 물어봤어요");
+if ((await page.getByText("답변 예시").count()) < 2) throw new Error("후속 질문에 답변 예시가 없음");
 await click("저장하고 다음");
 await page.waitForURL(/q=d_before/);
 // 뒤로 가기 → 이전 답 유지
@@ -136,10 +141,19 @@ await click("기록 저장");
 await expectText("B안으로 결정");
 log("8 중간 활동 기록");
 await page.getByRole("link", { name: "이어서 답하기" }).click();
+// 새 질문: 다른 방법(해당 없음 가능) → 과정 → 확인 방법
+await page.waitForURL(/q=d_alternatives/);
+await expectText("QR 메뉴판도 생각했지만");
+await click("해당 없음");
 await page.waitForURL(/q=d_process/);
 await page.locator("textarea").first().fill("기존 메뉴 분류 → 시안 2종 → 점주 피드백 → 최종본");
 await click("다음", { exact: true });
+await page.waitForURL(/q=d_validation/);
+await page.getByRole("button", { name: "의뢰인·손님에게 질문" }).click();
+await page.locator("input").first().fill("시안 2종을 점주님께 보여 드리고 어느 쪽이 손님에게 쉬울지 여쭤봤어요");
+await click("다음", { exact: true });
 await page.waitForURL(/done=1/);
+log("8b 새 질문(다른 방법·확인 방법) + 답변 예시");
 
 // 8. 마무리 질문 + 결과물 업로드
 await go(`/projects/log/?id=${projectId}&stage=FINISH`);
@@ -199,7 +213,7 @@ log("14 v2 재제출");
 await as("r2"); await go(`/projects/review/?id=${projectId}`);
 await expectText("제출 v2");
 for (const c of ["학생이 실제로 작업함", "기록된 역할이 맞음", "결과물을 전달받음", "완료 기준을 충족함", "실제로 사용되고 있음"]) await page.getByText(c, { exact: true }).click();
-for (const r of ["만족도 5점", "기한 준수 4점", "소통 5점", "인계 4점"]) await page.getByRole("radio", { name: r }).click();
+for (const r of ["만족도 5점", "기한 준수 4점", "소통 5점", "인계 4점", "결과물 품질 5점"]) await page.getByRole("radio", { name: r }).click();
 await page.locator("textarea").last().fill("손님들이 메뉴를 훨씬 빨리 고르세요. 주문 받기가 편해졌어요.");
 await shot("13-review");
 await click("v2 승인하고 검증 남기기");
@@ -226,7 +240,17 @@ log(`16 누락 보완 → 준비도 ${before}% → ${after}%`);
 await page.getByRole("link", { name: "포트폴리오 만들기" }).click();
 await page.waitForURL(/portfolio\/build/);
 await click("포트폴리오 초안 만들기");
+// 초안 전 점검: 보완 요청을 받았는데 '피드백 반영'이 비어 있다 → 1가지만 묻는다
+// (문제 답 "메뉴가 너무 복잡함"은 짧지만 후속 답에 "물어봤어요"가 있어 근거·길이 모두 충분)
+await expectText("초안 전에 1가지만 더 물어볼게요");
+await expectText('보완 요청 "가격 글씨를 더 크게 해 주세요"을 받고 무엇을 바꿨나요?');
+await expectText("요청을 받고, 메뉴 이름 옆에 고추 아이콘으로");    // 점검 질문에도 답변 예시
+await shot("15a-gapcheck");
+await page.getByLabel(/보완 요청 "가격 글씨를/).fill("가격 글씨를 14pt에서 20pt로 키우고 가격을 오른쪽 끝에 맞췄어요");
+await click("저장하고 초안 만들기");
 await expectText("기록이 어떻게 바뀌었나");
+await expectText("가격을 오른쪽 끝에 맞췄어요");                    // 점검 답이 초안 재료로 들어갔다
+log("17a 초안 전 점검(보완 요청 반영) → 답이 초안 재료에 반영");
 await expectText("템플릿 초안 · AI 미사용");
 const transform = await page.locator(".card", { hasText: "기록이 어떻게 바뀌었나" }).innerText();
 if (transform.includes("정해진 크기")) throw new Error("해당 없음/건너뛴 항목이 초안에 들어감");
@@ -238,8 +262,8 @@ await expectText("기존 초안을 그대로");
 log("18 중복 생성 방지");
 
 // 16. 학생 편집 → 저장
-await page.getByLabel("제목").fill("행복분식 메뉴판 정보 구조 개선");
-await page.getByLabel("한 줄 요약").fill("38개 메뉴를 4개 구역으로 재구성해 손님이 대표 메뉴를 먼저 찾도록 만든 디자인 프로젝트");
+await page.getByLabel(/^제목/).fill("행복분식 메뉴판 정보 구조 개선");
+await page.getByLabel(/^한 줄 요약/).fill("38개 메뉴를 4개 구역으로 재구성해 손님이 대표 메뉴를 먼저 찾도록 만든 디자인 프로젝트");
 await click("포트폴리오 저장");
 await page.waitForURL(/portfolio\/view/);
 await expectText("행복분식 메뉴판 정보 구조 개선");
@@ -257,10 +281,7 @@ await go(`/portfolio/view/?id=${projectId}&s=s1`);
 await expectText("행복분식 메뉴판 정보 구조 개선");
 log("20 재생성 후에도 학생 편집본 유지");
 
-// 18. 신뢰 지표
-await go("/me/");
-await expectText("브론즈"); await expectText("첫 검증 프로젝트");
-log("21 티어·뱃지 반영");
+// (예전 21단계 '티어·뱃지 표시'는 main 에서 티어 화면이 분야 표시로 바뀌어(0017) 뺐다)
 
 } catch (e) { console.error("FAIL:", e.message.split(/\r?\n/).slice(0, 6).join(" | ")); console.error("URL:", page.url()); await shot("fail"); process.exitCode = 1; }
 if (errors.length) { console.error("페이지 에러:", errors); process.exitCode = 1; }
