@@ -325,6 +325,11 @@ body[data-home-bars="hidden"] .category-dock { transform: translateY(calc(-100% 
 .portfolio-identity-about > p { font-size: 11px; line-height: 1.85; }
 .profile-specialties { margin-top: 17px; }.profile-specialties h3 { font-size: 11px; font-weight: 700; }.profile-specialties p { margin-top: 8px; font-size: 10px; line-height: 1.8; }.profile-specialties span { display: block; margin-top: 8px; color: #8c8277; font-size: 9px; line-height: 1.7; }
 .portfolio-sheet > .card { margin: 0; padding: 20px 22px; border: 0; border-radius: 0; box-shadow: none; }.portfolio-sheet > .card h2 { font-size: 12px; }.portfolio-sheet > .card dl { margin-top: 10px; }.portfolio-sheet > .card dl > div { border-radius: 0; padding: 0; background: transparent; }.portfolio-sheet > .card dt { font-size: 10px; }.portfolio-sheet > .card dd { font-size: 14px; }.portfolio-sheet > .card > p { font-size: 9px; }
+.portfolio-sheet > .work-field-summary { padding-top: 12px; padding-bottom: 10px; }
+.portfolio-sheet > .work-field-summary dl { grid-template-columns: minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1.4fr); gap: 8px; margin-top: 8px; }
+.portfolio-sheet > .work-field-summary dl > div:last-child { grid-column: auto; }
+.portfolio-sheet > .work-field-summary dd { margin-top: 2px; overflow-wrap: anywhere; }
+.portfolio-sheet > .work-field-summary > p { margin-top: 6px; }
 .portfolio-sheet .portfolio-feed { padding: 4px 20px 20px; }.portfolio-feed-heading h2 { font-size: 14px; }.portfolio-feed-heading p { font-size: 8px; }.portfolio-feed-heading > span { font-size: 9px; }
 .portfolio-feed-grid { gap: 9px; }.portfolio-feed-tile { display: block; aspect-ratio: auto; background: transparent; color: #343333; }.portfolio-feed-tile img { aspect-ratio: 1; height: auto; object-fit: cover; }.portfolio-feed-tile::after { display: none; }.portfolio-feed-tile-caption { position: static; color: inherit; padding: 8px 0; gap: 4px; }.portfolio-feed-tile-caption strong { font-size: 10px; }.portfolio-feed-tile-caption small { font-size: 8px; color: #978773; }.portfolio-feed-placeholder { position: static; aspect-ratio: 1; background: #ece7e0; }
 .portfolio-sample-note { padding: 0 20px 18px; font-size: 9px; color: #938a80; }

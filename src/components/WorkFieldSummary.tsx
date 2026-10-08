@@ -24,7 +24,7 @@ export default function WorkFieldSummary({ studentId, detailed = false }: { stud
   const verifiedCount = data?.trust.verifiedCount ?? 0;
   const reputationScore = data?.trust.reputationScore ?? 0;
   const reputationRating = reputationScore / 20;
-  return <section className="card" aria-label="분야별 작업 기록">
+  return <section className="card work-field-summary" aria-label="분야별 작업 기록">
     <h2 className="text-base font-bold">분야별 작업 기록</h2>
     {!summary ? <p role="status" className="sub mt-3 text-sm">{error ? "작업 기록을 불러오지 못했어요." : "작업 기록을 불러오는 중…"}</p> : <>
       <dl className="mt-4 grid grid-cols-2 gap-3">
