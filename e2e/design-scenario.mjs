@@ -365,9 +365,12 @@ await go("/portfolio/gallery/?s=s1");
 await page.getByRole("link", { name: /가게 홍보 배너/ }).first().click();
 await page.waitForURL(/portfolio\/experience/);
 await expectText("업종 이름을 가장 크게");
-await page.waitForTimeout(800);
-if (await page.getByRole("link", { name: "자세한 포트폴리오 보기" }).count()) throw new Error("HTML 포트폴리오가 없는 게시물에 버튼이 보임");
-log("25 데모 완료 프로젝트 5개 · 메뉴판만 '자세한 포트폴리오 보기'");
+// 모든 게시물에 버튼이 있고, HTML 포트폴리오가 없으면 안내 창이 뜬다
+await page.getByRole("button", { name: "자세한 포트폴리오 보기" }).click();
+await expectText("등록된 포트폴리오가 없어요");
+await click("확인", { exact: true });
+if (await page.getByText("HTML 다운로드").count()) throw new Error("게시물 화면에 HTML 다운로드가 남아 있음");
+log("25 데모 완료 프로젝트 5개 · HTML 포트폴리오가 없는 게시물은 '등록된 포트폴리오가 없어요'");
 
 // (예전 21단계 '티어·뱃지 표시'는 main 에서 티어 화면이 분야 표시로 바뀌어(0017) 뺐다)
 
