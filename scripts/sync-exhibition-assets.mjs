@@ -8,7 +8,7 @@ const font=readFileSync(join(source,'fonts/SongMyung-Regular.ttf')).toString('ba
 css+=`\n.stack{--strip-h:max(7vh,calc((var(--stack-vh) - (var(--n) - 1)*var(--strip-gap))/var(--n)))}\n@media(max-width:880px){.stack{--strip-h:11vh}}\n@font-face{font-family:"Song Myung";src:url(data:font/ttf;base64,${font}) format("truetype");font-weight:400;font-style:normal;font-display:swap}\n.content{overflow-y:auto;scrollbar-width:thin}.content-text{flex-shrink:0}\n`;
 let runtime=read('stack.js')
  .replace('if (location.hash !== u) history.pushState(null, "", u);','if (location.hash !== u) { try { history.pushState(null, "", u); } catch { /* opaque sandbox */ } }')
- .replace('loadSample(window.WOLINK_SAMPLES[sample] ? sample : "menu", { view: view || "list", stage, push: false });','loadSample("menu", { view: "list", stage: null, push: false });')
+ .replace('loadSample(window.WOLINK_SAMPLES[sample] ? sample : "menu", { view: view || "list", stage, push: false });','loadSample("menu", { view: window.WOLINK_EDITOR?.stage ? "read" : "list", stage: window.WOLINK_EDITOR?.stage || null, push: false });')
  .replace('`./photos/${COVER_PHOTOS[index % COVER_PHOTOS.length]}`','`${window.WOLINK_ASSET_BASE}/photos/${COVER_PHOTOS[index % COVER_PHOTOS.length]}`')
  .replace(/const safeUrl = \(u\) => (.*);/, 'const safeUrl = (value) => { const u = window.WOLINK_EMBEDDED_IMAGES?.[value] || value; return $1; };');
 const body=html.slice(html.indexOf('<body'),html.indexOf('<noscript>'));

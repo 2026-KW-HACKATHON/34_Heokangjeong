@@ -163,7 +163,7 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: {
               <button className="ml-1 font-semibold underline" onClick={() => { setBaseDraftId(newerDraft.id); update({ ...newerDraft.content, templateId: content.templateId }, newerDraft.id); setEditing(true); }}>새 초안으로 편집 시작</button>
             </div>
           )}
-          {editing && <p className="rounded-xl bg-[var(--line)] px-3 py-2 text-xs" role="status">{viewMode === "web" ? "입력칸에서 글과 사진을 수정한 뒤 저장하세요. 오른쪽 화면에서 결과를 확인할 수 있어요." : "편집 중이에요. 점선 칸을 눌러 바로 고치세요. 🔒 표시는 의뢰인 원본·프로젝트 기록이라 고칠 수 없어요."}</p>}
+          {editing && <p className="rounded-xl bg-[var(--line)] px-3 py-2 text-xs" role="status">{content.templateId === "exhibition" ? "단계 이미지를 눌러 본문을 수정하거나 사진을 교체한 뒤 저장하세요." : viewMode === "web" ? "입력칸에서 글과 사진을 수정한 뒤 저장하세요. 오른쪽 화면에서 결과를 확인할 수 있어요." : "편집 중이에요. 점선 칸을 눌러 바로 고치세요. 🔒 표시는 의뢰인 원본·프로젝트 기록이라 고칠 수 없어요."}</p>}
           <ErrorText text={act.error || downloadError} />
         </div>
       )}
@@ -178,11 +178,12 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: {
         {downloadError && <p className="pf-mode-error" role="alert">{downloadError}</p>}
       </div>
 
-      {owner && viewMode === "web" && editing && <WebContentEditor page={page} content={content} onChange={update} onUpload={uploadPortfolioImage} onReplaceImage={replaceEvidenceImage} imageBusy={imageBusy} />}
+      {owner && viewMode === "web" && editing && content.templateId !== "exhibition" && <WebContentEditor page={page} content={content} onChange={update} onUpload={uploadPortfolioImage} onReplaceImage={replaceEvidenceImage} imageBusy={imageBusy} />}
 
       {viewMode === "app"
-        ? <div className="pf-frame"><tpl.Component page={page} content={content} blocks={blocks} editing={editing} onChange={(c) => update(c)} onReplaceImage={replaceEvidenceImage} imageBusy={imageBusy} />
-          {((content.portfolioImages?.length ?? 0) > 0 || editing) && <section className="card mx-4 mb-28" aria-label="포트폴리오 사진">
+        ? <div className="pf-frame">
+          <tpl.Component page={page} content={content} blocks={blocks} editing={editing} onChange={(c) => update(c)} onReplaceImage={replaceEvidenceImage} imageBusy={imageBusy} />
+          {content.templateId !== "exhibition" && ((content.portfolioImages?.length ?? 0) > 0 || editing) && <section className="card mx-4 mb-28" aria-label="포트폴리오 사진">
             <h2 className="mb-2 font-bold">포트폴리오 사진</h2>
             <p className="sub mb-3 text-xs">직접 꾸미기용 사진이에요. 프로젝트 검증 자료는 그대로 보존돼요.</p>
             <div className="pf-custom-images">{(content.portfolioImages ?? []).map(image => <figure key={image.id}>
@@ -195,13 +196,13 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: {
             {editing && <label className="pf-custom-image-add">{imageBusy ? "사진 올리는 중…" : "＋ 사진 추가"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy || (content.portfolioImages?.length ?? 0) >= 12} onChange={event => { const file = event.target.files?.[0]; if (file) void uploadPortfolioImage(file); event.target.value = ""; }} /></label>}
           </section>}
         </div>
-        : <div className="pf-web-breakout is-fullscreen"><iframe
+        : <div className="pf-web-breakout is-fullscreen">{content.templateId === "exhibition" ? <tpl.Component page={page} content={content} blocks={blocks} editing={editing} onChange={update} onReplaceImage={replaceEvidenceImage} imageBusy={imageBusy} /> : <iframe
           className="pf-web-document-frame"
           title={`${content.title} PC 웹 포트폴리오`}
           srcDoc={webPortfolioHtml(page, content, blocks).replaceAll('href="#', 'href="about:srcdoc#').replaceAll('src="/portfolio-samples/', `src="${previewOrigin}/portfolio-samples/`)}
           sandbox={content.templateId === "exhibition" ? "allow-scripts" : "allow-same-origin"}
           style={desktopScale < 1 ? { width: 1280, height: `${100 / desktopScale}%`, transform: `scale(${desktopScale})`, transformOrigin: "top left" } : undefined}
-        /></div>}
+        />}</div>}
 
       {owner && (
         <div className="pf-pill" role="group" aria-label="포트폴리오 메뉴">

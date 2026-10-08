@@ -23,6 +23,10 @@ const roleText = (a?: { value: string; choices: string[] }) => (a ? [...a.choice
 
 /** 소유자: 프로젝트 묶음에서 */
 export function pageFromBundle(b: ProjectBundle, edit: PortfolioEditedVersion, studentId: string, users: User[]): PortfolioPage {
+  // 이전 데모 저장본도 보기·디자인 선택·편집에서 같은 디자인을 사용한다.
+  if (b.project.id === "demo-menu-2" && edit.version === 1 && edit.content.templateId === "editorial") {
+    edit = { ...edit, content: { ...edit.content, templateId: "exhibition" } };
+  }
   const client = users.find((u) => u.id === b.project.ownerId);
   const member = b.members.find((m) => m.studentId === studentId);
   const approved = b.versions.find((v) => v.id === b.project.approvedVersionId);

@@ -25,7 +25,8 @@
     "unsplash-TMoq1a7OKVY-sunset-alley.jpg",
   ];
   function coverFor(sample, section, index) {
-    const custom = sample.sectionCovers?.[section.key];
+    const replacement = sample.content.imageOverrides?.[`stage-${section.key}`];
+    const custom = replacement ? {...replacement, source: "학생이 교체한 표시 사진"} : sample.sectionCovers?.[section.key];
     const url = safeUrl(custom?.url || `./photos/${COVER_PHOTOS[index % COVER_PHOTOS.length]}`);
     return { id: `cover-${section.key}`, kind: "image", type: "EDITORIAL_COVER", label: "연출 커버 · 실제 증빙 아님", url,
       caption: custom?.caption || `${section.title} · 공간과 일상의 분위기 이미지`,
@@ -40,6 +41,17 @@
   const cssNum = (name) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)) || 0;
 
   const state = { sampleId: "menu", model: null, view: "list", current: -1, motion: true, tl: null, strips: [], detail: null, reader: false, docMode: false, lastFocus: null };
+  window.addEventListener("message", (event) => {
+    if (!window.WOLINK_EDITOR?.editing || event.source !== parent || event.data?.type !== "wolink-image-update" || !state.model) return;
+    state.model.content.imageOverrides = event.data.images || {};
+    state.model.stages.forEach((st, i) => {
+      const image = event.data.images?.[`stage-${st.id}`];
+      if (!image || !safeUrl(image.url)) return;
+      st.asset = {...coverFor(state.model.sample, {key:st.id,title:st.title}, i), url:safeUrl(image.url),caption:image.caption};
+      const img = state.strips[i]?.querySelector("img"); if (img) img.src = st.asset.url;
+    });
+    if(state.view === "read") layoutRead();
+  });
 
   // ── 도우미 ──────────────────────────────────────────────────────────────
   function h(tag, attrs, ...children) {
@@ -67,7 +79,8 @@
     const deliverable = items.find((a) => a.kind === "image" && ["DELIVERABLE_FILE", "DELIVERABLE_URL", "AFTER_IMAGE"].includes(a.type)) || images[0];
     const stages = sections.map((section, index) => {
       const linked = section.items.find((a) => a.kind === "image");
-      const asset = linked || (section.key === "overview" ? deliverable : null) || coverFor(sample, section, index);
+      const replacement = content.imageOverrides?.[`stage-${section.key}`];
+      const asset = (replacement ? {...coverFor(sample, section, index), url: safeUrl(replacement.url), caption: replacement.caption, source: "학생이 교체한 표시 사진"} : null) || (sample.sectionCovers?.[section.key]?.preferred ? coverFor(sample, section, index) : null) || linked || (section.key === "overview" ? deliverable : null) || coverFor(sample, section, index);
       return { id: section.key, no: String(index + 1).padStart(2, "0"), label: section.title,
         title: section.heading || section.title, sections: [section], asset,
         statement: first(section.body), body: rest(section.body), related: section.items,
@@ -179,6 +192,22 @@
     if (st.outcomes?.length) text.append(outcomeList(st.outcomes));
     if (st.verification || st.review) { text.append(claimsBlock(st.verification)); const q = reviewQuote(st.review); if (q) text.append(q); }
     const actions = $("#c-actions"); actions.replaceChildren(h("button", { type: "button", class: "link-btn", onclick: () => openReader(i), text: "상세 읽기 →" }));
+    if (window.WOLINK_EDITOR?.editing) {
+      const send = (data) => parent.postMessage({type: "wolink-stage-edit", key: st.id, ...data}, "*");
+      if (st.sections.length) {
+        const input = document.createElement("textarea"); input.value = st.sections[0].body; input.rows = 7; input.setAttribute("aria-label", "이 단계 본문 편집");
+        input.style.cssText = "width:100%;padding:12px;border:1px solid #bbb;border-radius:8px;font:inherit;line-height:1.7;resize:vertical";
+        input.oninput = () => {st.sections[0].body = input.value; send({body:input.value});};
+        $("#c-text").replaceChildren(input);
+        titleEl.contentEditable = "true"; titleEl.setAttribute("aria-label", "이 단계 제목 편집");
+        titleEl.oninput = () => {const title = titleEl.textContent; st.title = title; st.sections[0].title = title; send({title});};
+      } else {
+        titleEl.contentEditable = "false"; titleEl.oninput = null;
+      }
+      const label = document.createElement("label"); label.textContent = "이 단계 사진 교체"; label.style.cssText = "display:block;padding:12px;border:1px solid #aaa;border-radius:8px;cursor:pointer";
+      const file = document.createElement("input"); file.type = "file"; file.accept = "image/jpeg,image/png,image/webp"; file.setAttribute("aria-label", "이 단계 사진 교체");
+      file.onchange = () => {if(file.files[0]) send({file:file.files[0]});}; label.append(file); actions.prepend(label);
+    }
     if (st.asset && st.asset.kind === "image") actions.append(h("button", { type: "button", class: "link-btn", onclick: () => openDetail(st.asset.id), text: st.asset.decorative ? "커버 크게 보기" : "원본 크게 보기" }));
     if (st.related.length > 1 || (st.related.length === 1 && st.related[0] !== st.asset)) actions.append(h("button", { type: "button", class: "link-btn", onclick: () => openReader(i), text: `이 단계의 자료 ${st.related.length}개` }));
   }
