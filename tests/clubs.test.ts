@@ -300,6 +300,16 @@ describe("단체가 맡은 서비스", () => {
     expect(rows.find((r) => r.student_id === U.member)?.role_label).toBe("디자인");
   });
 
+  it("참여 부원은 지원서가 없어도 단체 약속서가 확정돼 있으면 제출할 수 있다 (0038)", async () => {
+    const club = await makeClub();
+    await joinClub(club, U.member);
+    const projectId = await clubProject(club);
+    await as(U.leader, "select add_club_worker($1,$2,$3)", [projectId, U.member, "디자인"]);
+    const ins = (who: string, v: number) => db.query("insert into submission_versions (project_id, version, evidence_ids, submitted_by) values ($1,$2,'{}',$3)", [projectId, v, who]);
+    await ins(U.member, 1);
+    await expect(ins(U.outsider, 2)).rejects.toThrow(/AGREEMENT_REQUIRED/);   // 프로젝트 밖 학생은 여전히 막힘
+  });
+
   it("단체 밖 학생은 참여자로 추가할 수 없다", async () => {
     const club = await makeClub();
     const projectId = await clubProject(club);
