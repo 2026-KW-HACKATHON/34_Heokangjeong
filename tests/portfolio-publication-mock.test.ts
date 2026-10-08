@@ -5,6 +5,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
 it("데모 포트폴리오 공개 설정을 저장하고 다시 열어도 유지한다", async () => {
   const storage = new Map<string, string>();
   vi.stubGlobal("window", {});
+  vi.stubGlobal("sessionStorage", { getItem: () => "s1" });
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => storage.get(key) ?? null,
     setItem: (key: string, value: string) => { storage.set(key, value); },

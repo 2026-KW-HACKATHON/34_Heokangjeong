@@ -16,6 +16,7 @@ import { demoInProgressChats, demoProjectPublications, seedDemoProjects } from "
 import { publicationFromSource } from "../portfolio/publication";
 import { assertArchiveCapacity, feedCollection, withFeedCollection } from "../portfolio/collection";
 import { reviseAgreement, confirmAgreement, type WorkAgreement, proposeAgreementChange, respondAgreementChange } from "../agreement";
+import { getDemoUserId } from "../demoIdentity";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
 export const users: User[] = [
@@ -449,7 +450,7 @@ export const mockRepo: Repo = {
   async updatePortfolioProfile(studentId, data) {
     ensure();
     if (!users.some(user => user.id === studentId && user.role === "student")) throw new Error("학생 프로필을 찾을 수 없어요.");
-    if (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
+    if (getDemoUserId() !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
     if (data.nickname !== undefined) { const problem = nicknameProblem(data.nickname, users.map(withPortfolioProfile), studentId); if (problem) throw new Error(problem); }
     profileExtras[studentId] = { ...profileExtras[studentId], ...data, avatarUrl: data.avatarUrl ?? profileExtras[studentId]?.avatarUrl };
     save();
@@ -458,7 +459,7 @@ export const mockRepo: Repo = {
   async updateAvatar(userId, avatarUrl) {
     ensure();
     if (!users.some(user => user.id === userId && user.role !== "admin")) throw new Error("프로필을 찾을 수 없어요.");
-    if (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== userId) throw new Error("본인의 프로필만 수정할 수 있어요.");
+    if (getDemoUserId() !== userId) throw new Error("본인의 프로필만 수정할 수 있어요.");
     profileExtras[userId] = { ...profileExtras[userId], about: profileExtras[userId]?.about ?? "", avatarUrl };
     save();
   },
@@ -571,7 +572,7 @@ export const mockRepo: Repo = {
   async listPortfolio(studentId) { ensure(); return wait(db.legacyCards.filter((c) => c.studentId === studentId)); },
   async createPortfolioFeed(actorId, item) {
     ensure();
-    if (actorId !== item.studentId || item.sourceKind !== "manual" || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 피드만 올릴 수 있어요.");
+    if (actorId !== item.studentId || item.sourceKind !== "manual" || getDemoUserId() !== actorId) throw new Error("본인의 피드만 올릴 수 있어요.");
     if (!item.title.trim() || !item.coverUrl || !item.imageUrls?.includes(item.coverUrl) || !item.sections.some(section => section.body.trim())) throw new Error("제목, 대표사진, 내용을 확인해 주세요.");
     assertArchiveCapacity(item, await mockRepo.listPublishedPortfolio(actorId, true));
     if (publications.some(p => p.studentId === actorId && p.sourceKind === "manual" && p.sourceId === item.sourceId)) throw new Error("이미 등록된 피드예요.");
@@ -581,7 +582,7 @@ export const mockRepo: Repo = {
   },
   async updatePublishedPortfolio(actorId, item) {
     ensure();
-    if (actorId !== item.studentId || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 게시물만 수정할 수 있어요.");
+    if (actorId !== item.studentId || getDemoUserId() !== actorId) throw new Error("본인의 게시물만 수정할 수 있어요.");
     const existing = publications.find(p => p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind);
     if (!existing && !demoProjectPublications(db, actorId).some(p => p.sourceId === item.sourceId && p.sourceKind === item.sourceKind)) throw new Error("공개된 게시물을 찾을 수 없어요.");
     if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
@@ -592,7 +593,7 @@ export const mockRepo: Repo = {
   },
   async listPublishedPortfolio(studentId, includeHidden = false) {
     ensure();
-    const own = typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") === studentId;
+    const own = getDemoUserId() === studentId;
     const saved = publications.filter(p => p.studentId === studentId);
     const samples = demoProjectPublications(db, studentId).filter(p => !saved.some(s => s.sourceId === p.sourceId && s.sourceKind === p.sourceKind));
     return wait([...saved, ...samples].filter(p => p.visible !== false || (includeHidden && own)));
@@ -677,7 +678,7 @@ export const mockRepo: Repo = {
   async getPublicPortfolio(projectId, studentId) {
     ensure();
     // DB 의 get_public_portfolio 와 같은 규칙: 피드에 공개 중인 작업만 (본인은 숨김이어도)
-    const me = typeof localStorage !== "undefined" ? localStorage.getItem("wolgye-user") || "s1" : "";
+    const me = getDemoUserId() ?? "";
     const pub = [...publications, ...demoProjectPublications(db, studentId)].find((p) => p.studentId === studentId && p.sourceKind === "project" && p.sourceId === projectId);
     if (!pub || (pub.visible === false && me !== studentId)) return wait<PortfolioPage | undefined>(undefined);
     const edit = db.edits.filter((e) => e.projectId === projectId && e.studentId === studentId).sort((a, b) => b.version - a.version)[0];

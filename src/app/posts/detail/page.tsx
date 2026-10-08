@@ -11,6 +11,7 @@ import Icon from "@/components/Icon";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
+import { getDemoTour } from "@/lib/demoTour";
 import { distanceM, formatDistance } from "@/lib/geo";
 import { listingOf } from "@/lib/listing";
 import { DOMAINS } from "@shared/portfolio/domains";
@@ -25,11 +26,15 @@ export default function PostDetailPage() {
 function PostDetail() {
   const id = useSearchParams().get("id") ?? "";
   const router = useRouter();
-  const { user, users } = useSession();
+  const { user, users, mode } = useSession();
   const [post, setPost] = useState<Post | null>(null);
   const [apps, setApps] = useState<Application[]>([]);
   const [project, setProject] = useState<Project | undefined>();
   const [msg, setMsg] = useState("");
+  useEffect(() => {
+    if (id === "p9" && mode === "mock" && getDemoTour()?.role === "student")
+      setMsg("안녕하세요. 패키지 디자인을 공부하는 김하늘입니다. 제공해 주시는 로고와 제품 사진으로 선물상자 띠지와 스티커 시안을 만들고, 인쇄용 파일까지 전달하겠습니다.");
+  }, [id, mode]);
   const [roleId, setRoleId] = useState("");
   const [clubId, setClubId] = useState("");                 // 단체 이름으로 지원하기 (소속이 확정된 단체만)
   const [myClubs, setMyClubs] = useState<{ club: Club; role: string }[]>([]);   // 단체 이름으로 지원은 대표만
@@ -84,7 +89,7 @@ function PostDetail() {
             <p className="sub mb-1 text-xs">{post.urgentColleges.map(collegeLabel).filter(Boolean).join(", ")} 학생에게 알림이 갔어요</p>
           )}
           <div className="silver-badge mb-5 mt-4"><Icon name="folder" width={22} height={22} /></div>
-          <h2 className="page-title">{post.title}</h2>
+          <h2 data-demo-tour="post-created" className="page-title">{post.title}</h2>
           <p className="sub mt-1 text-sm">{author?.name} · {post.address}{user && <> · 📍 {formatDistance(distanceM(user.location, post.location))}</>}</p>
           <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed">{post.description}</p>
           <dl className="mt-4 grid grid-cols-2 gap-2 text-center text-sm">
@@ -135,7 +140,7 @@ function PostDetail() {
             {mine ? (
               <>
                 <p className="sub text-sm">&ldquo;{mine.message}&rdquo; · {mine.status === "accepted" ? "선정 확정 🎉" : mine.status === "rejected" ? "이번에는 함께하지 못해요" : mine.shortlistedAt ? "선정됐어요 · 대화하며 계약서를 확정하면 시작해요" : mine.shortlistCancelledAt ? "선정이 취소됐어요 · 채팅은 계속할 수 있어요" : "확인 대기 중"}</p>
-                {(mine.status === "accepted" || mine.status === "pending") && <Link href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">채팅창으로 가기</Link>}
+                {(mine.status === "accepted" || mine.status === "pending") && <Link data-demo-tour={id === "p9" ? "student-applied" : undefined} href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">채팅창으로 가기</Link>}
               </>
             ) : (
               <>
@@ -175,7 +180,7 @@ function PostDetail() {
                   </fieldset>
                 )}
                 <textarea aria-label="지원 메시지" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="할 수 있는 것과 가능한 시간을 간단히 적어 주세요" className="h-24 w-full rounded-xl bg-[var(--line)] p-3 text-sm outline-none" />
-                <button onClick={submit} disabled={act.busy || (scope === "CLUB" && !clubId)} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
+                <button data-demo-tour={id === "p9" ? "student-apply" : undefined} onClick={submit} disabled={act.busy || (scope === "CLUB" && !clubId)} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
               </>
             )}
             <div className="mt-2"><ErrorText text={act.error} /></div>
@@ -184,7 +189,7 @@ function PostDetail() {
 
         {isOwner && (
           <div className="card">
-            <h3 className="mb-2 font-bold">지원자 {apps.length}명</h3>
+            <h3 data-demo-tour={id === "p10" ? "existing-applicants" : "post-applicants"} className="mb-2 font-bold">지원자 {apps.length}명</h3>
             {individualDecisionComplete && <p className="mb-3 rounded-xl bg-[var(--primary-weak)] px-3 py-2 text-sm">
               <b>{selectedStudent?.name ?? "지원자"} 학생 선정 완료</b><br />나머지 지원자에게는 미선정 안내가 자동으로 전달됐어요.
             </p>}
@@ -198,14 +203,14 @@ function PostDetail() {
                   <p className="mt-1">{a.message}</p>
                   {a.status === "pending" && a.shortlistedAt ? <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
                     {/* 매칭 대기: 대화하며 계약서를 확정하면 선정 확정, 틀어지면 선정 취소 */}
-                    <Link href={`/chats/room?id=${a.id}`} className="btn btn-primary px-2 py-2">💬 대화 · 계약서</Link>
+                    <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn btn-primary px-2 py-2">💬 대화 · 계약서</Link>
                     <button onClick={() => cancelSelect(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">선정 취소</button>
                   </div> : a.status === "pending" && !individualDecisionComplete ? <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
-                    <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">채팅창으로 가기</Link>
-                    <button onClick={() => select(a)} disabled={act.busy || (!post.isTeam && shortlisting)} title={!post.isTeam && shortlisting ? "선정 중인 지원자가 있어요" : undefined} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
+                    <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">채팅창으로 가기</Link>
+                    <button data-demo-tour={a.studentId === "s5" && post.authorId === "r7" && post.title === "월계 미용실 시술 안내 포스터" ? "merchant-select" : undefined} onClick={() => select(a)} disabled={act.busy || (!post.isTeam && shortlisting)} title={!post.isTeam && shortlisting ? "선정 중인 지원자가 있어요" : undefined} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
                     <button onClick={() => reject(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
                   </div> : <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
-                    <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
+                    <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
                     <span className={`btn cursor-default px-2 py-2 ${a.status === "accepted" ? "btn-primary" : "bg-white sub"}`}>{a.status === "accepted" ? "선정 완료" : "미선정 안내 완료"}</span>
                   </div>}
                 </li>); })}

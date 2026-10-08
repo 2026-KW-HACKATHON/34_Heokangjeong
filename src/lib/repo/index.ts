@@ -136,6 +136,13 @@ export interface Repo {
 import { mockRepo } from "./mock";
 import { supabaseRepo } from "./supabase";
 import { supabase } from "../supabase";
+import { isDemoEnabled } from "../demoIdentity";
 
-// .env 에 Supabase 주소·키가 있으면 실제 DB, 비어 있으면 가짜 데이터(계정 전환으로 화면 확인)
-export const repo: Repo = supabase ? supabaseRepo(supabase) : mockRepo; // ← 백엔드 교체 지점
+// 배포 환경에서도 탭별 데모 선택 시에만 브라우저의 예시 데이터로 전환한다.
+const liveRepo = supabase ? supabaseRepo(supabase) : null;
+export const repo: Repo = new Proxy(mockRepo, {
+  get(_target, key: keyof Repo) {
+    const selected = liveRepo && !isDemoEnabled() ? liveRepo : mockRepo;
+    return selected[key];
+  },
+});

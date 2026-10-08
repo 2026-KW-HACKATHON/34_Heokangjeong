@@ -6,18 +6,29 @@ import { ErrorText, Field, inputCls, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
+import { getDemoTour } from "@/lib/demoTour";
 import { draftPost, type PostDraft } from "@/lib/ai/draft";
 import { COLLEGES, URGENT_MIN_REWARD } from "@/lib/colleges";
 import { DOMAINS, DOMAIN_KEYS, domainForCategory } from "@shared/portfolio/domains";
 import type { Category, DomainKey } from "@/types";
 
 const CATS: Category[] = ["디자인", "영상", "사진", "SNS홍보", "웹/앱", "디지털도움", "기타"];
+const DEMO_EXAMPLE = {
+  memo: "월계 미용실의 주요 시술과 가격을 손님이 한눈에 볼 수 있도록 포스터로 만들고 싶어요.",
+  title: "월계 미용실 시술 안내 포스터",
+  problem: "새로운 시술과 가격 안내가 매장 안에서 잘 보이지 않아 손님이 자주 문의해요.",
+  description: "시술명·가격 목록과 매장 사진을 제공할게요. 매장 부착용 포스터와 SNS 안내 이미지를 부탁드립니다.",
+  deliverables: "A3 매장 부착용 포스터 PDF 1종\nSNS용 정사각 이미지 1종\n수정 가능한 원본 파일",
+  completionCriteria: "점주가 시술명과 가격을 확인하고 A3 인쇄용 PDF와 SNS 이미지를 받으면 완료",
+  reward: "커트 1회 이용권 · 유효기간 3개월",
+};
 
 /** 공고 등록 (주민·상인). 고민을 대충 적으면 AI 초안이 폼을 채워 주고, 사장님이 확인·수정 후 등록한다.
  *  문제·기대 결과물·완료 기준은 나중에 학생 제출을 검토하고 검증하는 기준이 된다. 위치는 계정 위치를 기본값으로 쓴다(지도 선택은 TODO). */
 export default function NewPost() {
   const router = useRouter();
-  const { user } = useSession();
+  const { user, mode } = useSession();
+  const demo = mode === "mock";
   // difficulty 는 사장님이 고르지 않는다 (주관적이라서). AI 초안이 추정하고, 없으면 보통(2)
   const [f, setF] = useState({ title: "", category: "디자인" as Category, description: "", reward: "", durationDays: 0, difficulty: 2 as 1 | 2 | 3, isTeam: false });
   const [scope, setScope] = useState<"ANY" | "INDIVIDUAL" | "CLUB">("ANY");
@@ -37,36 +48,55 @@ export default function NewPost() {
 
   async function submit() {
     await act.run(async () => {
-      if (!f.title.trim()) throw new Error("제목을 입력해 주세요");
-      if (!l.problem.trim()) throw new Error("어떤 문제를 해결하고 싶은지 적어 주세요");
+      const example = (value: string, fallback: string) => value.trim() || (demo ? fallback : "");
+      const title = example(f.title, DEMO_EXAMPLE.title);
+      const problem = example(l.problem, DEMO_EXAMPLE.problem);
+      const reward = example(f.reward, DEMO_EXAMPLE.reward);
+      const description = example(f.description, DEMO_EXAMPLE.description);
+      const deliverables = example(l.deliverables, DEMO_EXAMPLE.deliverables);
+      const completionCriteria = example(l.completionCriteria, DEMO_EXAMPLE.completionCriteria);
+      if (!title) throw new Error("제목을 입력해 주세요");
+      if (!problem) throw new Error("어떤 문제를 해결하고 싶은지 적어 주세요");
       if (ongoing && monthlyCost && (!Number.isSafeInteger(Number(monthlyCost)) || Number(monthlyCost) < 0)) throw new Error("월 운영 비용은 0 이상의 정수로 입력해 주세요");
-      if (!f.reward.trim()) throw new Error("제공할 가게 쿠폰을 적어 주세요");
+      if (!reward) throw new Error("제공할 가게 쿠폰을 적어 주세요");
       // 긴급 공고는 즉시 알림이 가므로 현금 사례비 최소 금액을 요구한다 (DB 제약과 같은 기준)
-      const paid = urgent.on ? Number(urgentPay.replace(/,/g, "")) : undefined;
+      const paid = urgent.on ? Number((urgentPay || (demo ? String(URGENT_MIN_REWARD) : "")).replace(/,/g, "")) : undefined;
       if (urgent.on) {
         if (!Number.isSafeInteger(paid) || !paid || paid < URGENT_MIN_REWARD) throw new Error(`긴급 추가수당은 ${URGENT_MIN_REWARD.toLocaleString()}원 이상이어야 해요`);
       }
       const p = await repo.createPost({
-        ...f, authorId: user!.id, location: user!.location ?? WOLGYE_CENTER, address: (user as { address?: string }).address ?? "월계1동", isTeam: false, teamSlots: undefined,
-        description: [f.description.trim(), "작업 기간: 학생이 계약서 작성 시 제안하고 양쪽이 확인합니다.", ...(ongoing ? [`월 운영 비용: ${monthlyCost === "" ? "학생과 협의 후 확정" : Number(monthlyCost).toLocaleString() + "원/월 (예산 · 계약 시 확정)"}`] : [])].filter(Boolean).join("\n\n"),
-        problem: l.problem.trim(), domain, expectedDeliverables: l.deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria: l.completionCriteria.trim(),
-        deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: urgent.on ? "PAID" : "NON_MONETARY", compensationDescription: f.reward.trim(),
+        ...f, title, reward, authorId: user!.id, location: user!.location ?? WOLGYE_CENTER, address: (user as { address?: string }).address ?? "월계1동", isTeam: false, teamSlots: undefined,
+        description: [description, "작업 기간: 학생이 계약서 작성 시 제안하고 양쪽이 확인합니다.", ...(ongoing ? [`월 운영 비용: ${monthlyCost === "" ? "학생과 협의 후 확정" : Number(monthlyCost).toLocaleString() + "원/월 (예산 · 계약 시 확정)"}`] : [])].filter(Boolean).join("\n\n"),
+        problem, domain, expectedDeliverables: deliverables.split("\n").map((s) => s.trim()).filter(Boolean), completionCriteria,
+        deadline: l.deadline || undefined, revisionLimit: l.revisionLimit, compensationType: urgent.on ? "PAID" : "NON_MONETARY", compensationDescription: reward,
         paidAmount: paid,
         urgent: urgent.on, urgentColleges: urgent.on ? urgent.colleges : [],
         ongoing, warrantyRequestDays: ops.requestDays, warrantyRequestCount: ops.requestCount, warrantyDefectDays: ops.defectDays, clientOwnedBilling: ops.clientBilling,
         applicantScope: scope,
       });
+      if (demo && getDemoTour()?.role === "merchant" && getDemoTour()?.step === 1) {
+        await repo.apply(p.id, "s5", "안녕하세요. 시각디자인을 전공한 윤서연입니다. 시술명과 가격의 우선순위를 정리해 A3 포스터와 SNS 이미지 시안을 제작하겠습니다.");
+        await repo.apply(p.id, "s10", "안녕하세요. 경영학부 배수아입니다. 손님이 자주 묻는 시술을 먼저 배치하고 읽기 쉬운 안내 문구를 제안하겠습니다.");
+      }
       router.replace(`/posts/detail?id=${p.id}`);
     });
   }
   async function makeDraft() {
-    if (!memo.trim()) return act.setError("가게 고민을 한 줄이라도 적어 주세요");
+    const request = memo.trim() || (demo ? DEMO_EXAMPLE.memo : "");
+    if (!request) return act.setError("가게 고민을 한 줄이라도 적어 주세요");
     setDrafting(true);
     let d: PostDraft;
-    try { d = await draftPost(memo + (l.deadline ? `\n희망 마감일: ${l.deadline}` : "")); } catch (e) { setDrafting(false); return act.setError((e as Error).message); }
+    try {
+      d = demo ? {
+        title: DEMO_EXAMPLE.title, category: "디자인", description: DEMO_EXAMPLE.description,
+        deliverables: DEMO_EXAMPLE.deliverables.split("\n"), departments: ["디자인학과"],
+        durationDays: 7, difficulty: 2, isTeam: false,
+        reasons: ["데모 모드에서 준비된 예시 초안입니다. 원하는 내용으로 수정할 수 있어요."],
+      } : await draftPost(request + (l.deadline ? `\n희망 마감일: ${l.deadline}` : ""));
+    } catch (e) { setDrafting(false); return act.setError((e as Error).message); }
     setDraft(d);
     setF({ title: d.title, category: d.category, description: d.description, reward: f.reward, durationDays: 0, difficulty: d.difficulty, isTeam: false });
-    setL({ ...l, problem: l.problem || memo.trim(), deliverables: d.deliverables.join("\n") || l.deliverables });
+    setL({ ...l, problem: l.problem || request, deliverables: d.deliverables.join("\n") || l.deliverables });
     setDrafting(false);
   }
   return (
@@ -74,13 +104,13 @@ export default function NewPost() {
       <TopBar title="공고 등록" back />
       <section className="flex flex-col gap-3 px-4">
         <div className="card flex flex-col gap-3">
-          <div><h2 className="font-bold">✨ 대충 적으면 AI가 공고를 써 드려요</h2><p className="sub mt-0.5 text-xs">어떤 재능이 필요한지 몰라도 괜찮아요. 가게 고민만 편하게 적어 주세요.</p></div>
-          <textarea aria-label="가게 고민" className={`${inputCls} h-24`} placeholder="예: 메뉴판이 낡아서 손님들이 잘 못 알아봐요. 폰으로 QR 찍어서 메뉴 보게 하고 싶어요. 메뉴 20개 정도" value={memo} onChange={(e) => setMemo(e.target.value)} />
+          <div><h2 className="font-bold">✨ {demo ? "예시 공고를 바로 채워 드려요" : "대충 적으면 AI가 공고를 써 드려요"}</h2><p className="sub mt-0.5 text-xs">{demo ? "데모에서는 고민을 비워 둬도 준비된 예시 초안이 채워져요. 실제 AI 생성은 서버 연결 모드에서 동작해요." : "어떤 재능이 필요한지 몰라도 괜찮아요. 가게 고민만 편하게 적어 주세요."}</p></div>
+          <textarea aria-label="가게 고민" className={`${inputCls} h-24`} placeholder={demo ? DEMO_EXAMPLE.memo : "예: 메뉴판이 낡아서 손님들이 잘 못 알아봐요. 폰으로 QR 찍어서 메뉴 보게 하고 싶어요. 메뉴 20개 정도"} value={memo} onChange={(e) => setMemo(e.target.value)} />
           <Field label="마감 기간 선택" hint="언제까지 결과물이 필요하신가요? 실제 작업 기간은 학생이 계약서에서 제안해요."><input aria-label="희망 마감일" type="date" className={inputCls} value={l.deadline} onChange={e => setL({ ...l, deadline: e.target.value })} /></Field>
-          <button onClick={makeDraft} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : "빠른 AI 공고 생성"}</button>
+          <button data-demo-tour="post-example" onClick={makeDraft} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : demo ? "예시 공고 채우기" : "빠른 AI 공고 생성"}</button>
           {draft && (
             <div className="rounded-xl bg-[var(--primary-weak)] p-3 text-sm">
-              <p className="font-bold text-[var(--primary)]">AI 초안 · 아래 폼에 채워 두었어요</p>
+              <p className="font-bold text-[var(--primary)]">{demo ? "데모 예시 초안" : "AI 초안"} · 아래 폼에 채워 두었어요</p>
               <dl className="mt-2 flex flex-col gap-1">
                 <div className="flex gap-2"><dt className="sub w-16 shrink-0">제목</dt><dd className="font-semibold">{draft.title}</dd></div>
                 <div className="flex gap-2"><dt className="sub w-16 shrink-0">필요 재능</dt><dd>{draft.category}</dd></div>
@@ -93,17 +123,18 @@ export default function NewPost() {
           )}
         </div>
         <div className="card flex flex-col gap-3">
-          <Field label="제목"><input className={inputCls} placeholder="어떤 도움이 필요한가요? (예: 메뉴판 디자인)" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
+          {demo && <p className="sub text-xs">데모에서는 빈칸의 예시 내용이 등록할 때 자동으로 사용돼요. 바꾸고 싶은 항목만 입력해 주세요.</p>}
+          <Field label="제목"><input className={inputCls} placeholder={demo ? DEMO_EXAMPLE.title : "어떤 도움이 필요한가요? (예: 메뉴판 디자인)"} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1">{CATS.map((c) => <button key={c} type="button" aria-pressed={f.category === c} onClick={() => setF({ ...f, category: c })} className={`chip ${f.category === c ? "chip-on" : ""}`}>{c}</button>)}</div>
-          <Field label="어떤 문제를 해결하고 싶나요?" hint="학생이 포트폴리오에 ‘문제’로 쓰는 출발점이에요."><textarea className={`${inputCls} h-20`} placeholder="예: 메뉴가 한 판에 섞여 있어 손님이 원하는 메뉴를 못 찾아요" value={l.problem} onChange={(e) => setL({ ...l, problem: e.target.value })} /></Field>
-          <Field label="자세한 내용"><textarea className={`${inputCls} h-24`} placeholder="원하는 결과물, 가능한 시간, 제공할 자료" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
-          <Field label="기대 결과물" hint="한 줄에 하나씩"><textarea className={`${inputCls} h-20`} placeholder={"A2 메뉴판 인쇄 파일 1종\n원본 디자인 파일"} value={l.deliverables} onChange={(e) => setL({ ...l, deliverables: e.target.value })} /></Field>
-          <Field label="완료 기준" hint="검토·승인할 때 이 기준으로 확인해요."><input className={inputCls} placeholder="예: 인쇄소에 바로 넘길 수 있는 PDF" value={l.completionCriteria} onChange={(e) => setL({ ...l, completionCriteria: e.target.value })} /></Field>
+          <Field label="어떤 문제를 해결하고 싶나요?" hint="학생이 포트폴리오에 ‘문제’로 쓰는 출발점이에요."><textarea className={`${inputCls} h-20`} placeholder={demo ? DEMO_EXAMPLE.problem : "예: 메뉴가 한 판에 섞여 있어 손님이 원하는 메뉴를 못 찾아요"} value={l.problem} onChange={(e) => setL({ ...l, problem: e.target.value })} /></Field>
+          <Field label="자세한 내용"><textarea className={`${inputCls} h-24`} placeholder={demo ? DEMO_EXAMPLE.description : "원하는 결과물, 가능한 시간, 제공할 자료"} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
+          <Field label="기대 결과물" hint="한 줄에 하나씩"><textarea className={`${inputCls} h-20`} placeholder={DEMO_EXAMPLE.deliverables} value={l.deliverables} onChange={(e) => setL({ ...l, deliverables: e.target.value })} /></Field>
+          <Field label="완료 기준" hint="검토·승인할 때 이 기준으로 확인해요."><input className={inputCls} placeholder={demo ? DEMO_EXAMPLE.completionCriteria : "예: 인쇄소에 바로 넘길 수 있는 PDF"} value={l.completionCriteria} onChange={(e) => setL({ ...l, completionCriteria: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label="보완 요청 횟수"><select className={inputCls} value={l.revisionLimit} onChange={(e) => setL({ ...l, revisionLimit: +e.target.value })}>{[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}번</option>)}</select></Field>
           </div>
           <Field label="완료 시 제공할 가게 쿠폰" hint="이 공고를 완료한 학생에게 약속한 쿠폰을 동일하게 제공해요.">
-            <input className={inputCls} aria-label="가게 쿠폰" placeholder="예: 음료 쿠폰 5장 · 유효기간 3개월" value={f.reward} onChange={(e) => setF({ ...f, reward: e.target.value })} />
+            <input className={inputCls} aria-label="가게 쿠폰" placeholder={demo ? DEMO_EXAMPLE.reward : "예: 음료 쿠폰 5장 · 유효기간 3개월"} value={f.reward} onChange={(e) => setF({ ...f, reward: e.target.value })} />
           </Field>
           <Field label="포트폴리오 기록 방식" hint="학생이 이 분야의 질문에 답하며 과정을 기록해요.">
             <select className={inputCls} value={domain} onChange={(e) => setL({ ...l, domain: e.target.value as DomainKey })}>{DOMAIN_KEYS.map((k) => <option key={k} value={k}>{DOMAINS[k].label}</option>)}</select>
@@ -170,7 +201,7 @@ export default function NewPost() {
             <span><b>🚨 긴급 공고로 올릴게요</b><span className="sub block text-xs">지금 바로 사람이 필요할 때만 선택하세요. 고른 단과대학 학생과 관심 분야가 맞는 학생에게 즉시 알림이 갑니다.</span></span>
           </label>
           {urgent.on && <Field label="긴급 추가수당(원) · 필수" hint={`가게 쿠폰과 별도로 지급할 금액이에요. 최소 ${URGENT_MIN_REWARD.toLocaleString()}원부터 입력해 주세요.`}>
-            <input aria-label="긴급 추가수당(원)" inputMode="numeric" required className={inputCls} placeholder="금액을 입력해 주세요" value={urgentPay} onChange={e => setUrgentPay(e.target.value)} />
+            <input aria-label="긴급 추가수당(원)" inputMode="numeric" required={!demo} className={inputCls} placeholder={demo ? String(URGENT_MIN_REWARD) : "금액을 입력해 주세요"} value={urgentPay} onChange={e => setUrgentPay(e.target.value)} />
           </Field>}
           {urgent.on && (
             <fieldset>
@@ -199,7 +230,7 @@ export default function NewPost() {
           )}
         </div>
         <ErrorText text={act.error} />
-        <button onClick={submit} disabled={act.busy} className="btn btn-primary w-full disabled:opacity-50">{urgent.on ? "🚨 긴급 공고 등록하기" : "등록하기"}</button>
+        <button data-demo-tour="post-submit" onClick={submit} disabled={act.busy} className="btn btn-primary w-full disabled:opacity-50">{urgent.on ? "🚨 긴급 공고 등록하기" : "등록하기"}</button>
         <p className="sub text-center text-xs">{urgent.on ? "등록 즉시 선택한 단과대학 학생과 관심 분야가 맞는 학생에게 알림이 갑니다." : "평소 공고는 알림 없이 올라가고, 학생이 홈·지도에서 찾아봅니다."}</p>
       </section>
     </>

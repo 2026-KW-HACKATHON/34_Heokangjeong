@@ -170,7 +170,7 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: {
 
       <div className={`pf-mode-bar ${viewMode === "web" ? "is-web" : ""}`} role="group" aria-label="포트폴리오 보기 방식">
         <button type="button" aria-pressed={viewMode === "app"} onClick={() => setViewMode("app")}>{viewMode === "web" ? "‹ 앱으로" : "앱 버전"}</button>
-        <button type="button" aria-pressed={viewMode === "web"} onClick={() => setViewMode("web")}>PC 버전</button>
+        <button data-demo-tour="portfolio-web" type="button" aria-pressed={viewMode === "web"} onClick={() => setViewMode("web")}>PC 버전</button>
         {viewMode === "web" && <button type="button" className="pf-mode-download" disabled={!preparedFile} onClick={() => { if (preparedFile) { setDownloadError(""); downloadWebPortfolioFile(preparedFile); } }}>HTML 다운로드</button>}
         {owner && viewMode === "web" && !editing && <button type="button" onClick={() => setEditing(true)}>PC 편집</button>}
         {owner && viewMode === "web" && editing && <><button type="button" onClick={discard} disabled={act.busy}>취소</button><button type="button" className="pf-pill-primary" onClick={save} disabled={act.busy}>{act.busy ? "저장 중…" : "저장"}</button></>}

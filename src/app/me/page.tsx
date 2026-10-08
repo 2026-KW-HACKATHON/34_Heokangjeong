@@ -39,7 +39,7 @@ export default function Me() {
   }
 
   return <>
-    <TopBar title="나의 작업실" monochrome compact />
+    <TopBar title="나의 작업실" compact />
     <main className="portfolio-me">
       {user?.role === "student" ? <>
         <div className="portfolio-sheet">
@@ -65,6 +65,7 @@ export default function Me() {
           <p className="sub mt-2">지원·선정·채팅·알림 기록을 처음 상태로 되돌려 같은 흐름을 다시 시험할 수 있어요.</p>
           <button onClick={resetDemo} disabled={resetting} className="btn btn-ghost mt-3 w-full disabled:opacity-50">{resetting ? "초기화 중…" : "데모 데이터 초기화"}</button>
         </section>
+        <button type="button" onClick={signOut} className="btn btn-ghost w-full">데모 종료 · 로그인 화면으로</button>
       </>}
       {/* 단체(동아리·학회)와 관리자 메뉴 */}
       <ul className="card flex flex-col divide-y divide-[var(--line)] p-0 text-[15px]">
