@@ -114,7 +114,8 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
         </div>
       )}
 
-      <tpl.Component page={page} content={content} blocks={blocks} editing={editing} onChange={(c) => update(c)} />
+      {/* 앱은 휴대폰 폭(480px) 틀 안에 있지만, 포트폴리오 템플릿은 화면 전체 폭을 쓴다 (PC 에서는 웹 포트폴리오처럼) */}
+      <div className="pf-bleed"><tpl.Component page={page} content={content} blocks={blocks} editing={editing} onChange={(c) => update(c)} /></div>
 
       {owner && (
         <div className="pf-pill" role="group" aria-label="포트폴리오 메뉴">

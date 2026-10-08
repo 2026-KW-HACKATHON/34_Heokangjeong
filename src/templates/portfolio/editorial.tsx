@@ -1,10 +1,9 @@
 "use client";
 // 에디토리얼 템플릿 (기능 확인용 단순형): 큰 제목, 사실 줄, 번호 붙은 왼쪽 라벨·오른쪽 본문, 큰 인용.
 // 실제 시안(Telha Clarke 풍)은 나중에 이 자리를 바꾼다. 내용은 기본 템플릿과 똑같이 모든 블록을 담는다.
-import EvidenceItem from "@/components/EvidenceItem";
 import Verification from "@/components/Verification";
 import type { DocBlock } from "@shared/portfolio/document";
-import { EditableText, Locked, ToolsEditor, assertNever, setSection } from "./parts";
+import { EditableText, EvidenceFigures, Locked, ToolsEditor, assertNever, setSection } from "./parts";
 import type { TemplateProps } from "./types";
 
 function Row({ n, label, children }: { n: number; label: string; children: React.ReactNode }) {
@@ -32,7 +31,7 @@ export default function EditorialTemplate({ page, content, blocks, editing, onCh
             <EditableText label={b.section.title} editing={editing} value={b.section.body} onChange={(v) => onChange(setSection(content, b.section.key, v))} className="pf-ed-text" />
             {b.evidence.length > 0 && (
               <Locked editing={editing} origin="client" className="mt-4">
-                <div className="pf-ed-grid">{b.evidence.map((e) => <EvidenceItem key={e.id} e={e} compact />)}</div>
+                <EvidenceFigures evidence={b.evidence} />
               </Locked>
             )}
           </Row>
@@ -72,7 +71,7 @@ export default function EditorialTemplate({ page, content, blocks, editing, onCh
         return (
           <Row key={i} n={++n} label="증빙·링크">
             <Locked editing={editing} origin="client">
-              <div className="pf-ed-grid">{b.evidence.map((e) => <EvidenceItem key={e.id} e={e} compact />)}</div>
+              <EvidenceFigures evidence={b.evidence} columns={2} />
             </Locked>
           </Row>
         );

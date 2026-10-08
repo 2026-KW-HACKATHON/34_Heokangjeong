@@ -1,9 +1,8 @@
 "use client";
 // 기본 템플릿: 지금까지의 카드형 포트폴리오 화면을 템플릿으로 옮긴 것.
-import EvidenceItem from "@/components/EvidenceItem";
 import Verification from "@/components/Verification";
 import type { DocBlock } from "@shared/portfolio/document";
-import { EditableText, Locked, ToolsEditor, assertNever, setSection } from "./parts";
+import { EditableText, EvidenceFigures, Locked, ToolsEditor, assertNever, setSection } from "./parts";
 import type { TemplateProps } from "./types";
 
 export default function BasicTemplate({ page, content, blocks, editing, onChange }: TemplateProps) {
@@ -23,7 +22,7 @@ export default function BasicTemplate({ page, content, blocks, editing, onChange
             <EditableText label={b.section.title} editing={editing} value={b.section.body} onChange={(v) => onChange(setSection(content, b.section.key, v))} className="text-[15px] leading-relaxed" />
             {b.evidence.length > 0 && (
               <Locked editing={editing} origin="client" className="mt-3">
-                <div className="grid grid-cols-2 gap-2">{b.evidence.map((e) => <EvidenceItem key={e.id} e={e} compact />)}</div>
+                <EvidenceFigures evidence={b.evidence} />
               </Locked>
             )}
           </section>
@@ -61,7 +60,7 @@ export default function BasicTemplate({ page, content, blocks, editing, onChange
         return (
           <Locked key={i} editing={editing} origin="client" className="card">
             <h3 className="mb-2 font-bold">증빙·링크</h3>
-            <div className="grid grid-cols-2 gap-2">{b.evidence.map((e) => <EvidenceItem key={e.id} e={e} compact />)}</div>
+            <EvidenceFigures evidence={b.evidence} columns={2} />
           </Locked>
         );
       default:

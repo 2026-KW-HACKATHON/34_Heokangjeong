@@ -31,6 +31,17 @@ describe("데모 완료 프로젝트", () => {
     expect(seedDemoProjects(db)).toBe(false);
     expect(db.projects).toHaveLength(5);
   });
+  it("데모 버전이 바뀌면 데모 것만 다시 만들고 사용자 데이터는 남긴다", () => {
+    const db = fresh();
+    seedDemoProjects(db);
+    db.posts.push({ ...db.posts[0], id: "user-post", title: "사용자가 만든 공고" });
+    (db as { demoSeedVersion?: number }).demoSeedVersion = 1;            // 예전 브라우저 저장소
+    db.evidence.find((e) => e.type === "BEFORE_IMAGE")!.url = "/portfolio-samples/menu.png";
+    expect(seedDemoProjects(db)).toBe(true);
+    expect(db.projects).toHaveLength(5);
+    expect(db.posts.some((p) => p.id === "user-post")).toBe(true);
+    expect(db.evidence.find((e) => e.type === "BEFORE_IMAGE")?.url).toBeUndefined();   // 작업 전 증빙에 완성본 사진을 쓰지 않는다
+  });
   it("피드 게시물은 프로젝트 작업 5개, 김하늘에게는 예전 샘플 카드가 겹치지 않는다", () => {
     const db = fresh();
     seedDemoProjects(db);

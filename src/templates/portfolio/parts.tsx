@@ -1,8 +1,9 @@
 "use client";
 // 템플릿 공통 부품. 편집 칸과 잠김 표시는 여기 하나뿐이라, 템플릿이 달라도 편집·잠금 규칙은 같다.
 import { useEffect, useRef, useState } from "react";
-import type { DocBlock } from "@shared/portfolio/document";
-import type { PortfolioContent } from "@/types";
+import { EVIDENCE_LABEL, type DocBlock } from "@shared/portfolio/document";
+import { isImage } from "@/lib/files";
+import type { Evidence, PortfolioContent } from "@/types";
 
 /** 블록 종류를 빠뜨리면 컴파일 오류가 나게 한다 (새 블록 종류 = 모든 템플릿에서 오류) */
 export function assertNever(x: never): never { throw new Error(`처리하지 않은 블록: ${JSON.stringify(x)}`); }
@@ -75,5 +76,53 @@ function SkillsInput({ content, onChange }: { content: PortfolioContent; onChang
       <input aria-label="역량" className="pf-edit mt-1 w-full" value={text}
         onChange={(e) => { setText(e.target.value); onChange({ ...content, skills: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) }); }} />
     </label>
+  );
+}
+
+/**
+ * 증빙을 웹 포트폴리오처럼 보여 준다: 이미지는 크게(원본 비율) + 아래 작은 캡션, 파일·링크는 깔끔한 링크 줄.
+ * 원본 그대로이고 고칠 수 없다 (잠금은 바깥 Locked 가 표시).
+ */
+export function EvidenceFigures({ evidence, columns = 1 }: { evidence: Evidence[]; columns?: 1 | 2 }) {
+  const images = evidence.filter((e) => e.url && isImage(e));
+  const others = evidence.filter((e) => !(e.url && isImage(e)));
+  return (
+    <div className="pf-figs">
+      {images.length > 0 && (
+        <div className={`pf-fig-grid ${columns === 2 && images.length > 1 ? "pf-fig-grid-2" : ""}`}>
+          {images.map((e) => (
+            <figure key={e.id} className="pf-fig">
+              <a href={e.url} target="_blank" rel="noreferrer" aria-label={`${EVIDENCE_LABEL[e.type]} 원본 크게 보기`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={e.url} alt={e.description || EVIDENCE_LABEL[e.type]} loading="lazy" className="pf-fig-img" />
+              </a>
+              <EvidenceCaption e={e} />
+            </figure>
+          ))}
+        </div>
+      )}
+      {others.length > 0 && (
+        <ul className="pf-files">
+          {others.map((e) => (
+            <li key={e.id} className="pf-file">
+              <span className="pf-file-icon" aria-hidden="true">{e.type === "DELIVERABLE_URL" ? "↗" : e.url ? "▤" : "✎"}</span>
+              <span className="min-w-0 flex-1">
+                <EvidenceCaption e={e} />
+                {e.url && <a href={e.url} target="_blank" rel="noreferrer" className="pf-file-link">{e.fileName || e.url.replace(/^https?:\/\//, "")}</a>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+function EvidenceCaption({ e }: { e: Evidence }) {
+  return (
+    <figcaption className="pf-fig-cap">
+      <span className="pf-fig-kind">{EVIDENCE_LABEL[e.type]}{e.source === "CLIENT" && <span className="pf-fig-client">의뢰인 제공</span>}</span>
+      {e.description && <span className="pf-fig-desc">{e.description}</span>}
+      {e.linkedClaim && <span className="pf-fig-desc">↳ 뒷받침: {e.linkedClaim}</span>}
+    </figcaption>
   );
 }
