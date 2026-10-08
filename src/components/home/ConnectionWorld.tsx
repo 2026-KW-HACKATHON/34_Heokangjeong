@@ -190,7 +190,6 @@ export default function ConnectionWorld({ children }: { children: ReactNode }) {
     };
   }, [enabled]);
   return <MotionContext.Provider value={{ enabled, toggle }}><div ref={root} className="home-world" data-walking-enabled={enabled}>
-    <div className="home-world-backdrop" aria-hidden="true"><WhiteVillage /></div>
     <div className="home-world-content">{children}</div>
   </div></MotionContext.Provider>;
 }

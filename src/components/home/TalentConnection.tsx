@@ -38,12 +38,6 @@ export default function TalentConnection({ category, onCategoryChange, onExplore
   </>;
 
   return <><div className="talent-connection">
-    <div className="connection-intro">
-      <p className="connection-eyebrow"><span /> SMALL TALENT, REAL CHANGE</p>
-      <h2>{resident ? <>작은 요청이,<br />새로운 변화가 되도록.</> : <>가까운 곳에,<br />나의 재능이 닿도록.</>}</h2>
-      <p className="connection-description">{resident ? "이웃의 재능과 함께, 우리 가게의 다음을 만들어보세요." : "동네에서 함께한 일이, 나만의 경험이 됩니다."}</p>
-    </div>
-
     <div className="connection-scene" aria-label={`${selected?.label ?? "다양한 재능"}과 지역 요청을 연결하는 모습`}>
       <div className="connection-scene-grid" aria-hidden="true" />
       <WhiteVillage compact />
@@ -64,7 +58,7 @@ export default function TalentConnection({ category, onCategoryChange, onExplore
     </div>
 
     </div>
-    <CategoryPicker category={category} onChange={onCategoryChange} resident={resident} />
+    <CategoryPicker category={category} onChange={onCategoryChange} />
 
     <div className="connection-actions">
       <button type="button" className="connection-explore" onClick={onExplore} disabled={loading || failed || count === 0}>

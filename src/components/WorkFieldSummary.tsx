@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { repo } from "@/lib/repo";
 import { workFieldSummary } from "@/lib/workFields";
 import { PROFILE_SHOWCASE_STATS } from "@/lib/portfolio/showcaseStats";
-import StarRating from "@/components/StarRating";
 import type { PortfolioCard, Post, TrustSummary } from "@/types";
 
 export default function WorkFieldSummary({ studentId, detailed = false }: { studentId: string; detailed?: boolean }) {
@@ -32,7 +31,7 @@ export default function WorkFieldSummary({ studentId, detailed = false }: { stud
     {!summary ? <p role="status" className="sub mt-3 text-sm">{error ? "작업 기록을 불러오지 못했어요." : "작업 기록을 불러오는 중…"}</p> : <>
       <dl className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">검증 프로젝트</dt><dd className="mt-1 font-bold">{showcase?.verifiedCount ?? verifiedCount}건</dd></div>
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">평판 별점</dt><dd className="mt-1">{showcase ? <b aria-label="시연 예시 평판 별점 4.6점">★ {showcase.rating.toFixed(1)}</b> : reviewCount > 0 ? <StarRating value={reputationRating} size="sm" /> : <b>평가 전</b>}</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">평판 별점</dt><dd className="mt-1">{showcase ? <b aria-label={`시연 예시 평판 별점 5점 중 ${showcase.rating.toFixed(1)}점`}>★ {showcase.rating.toFixed(1)}</b> : reviewCount > 0 ? <b aria-label={`평판 별점 5점 중 ${reputationRating.toFixed(1)}점`}>★ {reputationRating.toFixed(1)}</b> : <b>평가 전</b>}</dd></div>
         <div className="col-span-2 rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">제일 많이 한 분야</dt><dd className="mt-1 font-bold">{displayedFields.length ? displayedFields.join(" · ") : "아직 없음"}</dd></div>
       </dl>
       <p className="sub mt-3 text-xs">{showcase ? "시연용 표시값 · 실제 완료 인증·평가 기록과 별도" : `의뢰인이 완료를 인증한 작업 ${summary.total}건 기준`}</p>
