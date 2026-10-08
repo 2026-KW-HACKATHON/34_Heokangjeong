@@ -16,6 +16,7 @@ import { sourceFromBundle } from "../portfolio/source";
 import { sanitizeContent } from "../workflow/engine";
 import { summarizeTrust } from "../trust";
 import { publicationFromSource } from "../portfolio/publication";
+import { assertArchiveCapacity, feedCollection, withFeedCollection } from "../portfolio/collection";
 import { validateAgreement, type WorkAgreement } from "../agreement";
 
 // ── DB 행(snake_case) ↔ 도메인 타입(camelCase) 변환 ────────────────────────────
@@ -31,7 +32,7 @@ export const toUser = (r: Row): User => r.role === "admin"
   ? { id: r.id, role: "admin", name: r.name, location: { lat: r.lat, lng: r.lng } }
   : r.role === "student"
   ? { id: r.id, role: "student", name: r.name, nickname: u(r.nickname), department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
-  : { id: r.id, role: "resident", name: r.name, nickname: u(r.nickname), kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
+  : { id: r.id, role: "resident", name: r.name, nickname: u(r.nickname), kind: r.kind ?? "주민", address: r.address ?? "", avatarUrl: u(r.avatar_url), location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
   id: r.id, title: r.title, category: r.category, description: r.description, authorId: r.author_id,
@@ -214,7 +215,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async updatePortfolioProfile(studentId, data) {
       const { data: auth } = await db.auth.getUser();
       if (auth.user?.id !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
-      done(await db.from("profiles").update({ about: data.about, ...(data.department !== undefined ? { department: data.department } : {}), ...(data.nickname !== undefined ? { nickname: data.nickname } : {}), ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
+      done(await db.from("profiles").update({ about: data.about, ...(data.department !== undefined ? { department: data.department } : {}), ...(data.nickname !== undefined ? { nickname: data.nickname } : {}), ...(data.skills !== undefined ? { skills: data.skills } : {}), ...(data.interests !== undefined ? { interests: data.interests } : {}), ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
+    },
+    async updateAvatar(userId, avatarUrl) {
+      const { data: auth } = await db.auth.getUser();
+      if (auth.user?.id !== userId) throw new Error("본인의 프로필만 수정할 수 있어요.");
+      done(await db.from("profiles").update({ avatar_url: avatarUrl }).eq("id", userId));
     },
     async uploadPortfolioImage(studentId, file) {
       const { data: auth } = await db.auth.getUser();
@@ -331,12 +337,14 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const { data, error } = await db.auth.getUser();
       if (error || data.user?.id !== actorId || item.studentId !== actorId || item.sourceKind !== "manual") throw new Error("본인의 피드만 올릴 수 있어요.");
       if (!item.title.trim() || !item.coverUrl || !item.imageUrls?.includes(item.coverUrl) || !item.sections.some(section => section.body.trim())) throw new Error("제목, 대표사진, 내용을 확인해 주세요.");
+      assertArchiveCapacity(item, await repo.listPublishedPortfolio(actorId, true));
       done(await db.from("portfolio_publications").insert({ student_id: actorId, source_kind: "manual", source_id: item.sourceId, title: item.title, summary: item.summary, category: item.category, sections: item.sections, published_at: item.publishedAt, cover_url: item.coverUrl, image_urls: item.imageUrls, is_visible: true }));
     },
     async updatePublishedPortfolio(actorId, item) {
       const { data, error } = await db.auth.getUser();
       if (error || data.user?.id !== actorId || actorId !== item.studentId) throw new Error("본인의 게시물만 수정할 수 있어요.");
       if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
+      assertArchiveCapacity(item, await repo.listPublishedPortfolio(actorId, true));
       const result = await db.from("portfolio_publications").update({ title: item.title, summary: item.summary, sections: item.sections, cover_url: item.coverUrl ?? null, image_urls: item.imageUrls ?? [], is_visible: item.visible !== false }).eq("student_id", actorId).eq("source_id", item.sourceId).eq("source_kind", item.sourceKind).select("source_id");
       if (!ok(result).length) throw new Error("공개된 게시물을 찾을 수 없어요.");
     },
@@ -351,7 +359,9 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const { data, error } = await db.auth.getUser();
       if (error || data.user?.id !== studentId) throw new Error("본인의 포트폴리오만 공개할 수 있어요.");
       const p = await publicationFromSource(repo, studentId, sourceId, sourceKind);
-      const existing = maybe(await db.from("portfolio_publications").select("cover_url").eq("student_id", studentId).eq("source_kind", sourceKind).eq("source_id", sourceId).maybeSingle());
+      const existing = maybe(await db.from("portfolio_publications").select("cover_url, sections").eq("student_id", studentId).eq("source_kind", sourceKind).eq("source_id", sourceId).maybeSingle());
+      if (existing) p.sections = withFeedCollection(p, feedCollection({ ...p, sections: existing.sections })).sections;
+      assertArchiveCapacity(p, await repo.listPublishedPortfolio(studentId, true));
       done(await db.from("portfolio_publications").upsert({ student_id: studentId, source_id: sourceId, source_kind: sourceKind, title: p.title, summary: p.summary, category: p.category, sections: p.sections, published_at: p.publishedAt, is_visible: true, cover_url: coverUrl ?? existing?.cover_url ?? null }, { onConflict: "student_id,source_kind,source_id" }));
     },
     async unpublishPortfolio(studentId, sourceId, sourceKind) {
