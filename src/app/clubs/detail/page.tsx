@@ -8,7 +8,7 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { clubKindLabel } from "@/lib/clubs";
 import { collegeLabel } from "@/lib/colleges";
-import type { Club, ClubMember } from "@/types";
+import type { Club, ClubMember, Post, Project } from "@/types";
 
 /** 단체 상세: 소속 명단, 대표의 가입 수락·거절 */
 export default function ClubDetailPage() {
@@ -20,12 +20,14 @@ function ClubDetail() {
   const { user, users } = useSession();
   const [club, setClub] = useState<Club | null | undefined>(undefined);
   const [members, setMembers] = useState<ClubMember[]>([]);
+  const [works, setWorks] = useState<{ project: Project; post: Post }[]>([]);   // 단체 활동 기록
   const act = useAction();
 
   const reload = async () => {
-    const [list, m] = await Promise.all([repo.listClubs(), repo.listClubMembers(id)]);
+    const [list, m, w] = await Promise.all([repo.listClubs(), repo.listClubMembers(id), repo.listClubProjects(id)]);
     setClub(list.find((c) => c.id === id) ?? null);
     setMembers(m);
+    setWorks(w);
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { reload(); }, [id]);
@@ -67,13 +69,26 @@ function ClubDetail() {
           </div>
         )}
 
+        {/* 단체 활동 기록: 이 단체 이름으로 맡아 완료한 프로젝트 */}
+        <div className="card flex flex-col gap-2">
+          <h3 className="font-bold">단체 활동 기록 {works.filter((w) => w.project.status === "COMPLETED").length}건</h3>
+          {works.length === 0 && <p className="sub text-sm">아직 이 단체 이름으로 맡은 프로젝트가 없어요.</p>}
+          {works.map(({ project, post }) => (
+            <Link key={project.id} href={`/projects/detail?id=${project.id}`} className="rounded-xl bg-[var(--line)] px-3 py-2 text-sm">
+              <b>{post.title}</b>
+              <span className="sub block text-xs">{project.status === "COMPLETED" ? "완료·검증됨" : "진행 중"}</span>
+            </Link>
+          ))}
+        </div>
+
         <div className="card flex flex-col gap-2">
           <h3 className="font-bold">소속 명단</h3>
           <ul className="flex flex-col gap-1.5 text-sm">
             {active.map((m) => (
               <li key={m.studentId} className="flex items-center justify-between">
                 <Link href={`/profiles/view?id=${m.studentId}`} className="flex-1">{name(m.studentId)} <span className="sub text-xs">{dept(m.studentId)}</span></Link>
-                {m.role === "LEADER" && <span className="chip chip-on text-xs">대표</span>}
+                {m.role === "LEADER" ? <span className="chip chip-on text-xs">대표</span>
+                  : isLeader && <button onClick={() => { if (confirm(`${name(m.studentId)} 님에게 대표를 넘길까요?`)) run(() => repo.transferLeader(id, m.studentId, user!.id)); }} className="text-xs text-[var(--primary)] underline">대표 넘기기</button>}
               </li>
             ))}
           </ul>

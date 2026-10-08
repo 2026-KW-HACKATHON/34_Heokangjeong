@@ -99,6 +99,9 @@ export interface Repo {
   createClub(actorId: string, input: ClubInput): Promise<Club>;
   joinClub(clubId: string, actorId: string): Promise<void>;                  // 가입 신청 (대표 수락 필요)
   reviewMember(clubId: string, studentId: string, approve: boolean, actorId: string): Promise<void>;   // 대표의 수락·거절
+  transferLeader(clubId: string, studentId: string, actorId: string): Promise<void>;                  // 대표 넘기기
+  addClubWorker(projectId: string, studentId: string, roleLabel: string, actorId: string): Promise<void>; // 실제 작업한 부원 기록
+  listClubProjects(clubId: string): Promise<{ project: Project; post: Post }[]>;                      // 단체 활동 기록
   leaveClub(clubId: string, actorId: string): Promise<void>;
   assignMaintainer(projectId: string, studentId: string, actorId: string): Promise<void>; // 단체 안에서 담당자 넘기기
   // ── 관리자 ────────────────────────────────────────────────────────────────

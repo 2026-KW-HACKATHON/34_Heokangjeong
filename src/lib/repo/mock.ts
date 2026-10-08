@@ -612,6 +612,36 @@ export const mockRepo: Repo = {
     });
   },
 
+  async transferLeader(clubId, studentId, actorId) { return tx(() => {
+    const me = db.clubMembers.find((m) => m.clubId === clubId && m.studentId === actorId);
+    if (me?.role !== "LEADER" || me.status !== "ACTIVE") throw new Error("현재 대표만 대표를 넘길 수 있어요");
+    const target = db.clubMembers.find((m) => m.clubId === clubId && m.studentId === studentId && m.status === "ACTIVE");
+    if (!target) throw new Error("소속이 확정된 부원에게만 넘길 수 있어요");
+    me.role = "MEMBER"; target.role = "LEADER";
+  }); },
+  async addClubWorker(projectId, studentId, roleLabel, actorId) { return tx(() => {
+    const project = db.projects.find((p) => p.id === projectId);
+    const clubId = db.operations.find((o) => o.projectId === projectId)?.clubId
+      ?? db.applications.find((a) => db.members.some((m) => m.projectId === projectId && m.applicationId === a.id))?.clubId;
+    if (!project || !clubId) throw new Error("단체가 맡은 프로젝트만 부원을 추가할 수 있어요");
+    if (!db.clubMembers.some((m) => m.clubId === clubId && m.studentId === actorId && m.role === "LEADER" && m.status === "ACTIVE"))
+      throw new Error("단체 대표만 참여 부원을 추가할 수 있어요");
+    if (!db.clubMembers.some((m) => m.clubId === clubId && m.studentId === studentId && m.status === "ACTIVE"))
+      throw new Error("같은 단체 소속 부원만 추가할 수 있어요");
+    if (db.members.some((m) => m.projectId === projectId && m.studentId === studentId)) return;
+    db.members.push({ projectId, studentId, roleLabel: roleLabel.trim() || "참여", domain: project.domain, joinedAt: new Date().toISOString() });
+  }); },
+  async listClubProjects(clubId) {
+    ensure();
+    const ids = new Set(db.applications.filter((a) => a.clubId === clubId).map((a) => a.id));
+    return wait(db.projects.flatMap((project) => {
+      const belongs = db.members.some((m) => m.projectId === project.id && m.applicationId && ids.has(m.applicationId))
+        || db.operations.some((o) => o.projectId === project.id && o.clubId === clubId);
+      const post = db.posts.find((p) => p.id === project.postId);
+      return belongs && post ? [{ project, post }] : [];
+    }));
+  },
+
   async assignMaintainer(projectId, studentId, actorId) { return tx(() => {
     const o = db.operations.find((x) => x.projectId === projectId);
     if (!o) throw new Error("운영 중인 프로젝트가 아니에요");

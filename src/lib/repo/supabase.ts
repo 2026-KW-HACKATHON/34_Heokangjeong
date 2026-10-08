@@ -495,6 +495,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     },
     async joinClub(clubId) { done(await db.rpc("join_club", { p_club: clubId })); },
     async reviewMember(clubId, studentId, approve) { done(await db.rpc("review_member", { p_club: clubId, p_student: studentId, p_approve: approve })); },
+    async transferLeader(clubId, studentId) { done(await db.rpc("transfer_leader", { p_club: clubId, p_student: studentId })); },
+    async addClubWorker(projectId, studentId, roleLabel) { done(await db.rpc("add_club_worker", { p_project: projectId, p_student: studentId, p_role_label: roleLabel })); },
+    async listClubProjects(clubId) {
+      const rows = ok(await db.from("projects").select("*, post:posts!projects_post_id_fkey(*)").eq("club_id", clubId).order("created_at", { ascending: false })) as Row[];
+      return rows.filter((r) => r.post).map((r) => ({ project: toProject(r), post: toPost(r.post) }));
+    },
     async leaveClub(clubId) { done(await db.rpc("leave_club", { p_club: clubId })); },
     async assignMaintainer(projectId, studentId) { done(await db.rpc("assign_maintainer", { p_project: projectId, p_student: studentId })); },
 
