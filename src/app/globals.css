@@ -373,7 +373,7 @@ input.pf-edit { display: inline-block; font-size: 14px; }
 .pf-pill > * { padding: 9px 14px; border-radius: 999px; font-weight: 600; } .pf-pill > * + * { border-left: 1px solid rgba(255,255,255,.18); border-radius: 0; }
 .pf-pill > :last-child { border-top-right-radius: 999px; border-bottom-right-radius: 999px; }
 .pf-pill .pf-pill-primary { background: #fff; color: #111; border-radius: 999px; border-left: 0; }
-.pf-sheet-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
+.pf-sheet-backdrop { position: fixed; inset: 0; z-index: 1100; /* 하단 메뉴바(z 1000)보다 위 */ background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
 .pf-sheet { width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto; background: var(--bg); border-radius: 24px 24px 0 0; padding: 18px 16px calc(24px + env(safe-area-inset-bottom)); }
 /* 템플릿 고르기 */
 .pf-picker { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 16px 16px; scrollbar-width: none; }
