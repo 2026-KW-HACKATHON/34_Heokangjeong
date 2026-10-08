@@ -105,16 +105,79 @@ function useZoom() {
   return zoom;
 }
 
+/** 업종 우선순위: 학생 도움이 필요할 가게를 먼저 보여 준다 */
+const KIND_RANK: Record<string, number> = { "식당": 0, "카페": 1, "분식·패스트푸드": 2, "빵집": 3, "주점": 4, "바": 4, "미용실": 5, "정육점": 6, "마트": 7, "꽃집": 8, "서점": 9, "옷가게": 10, "뷰티": 11, "편의점": 12 };
+
+/**
+ * 확대할수록 더 많이 보이게 한다.
+ * 지도를 일정 크기 칸으로 나누고 칸마다 대표 가게 한 곳만 남겨, 축소했을 때 마커가 뭉치지 않게 한다.
+ */
+function thinOut(shops: Poi[], zoom: number) {
+  if (zoom >= 19) return shops;                                      // 아주 가까이 보면 전부
+  // 확대할수록 칸을 잘게: 16단계 약 330m, 17단계 170m, 18단계 80m 간격으로 대표 한 곳씩
+  const cell = zoom >= 18 ? 0.00075 : zoom >= 17 ? 0.0015 : 0.003;
+  const picked = new Map<string, Poi>();
+  for (const poi of [...shops].sort((a, b) => (KIND_RANK[a.kind] ?? 99) - (KIND_RANK[b.kind] ?? 99))) {
+    const key = `${Math.round(poi.lat / cell)}:${Math.round(poi.lng / cell)}`;
+    if (!picked.has(key)) picked.set(key, poi);
+  }
+  return [...picked.values()];
+}
+
 function ShopLayer() {
   const zoom = useZoom();
-  const shops = useShops(zoom >= 16);
+  const all = useShops(zoom >= 16);
   if (zoom < 16) return null;
+  const shops = thinOut(all, zoom);
   const withLabel = zoom >= 17;      // 많이 확대했을 때만 이름까지 (글자가 뭉치지 않게)
   return <>{shops.map((poi) => (
     <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={shopIcon(poi, withLabel)} zIndexOffset={-500}>
       <Popup><div className="text-sm"><b>{poi.name}</b><div className="text-xs text-gray-500">{poi.kind}</div></div></Popup>
     </Marker>
   ))}</>;
+}
+
+/**
+ * 벡터 지도(OpenFreeMap Positron). 지도를 그림이 아니라 데이터로 받아서,
+ * 기본으로 그려지는 가게 아이콘·이름을 끄고 우리 마커만 보이게 한다. API 키는 필요 없다.
+ */
+function VectorBasemap({ onReady, onFail }: { onReady: () => void; onFail: () => void }) {
+  const map = useMap();
+  useEffect(() => {
+    let layer: (L.Layer & { getMaplibreMap?: () => { getStyle: () => { layers: { id: string; type: string; "source-layer"?: string }[] }; removeLayer: (id: string) => void; setLayoutProperty?: (id: string, k: string, v: unknown) => void; once: (e: string, f: () => void) => void } }) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const maplibregl = (await import("maplibre-gl")).default ?? (await import("maplibre-gl"));
+        // 플러그인이 전역 maplibregl 을 찾는다. 먼저 올려 두지 않으면 지도가 백지로 뜬다.
+        (window as unknown as { maplibregl: unknown }).maplibregl = maplibregl;
+        await import("@maplibre/maplibre-gl-leaflet");
+        if (cancelled) return;
+        layer = (L as unknown as { maplibreGL: (o: unknown) => typeof layer }).maplibreGL({
+          style: "https://tiles.openfreemap.org/styles/positron",
+          attribution: '&copy; OpenStreetMap, OpenFreeMap',
+        });
+        layer!.addTo(map);
+        const gl = layer!.getMaplibreMap?.();
+        const hidePois = () => {
+          try {
+            for (const l of gl!.getStyle().layers) {
+              // 지도에 기본으로 찍히는 가게 아이콘·이름을 지운다 (우리 마커와 겹쳐 지저분해진다)
+              if (l.type === "symbol" && (l["source-layer"] === "poi" || l.id.includes("poi"))) { gl!.removeLayer(l.id); continue; }
+              // 남은 글자(도로·동 이름)는 한국어로 (벡터 지도 기본값은 로마자)
+              if (l.type === "symbol") {
+                try { gl!.setLayoutProperty?.(l.id, "text-field", ["coalesce", ["get", "name:ko"], ["get", "name"]]); } catch { /* 글자 없는 층은 건너뛴다 */ }
+              }
+            }
+          } catch { /* 스타일을 아직 못 읽었으면 그대로 둔다 */ }
+        };
+        gl?.once("styledata", () => { hidePois(); onReady(); });
+        gl?.once("error", onFail);
+      } catch { if (!cancelled) onFail(); }
+    })();
+    return () => { cancelled = true; if (layer) map.removeLayer(layer); };
+  }, [map, onReady, onFail]);
+  return null;
 }
 
 function Recenter({ center, request }: { center: GeoPoint; request: number }) {
@@ -132,18 +195,20 @@ function Recenter({ center, request }: { center: GeoPoint; request: number }) {
 export default function MapView({ posts, me, center, recenterRequest = 0, authorName }:
   { posts: Post[]; me?: GeoPoint; center: GeoPoint; recenterRequest?: number; authorName?: (id: string) => string | undefined }) {
   const [tilesFailed, setTilesFailed] = useState(false);
+  const [vector, setVector] = useState<"loading" | "ok" | "fail">("loading");   // 벡터가 실패하면 기본 지도 그림으로 돌아간다
   return (
     <div className="relative h-full w-full">
       <MapContainer center={[center.lat, center.lng]} zoom={16} minZoom={13} className="h-full w-full" scrollWheelZoom
         maxBounds={[[37.58, 127.00], [37.70, 127.14]]} maxBoundsViscosity={0.8}>
         <Recenter center={center} request={recenterRequest} />
-        {/* OpenStreetMap 기본 타일 (키 불필요, 한국 지명이 가장 촘촘하다). 색은 globals.css 에서 연하게 보정한다 */}
-        <TileLayer
+        <VectorBasemap onReady={() => setVector("ok")} onFail={() => setVector("fail")} />
+        {/* 벡터가 안 되면 기존 지도 그림으로 (가게 아이콘이 함께 보이지만 지도는 뜬다) */}
+        {vector === "fail" && <TileLayer
             attribution='&copy; OpenStreetMap'
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             maxZoom={19}
           eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }}
-        />
+        />}
         <ShopLayer />
         {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
         {posts.map((p) => (
