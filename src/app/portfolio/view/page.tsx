@@ -9,6 +9,7 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { pageBlocks, pageFromBundle, type PortfolioPage } from "@/lib/portfolio/page";
 import { templateFor } from "@/templates/portfolio";
+import { createWebPortfolioFile, downloadWebPortfolioFile, sharePortfolioLink, webPortfolioHtml } from "@/lib/portfolio/webHtml";
 import type { PortfolioContent } from "@/types";
 
 /**
@@ -54,10 +55,10 @@ function View() {
       </div>
     </>
   );
-  return <PortfolioScreen key={`${page.edit.id}:${owner}`} page={page} owner={owner} userId={user!.id} onSaved={() => setReloadKey((k) => k + 1)} openMenu={sp.has("notion")} />;
+  return <PortfolioScreen key={`${page.edit.id}:${owner}`} page={page} owner={owner} userId={user!.id} onSaved={() => setReloadKey((k) => k + 1)} openMenu={sp.has("notion")} startWeb={sp.get("view") === "web"} />;
 }
 
-function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: PortfolioPage; owner: boolean; userId: string; onSaved: () => void; openMenu: boolean }) {
+function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: { page: PortfolioPage; owner: boolean; userId: string; onSaved: () => void; openMenu: boolean; startWeb: boolean }) {
   const router = useRouter();
   const storeKey = `wolgye-pf-edit:${page.projectId}:${page.studentId}`;
   const [editing, setEditing] = useState(false);
@@ -65,7 +66,19 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
   const [baseDraftId, setBaseDraftId] = useState(page.edit.draftId);
   const [restored, setRestored] = useState(false);
   const [menu, setMenu] = useState(owner && openMenu);
+  const [viewMode, setViewMode] = useState<"app" | "web">(startWeb ? "web" : "app");
   const act = useAction();
+  const [downloadError, setDownloadError] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
+  const [preparedFile, setPreparedFile] = useState<File | null>(null);
+  const [previewOrigin, setPreviewOrigin] = useState("");
+  const [previewWidth, setPreviewWidth] = useState(1280);
+  useEffect(() => { setPreviewOrigin(window.location.origin); }, []);
+  useEffect(() => {
+    const resize = () => setPreviewWidth(window.innerWidth);
+    resize(); window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
 
   // 저장하지 않은 편집은 이 브라우저에만 임시 보관 (새로고침·뒤로 가기 대비)
   useEffect(() => {
@@ -90,19 +103,58 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
     setEditing(false); setRestored(false); onSaved();
   }
 
+  async function uploadPortfolioImage(file: File, replaceId?: string) {
+    setDownloadError("");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5_000_000) {
+      setDownloadError("JPG, PNG, WebP 사진을 5MB 이하로 올려 주세요."); return;
+    }
+    try {
+      setImageBusy(true);
+      const url = await repo.uploadPortfolioImage(page.studentId, file);
+      const previous = content.portfolioImages ?? [];
+      const next = replaceId
+        ? previous.map(image => image.id === replaceId ? { ...image, url } : image)
+        : [...previous, { id: crypto.randomUUID(), url, caption: file.name.replace(/\.[^.]+$/, "") }];
+      update({ ...content, portfolioImages: next });
+    } catch (error) { setDownloadError(error instanceof Error ? error.message : "사진을 올리지 못했어요."); }
+    finally { setImageBusy(false); }
+  }
+  async function replaceEvidenceImage(evidenceId: string, file: File) {
+    setDownloadError("");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5_000_000) {
+      setDownloadError("JPG, PNG, WebP 사진을 5MB 이하로 올려 주세요."); return;
+    }
+    try {
+      setImageBusy(true);
+      const url = await repo.uploadPortfolioImage(page.studentId, file);
+      update({ ...content, imageOverrides: { ...content.imageOverrides, [evidenceId]: { url, caption: file.name.replace(/\.[^.]+$/, "") } } });
+    } catch (error) { setDownloadError(error instanceof Error ? error.message : "사진을 교체하지 못했어요."); }
+    finally { setImageBusy(false); }
+  }
+
   /** 소유자든 아니든 늘 바로 이전 페이지로. 주소로 바로 들어와 이전 페이지가 없을 때만 목록·갤러리로 */
   const goBack = () => {
     if (window.history.length > 1) router.back();
     else router.push(owner ? "/portfolio" : `/portfolio/gallery?s=${encodeURIComponent(page.studentId)}`);
   };
   const blocks = useMemo(() => pageBlocks(page, content, editing), [page, content, editing]);
+  useEffect(() => {
+    if (viewMode !== "web") return;
+    let active = true;
+    setPreparedFile(null);
+    createWebPortfolioFile(page, content, blocks)
+      .then(file => { if (active) setPreparedFile(file); })
+      .catch(error => { if (active) setDownloadError(error.message); });
+    return () => { active = false; };
+  }, [viewMode, page, content, blocks]);
   const tpl = templateFor(content.templateId);
   const newerDraft = owner && page.latestDraft && page.latestDraft.createdAt > page.edit.createdAt && page.latestDraft.id !== baseDraftId ? page.latestDraft : undefined;
+  const desktopScale = previewWidth < 760 ? previewWidth / 1280 : 1;
 
   return (
     <>
       {/* 포트폴리오만 보이게: 앱 상단바·버전 줄 없이 시작한다 (버전은 ⋯ 메뉴, 이동은 아래 메뉴) */}
-      {owner && (restored || (newerDraft && !editing) || editing || act.error) && (
+      {owner && (restored || (newerDraft && !editing) || editing || act.error || downloadError) && (
         <div className="flex flex-col gap-2 px-4 pb-2 pt-3">
           {restored && <p className="rounded-xl bg-[var(--primary-weak)] px-3 py-2 text-xs" role="status">저장하지 않은 편집 내용을 불러왔어요. <button className="font-semibold underline" onClick={discard}>버리기</button></p>}
           {newerDraft && !editing && (
@@ -111,13 +163,45 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
               <button className="ml-1 font-semibold underline" onClick={() => { setBaseDraftId(newerDraft.id); update({ ...newerDraft.content, templateId: content.templateId }, newerDraft.id); setEditing(true); }}>새 초안으로 편집 시작</button>
             </div>
           )}
-          {editing && <p className="rounded-xl bg-[var(--line)] px-3 py-2 text-xs" role="status">편집 중이에요. 점선 칸을 눌러 바로 고치세요. 🔒 표시는 의뢰인 원본·프로젝트 기록이라 고칠 수 없어요.</p>}
-          <ErrorText text={act.error} />
+          {editing && <p className="rounded-xl bg-[var(--line)] px-3 py-2 text-xs" role="status">{viewMode === "web" ? "입력칸에서 글과 사진을 수정한 뒤 저장하세요. 오른쪽 화면에서 결과를 확인할 수 있어요." : "편집 중이에요. 점선 칸을 눌러 바로 고치세요. 🔒 표시는 의뢰인 원본·프로젝트 기록이라 고칠 수 없어요."}</p>}
+          <ErrorText text={act.error || downloadError} />
         </div>
       )}
 
-      {/* 앱 틀(480px) 안에 그린다. 배치는 이 칸의 폭으로 정해져서 PC 에서도 실제 폰과 같은 모습 */}
-      <div className="pf-frame"><tpl.Component page={page} content={content} blocks={blocks} editing={editing} onChange={(c) => update(c)} /></div>
+      <div className={`pf-mode-bar ${viewMode === "web" ? "is-web" : ""}`} role="group" aria-label="포트폴리오 보기 방식">
+        <button type="button" aria-pressed={viewMode === "app"} onClick={() => setViewMode("app")}>{viewMode === "web" ? "‹ 앱으로" : "앱 버전"}</button>
+        <button type="button" aria-pressed={viewMode === "web"} onClick={() => setViewMode("web")}>PC 버전</button>
+        {viewMode === "web" && <button type="button" className="pf-mode-download" disabled={!preparedFile} onClick={() => { if (preparedFile) { setDownloadError(""); downloadWebPortfolioFile(preparedFile); } }}>HTML 다운로드</button>}
+        {owner && viewMode === "web" && !editing && <button type="button" onClick={() => setEditing(true)}>PC 편집</button>}
+        {owner && viewMode === "web" && editing && <><button type="button" onClick={discard} disabled={act.busy}>취소</button><button type="button" className="pf-pill-primary" onClick={save} disabled={act.busy}>{act.busy ? "저장 중…" : "저장"}</button></>}
+        <button type="button" className="pf-mode-share" onClick={() => { const publicBase = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, ""); const url = new URL(window.location.href); if (publicBase) { const base = new URL(publicBase); url.protocol = base.protocol; url.host = base.host; } url.searchParams.set("view", "web"); setDownloadError(""); sharePortfolioLink(content.title, url.toString()).then(result => { if (result === "copied") setDownloadError("포트폴리오 링크를 복사했어요. 카카오톡이나 이메일에 붙여넣어 보내세요."); }).catch(e => { if (e.name !== "AbortError") setDownloadError(e.message); }); }}>링크 공유</button>
+        {downloadError && <p className="pf-mode-error" role="alert">{downloadError}</p>}
+      </div>
+
+      {owner && viewMode === "web" && editing && <WebContentEditor page={page} content={content} onChange={update} onUpload={uploadPortfolioImage} onReplaceImage={replaceEvidenceImage} imageBusy={imageBusy} />}
+
+      {viewMode === "app"
+        ? <div className="pf-frame"><tpl.Component page={page} content={content} blocks={blocks} editing={editing} onChange={(c) => update(c)} onReplaceImage={replaceEvidenceImage} imageBusy={imageBusy} />
+          {((content.portfolioImages?.length ?? 0) > 0 || editing) && <section className="card mx-4 mb-28" aria-label="포트폴리오 사진">
+            <h2 className="mb-2 font-bold">포트폴리오 사진</h2>
+            <p className="sub mb-3 text-xs">직접 꾸미기용 사진이에요. 프로젝트 검증 자료는 그대로 보존돼요.</p>
+            <div className="pf-custom-images">{(content.portfolioImages ?? []).map(image => <figure key={image.id}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image.url} alt={image.caption || "포트폴리오 사진"} />
+              {editing ? <><input aria-label="사진 설명" value={image.caption} onChange={event => update({ ...content, portfolioImages: content.portfolioImages?.map(item => item.id === image.id ? { ...item, caption: event.target.value } : item) })} />
+                <div className="pf-custom-image-actions"><label>사진 교체<input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy} onChange={event => { const file = event.target.files?.[0]; if (file) void uploadPortfolioImage(file, image.id); event.target.value = ""; }} /></label><button type="button" onClick={() => update({ ...content, portfolioImages: content.portfolioImages?.filter(item => item.id !== image.id) })}>삭제</button></div></>
+                : <figcaption>{image.caption}</figcaption>}
+            </figure>)}</div>
+            {editing && <label className="pf-custom-image-add">{imageBusy ? "사진 올리는 중…" : "＋ 사진 추가"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy || (content.portfolioImages?.length ?? 0) >= 12} onChange={event => { const file = event.target.files?.[0]; if (file) void uploadPortfolioImage(file); event.target.value = ""; }} /></label>}
+          </section>}
+        </div>
+        : <div className="pf-web-breakout is-fullscreen"><iframe
+          className="pf-web-document-frame"
+          title={`${content.title} PC 웹 포트폴리오`}
+          srcDoc={webPortfolioHtml(page, content, blocks).replaceAll('href="#', 'href="about:srcdoc#').replaceAll('src="/portfolio-samples/', `src="${previewOrigin}/portfolio-samples/`)}
+          sandbox="allow-same-origin"
+          style={desktopScale < 1 ? { width: 1280, height: `${100 / desktopScale}%`, transform: `scale(${desktopScale})`, transformOrigin: "top left" } : undefined}
+        /></div>}
 
       {owner && (
         <div className="pf-pill" role="group" aria-label="포트폴리오 메뉴">
@@ -130,7 +214,7 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
             <>
               <button type="button" onClick={goBack}>‹ 뒤로</button>
               <button type="button" onClick={() => router.push(`/portfolio/templates?id=${page.projectId}`)}>디자인</button>
-              <button type="button" onClick={() => setEditing(true)}>편집</button>
+              {viewMode === "app" && <button type="button" onClick={() => setEditing(true)}>편집</button>}
               <button type="button" aria-label="더보기" aria-expanded={menu} onClick={() => setMenu(true)}>⋯</button>
             </>
           )}
@@ -158,4 +242,37 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
       )}
     </>
   );
+}
+
+function WebContentEditor({ page, content, onChange, onUpload, onReplaceImage, imageBusy }: { page: PortfolioPage; content: PortfolioContent; onChange: (content: PortfolioContent) => void; onUpload: (file: File, replaceId?: string) => Promise<void>; onReplaceImage: (evidenceId: string, file: File) => Promise<void>; imageBusy: boolean }) {
+  const images = page.evidence.filter(item => item.url && item.mimeType?.startsWith("image/"));
+  return <aside className="pf-web-editor" aria-label="PC 포트폴리오 편집">
+    <h2>포트폴리오 편집</h2>
+    <p>글과 사진은 앱 버전과 PC 버전에 함께 반영돼요. 오른쪽은 결과 미리보기입니다.</p>
+    <label>제목<input value={content.title} onChange={event => onChange({ ...content, title: event.target.value })} /></label>
+    <label>한 줄 소개<textarea rows={4} value={content.summary} onChange={event => onChange({ ...content, summary: event.target.value })} /></label>
+    <h3>본문</h3>
+    <div className="pf-web-editor-sections">{content.sections.map(section => <section key={section.key}>
+      <strong>{section.title}</strong>
+      <textarea rows={5} value={section.body} aria-label={section.title + " 본문"} onChange={event => onChange({ ...content, sections: content.sections.map(item => item.key === section.key ? { ...item, body: event.target.value } : item) })} />
+    </section>)}</div>
+    {images.length > 0 && <><h3>기존 사진 교체</h3><p>표시 사진만 교체합니다. 검증 자료 원본은 남아 있어요.</p>
+      {images.map(image => <div className="pf-web-evidence-edit" key={image.id}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={content.imageOverrides?.[image.id]?.url ?? image.url} alt={content.imageOverrides?.[image.id]?.caption ?? image.description} />
+        <div><strong>{image.description || image.fileName || "프로젝트 사진"}</strong>
+          <label>사진 교체<input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy} onChange={event => { const file = event.target.files?.[0]; if (file) void onReplaceImage(image.id, file); event.target.value = ""; }} /></label>
+          {content.imageOverrides?.[image.id] && <button type="button" onClick={() => { const next = { ...content.imageOverrides }; delete next[image.id]; onChange({ ...content, imageOverrides: next }); }}>원본으로 되돌리기</button>}
+        </div>
+      </div>)}</>}
+    <h3>추가 사진</h3>
+    {(content.portfolioImages ?? []).map(image => <div className="pf-web-photo-row" key={image.id}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={image.url} alt={image.caption} />
+      <input aria-label="사진 설명" value={image.caption} onChange={event => onChange({ ...content, portfolioImages: content.portfolioImages?.map(item => item.id === image.id ? { ...item, caption: event.target.value } : item) })} />
+      <label>교체<input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy} onChange={event => { const file = event.target.files?.[0]; if (file) void onUpload(file, image.id); event.target.value = ""; }} /></label>
+      <button type="button" onClick={() => onChange({ ...content, portfolioImages: content.portfolioImages?.filter(item => item.id !== image.id) })}>삭제</button>
+    </div>)}
+    <label className="pf-web-photo-add">{imageBusy ? "올리는 중…" : "＋ 사진 추가"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy || (content.portfolioImages?.length ?? 0) >= 12} onChange={event => { const file = event.target.files?.[0]; if (file) void onUpload(file); event.target.value = ""; }} /></label>
+  </aside>;
 }

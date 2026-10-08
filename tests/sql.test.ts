@@ -83,7 +83,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql", "0036_public_portfolio_page.sql", "0037_agreement_selection.sql", "0038_club_worker_agreement.sql", "0039_agreement_closed_project.sql", "0040_profile_nickname.sql", "0041_chat_before_selection.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql", "0036_public_portfolio_page.sql", "0037_agreement_selection.sql", "0038_club_worker_agreement.sql", "0039_agreement_closed_project.sql", "0040_profile_nickname.sql", "0041_chat_before_selection.sql", "0042_chat_agreement_notifications.sql", "0043_agreement_change_notifications.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -102,6 +102,8 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     await expect(rpc(U.stu,"save_chat_agreement",[appId,0,JSON.stringify(terms)])).rejects.toThrow(/선정한 뒤/);
     await rpc(U.owner,"shortlist_applicant",[appId]);
     await rpc(U.stu,"save_chat_agreement",[appId,0,JSON.stringify(terms)]);
+    const [draftNotice] = await as<{ href: string }>(U.owner,"select href from notifications where kind='AGREEMENT' and source_key like 'agreement:%:v1:saved:%' and post_id=(select post_id from applications where id=$1)",[appId]);
+    expect(draftNotice.href).toBe(`/chats/room?id=${appId}`);
     await expect(rpc(U.stu2,"confirm_chat_agreement",[appId,1])).rejects.toThrow(/당사자/);
     expect(await as(U.stu2,"select * from chat_agreements where application_id=$1",[appId])).toHaveLength(0);
     await expect(as(U.stu,"update chat_agreements set version=99 where application_id=$1",[appId])).rejects.toThrow(/permission denied/);
@@ -113,7 +115,10 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     await rpc(U.stu,"confirm_chat_agreement",[appId,2]);
     expect((await db.query<{ status: string }>("select status from applications where id=$1",[appId])).rows[0].status).toBe("pending");   // 한쪽만 확인 → 아직 매칭 대기
     await expect(rpc(U.owner,"confirm_chat_agreement",[appId,2,null])).rejects.toThrow(/질문 목록/);
+    expect(await as(U.owner,"select id from notifications where kind='AGREEMENT' and source_key like 'agreement:%:v2:student-confirmed:%' and post_id=(select post_id from applications where id=$1)",[appId])).toHaveLength(1);
     await rpc(U.owner,"confirm_chat_agreement",[appId,2,snapshotFor("DESIGN")]);
+    const [finalNotice] = await as<{ text: string }>(U.stu,"select text from notifications where kind='AGREEMENT' and source_key like 'agreement:%:v2:finalized:%' and post_id=(select post_id from applications where id=$1)",[appId]);
+    expect(finalNotice.text).toContain("양쪽 확인으로 확정");
     const [final]=await as(U.stu,"select * from chat_agreements where application_id=$1",[appId]);
     expect(final.finalized_at).toBeTruthy();
     expect((await db.query<{ status: string }>("select status from applications where id=$1",[appId])).rows[0].status).toBe("accepted");   // 확정 = 선정 확정
@@ -499,6 +504,14 @@ describe("SQL: 선정 → 약속서 → 확정 (0037)", () => {
     await rpc(U.owner, "respond_agreement_change", [appId, false]);                                // 제안한 쪽의 철회
     [a] = await as(U.stu, "select * from chat_agreements where application_id=$1", [appId]);
     expect(a.proposed_terms).toBeNull();
+    // 0043: 수정 제안 알림 — 도착·거절·수락·철회가 상대방에게 간다
+    const texts = async (who: string) => (await as<{ text: string }>(who, "select text from notifications where kind='AGREEMENT' and href like $1 order by created_at", [`%${appId}`])).map((n) => n.text);
+    const stu = (await texts(U.stu)).join(" | "), owner = (await texts(U.owner)).join(" | ");
+    expect(stu).toMatch(/수정 제안이 왔어요/);            // 사장님 제안 → 학생
+    expect(owner).toMatch(/수정 제안이 거절됐어요/);      // 학생 거절 → 사장님
+    expect(owner).toMatch(/수정 제안이 왔어요/);          // 학생 제안 → 사장님
+    expect(stu).toMatch(/수락돼 v2로 다시 확정/);         // 사장님 수락 → 학생
+    expect(stu).toMatch(/수정 제안이 철회됐어요/);        // 사장님 철회 → 학생
   });
   it("끝난 프로젝트의 계약서는 수정 제안·수락이 안 되고, 걸린 제안 거절은 된다 (0039)", async () => {
     const { projectId, appId } = await startProject("끝난 프로젝트 계약서");

@@ -31,6 +31,8 @@ export const users: User[] = [
   { id: "s11", role: "student", name: "임태현", nickname: "태현앱", department: "정보융합학부", skills: ["Flutter", "UX 프로토타입", "데이터 시각화"], interests: ["웹/앱", "디자인"], availableHours: "수·금 저녁", maxDistanceM: 2300, location: { lat: 37.6199, lng: 127.0645 }, school: "광운대학교", age: 24, phone: "010-0000-1011" },
   { id: "s12", role: "student", name: "송예린", nickname: "예린글", department: "국어국문학과", skills: ["인터뷰", "블로그 글쓰기", "콘텐츠 교정"], interests: ["SNS홍보", "기타"], availableHours: "평일 오후, 토요일", maxDistanceM: 1400, location: { lat: 37.6258, lng: 127.0575 }, school: "광운대학교", age: 21, phone: "010-0000-1012" },
   { id: "s13", role: "student", name: "정만교", nickname: "만교도우미", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 }, school: "광운대학교", age: 23, phone: "010-0000-1013" },
+  { id: "s14", role: "student", name: "이지민", nickname: "지민숏폼", department: "미디어커뮤니케이션학부", skills: ["영상 촬영", "Premiere Pro", "숏폼 편집"], interests: ["영상", "SNS홍보"], availableHours: "화·목 오후, 주말", maxDistanceM: 1800, location: { lat: 37.6217, lng: 127.0588 }, school: "광운대학교", age: 22, phone: "010-0000-1014" },
+  { id: "s15", role: "student", name: "문서현", nickname: "서현디자인", department: "시각디자인학과", skills: ["Figma", "Illustrator", "편집 디자인"], interests: ["디자인", "SNS홍보"], availableHours: "평일 저녁", maxDistanceM: 1600, location: { lat: 37.6244, lng: 127.0624 }, school: "광운대학교", age: 23, phone: "010-0000-1015" },
   { id: "r1", role: "resident", name: "월계 커피", nickname: "월계커피", kind: "상인", location: { lat: 37.6248, lng: 127.0598 }, address: "월계로 45길 12" },
   { id: "r2", role: "resident", name: "행복분식", nickname: "행복분식", kind: "상인", location: { lat: 37.6272, lng: 127.0615 }, address: "월계1동 광운로 21" },
   { id: "r3", role: "resident", name: "동네책방 소소", nickname: "책방소소", kind: "상인", location: { lat: 37.6285, lng: 127.0580 }, address: "석계로 7" },
@@ -39,12 +41,14 @@ export const users: User[] = [
   { id: "r6", role: "resident", name: "꽃길 공방", nickname: "꽃길공방", kind: "상인", location: { lat: 37.6224, lng: 127.0568 }, address: "광운로 12길 8" },
   { id: "r7", role: "resident", name: "월계 미용실", nickname: "월계미용실", kind: "상인", location: { lat: 37.6264, lng: 127.0601 }, address: "월계로 53길 4" },
   { id: "r8", role: "resident", name: "햇살 반찬", nickname: "햇살반찬", kind: "상인", location: { lat: 37.6291, lng: 127.0605 }, address: "석계로 18" },
-  { id: "r9", role: "resident", name: "깨끗한 세탁소", kind: "상인", location: { lat: 37.6246, lng: 127.0642 }, address: "광운로 33" },
-  { id: "r10", role: "resident", name: "우리동네 피아노", kind: "상인", location: { lat: 37.6215, lng: 127.0604 }, address: "월계로 42길 15" },
-  { id: "r11", role: "resident", name: "월계 과일상회", kind: "상인", location: { lat: 37.6283, lng: 127.0630 }, address: "초안산로 5길 9" },
-  { id: "r12", role: "resident", name: "별빛 베이커리", kind: "상인", location: { lat: 37.6205, lng: 127.0612 }, address: "광운로 8" },
-  { id: "r13", role: "resident", name: "다정 약국", kind: "상인", location: { lat: 37.6232, lng: 127.0650 }, address: "월계로 50길 3" },
-  { id: "r14", role: "resident", name: "바늘뜸 옷수선", kind: "상인", location: { lat: 37.6270, lng: 127.0572 }, address: "석계로 12길 6" },
+  { id: "r9", role: "resident", name: "깨끗한 세탁소", nickname: "깨끗세탁", kind: "상인", location: { lat: 37.6246, lng: 127.0642 }, address: "광운로 33" },
+  { id: "r10", role: "resident", name: "우리동네 피아노", nickname: "동네피아노", kind: "상인", location: { lat: 37.6215, lng: 127.0604 }, address: "월계로 42길 15" },
+  { id: "r11", role: "resident", name: "월계 과일상회", nickname: "월계과일", kind: "상인", location: { lat: 37.6283, lng: 127.0630 }, address: "초안산로 5길 9" },
+  { id: "r12", role: "resident", name: "별빛 베이커리", nickname: "별빛빵집", kind: "상인", location: { lat: 37.6205, lng: 127.0612 }, address: "광운로 8" },
+  { id: "r13", role: "resident", name: "다정 약국", nickname: "다정약국", kind: "상인", location: { lat: 37.6232, lng: 127.0650 }, address: "월계로 50길 3" },
+  { id: "r14", role: "resident", name: "바늘뜸 옷수선", nickname: "바늘뜸수선", kind: "상인", location: { lat: 37.6270, lng: 127.0572 }, address: "석계로 12길 6" },
+  { id: "r15", role: "resident", name: "봄날꽃집", nickname: "봄날꽃집", kind: "상인", location: { lat: 37.6220, lng: 127.0581 }, address: "광운로 14길 5" },
+  { id: "r16", role: "resident", name: "온기반찬", nickname: "온기반찬", kind: "상인", location: { lat: 37.6251, lng: 127.0629 }, address: "월계로 48길 11" },
 ];
 
 const locationOf = (userId: string) => users.find((user) => user.id === userId)!.location;
@@ -286,6 +290,7 @@ const pushNotification = (n: Omit<Notification, "id" | "createdAt" | "read">) =>
   const notification: Notification = { ...n, id: `n${Date.now()}${Math.random().toString(36).slice(2, 7)}`, read: false, createdAt: new Date().toISOString() };
   demoNotifications.unshift(notification);
   notificationListeners.forEach((listener) => listener(structuredClone(notification)));
+  return notification;
 };
 const wait = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v === undefined ? v : structuredClone(v)), 60));
 /** 엔진 호출 → 저장. 엔진이 던진 에러는 그대로 화면에 간다 (실패하면 저장하지 않는다) */
@@ -315,6 +320,21 @@ function agreementParty(applicationId: string, actorId: string): "student" | "ow
   throw new Error("이 계약서는 채팅 당사자만 볼 수 있어요.");
 }
 
+function agreementNotification(applicationId: string, actorId: string, version: number, finalized = false, custom?: (title: string) => string) {
+  const application = db.applications.find(a => a.id === applicationId)!;
+  const post = db.posts.find(p => p.id === application.postId)!;
+  const recipientId = actorId === application.studentId ? post.authorId : application.studentId;
+  return pushNotification({
+    userId: recipientId,
+    postId: post.id,
+    kind: "AGREEMENT",
+    href: `/chats/room?id=${applicationId}`,
+    text: custom ? custom(post.title) : finalized
+      ? `'${post.title}' 계약서가 양쪽 확인으로 확정됐어요.`
+      : `'${post.title}' 계약서 v${version}을 확인해 주세요.`,
+  });
+}
+
 import { chatReads } from "./chatReads";
 /** 이 지원서로 만든 프로젝트가 끝났는지 (완료·취소) — 끝난 계약서는 못 바꾼다 */
 function projectClosed(applicationId: string) {
@@ -333,7 +353,12 @@ export const mockRepo: Repo = {
     if (app.status !== "pending" || !app.shortlistedAt) throw new Error("사장님이 선정한 뒤에 계약서를 쓸 수 있어요.");
     const next = reviseAgreement(previous ?? null, applicationId, expectedVersion, terms);
     agreements[applicationId] = next;
-    try { save(); } catch (e) { if (previous) agreements[applicationId] = previous; else delete agreements[applicationId]; throw e; }
+    const notification = agreementNotification(applicationId, actorId, next.version);
+    try { save(); } catch (e) {
+      if (previous) agreements[applicationId] = previous; else delete agreements[applicationId];
+      demoNotifications = demoNotifications.filter(n => n.id !== notification.id);
+      throw e;
+    }
     return wait(next);
   },
   async confirmAgreement(applicationId, actorId, version) {
@@ -343,12 +368,25 @@ export const mockRepo: Repo = {
     const app = db.applications.find((a) => a.id === applicationId)!;
     if (!previous.finalizedAt && (app.status !== "pending" || !app.shortlistedAt)) throw new Error("선정이 취소됐거나 마감된 지원이에요.");
     const next = confirmAgreement(previous, version, side); agreements[applicationId] = next;
-    try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
+    const newlyConfirmed = side === "student" ? !previous.studentConfirmedAt : !previous.ownerConfirmedAt;
+    const notification = newlyConfirmed
+      ? agreementNotification(applicationId, actorId, next.version, Boolean(next.finalizedAt && !previous.finalizedAt))
+      : null;
+    try { save(); } catch (e) {
+      agreements[applicationId] = previous;
+      if (notification) demoNotifications = demoNotifications.filter(n => n.id !== notification.id);
+      throw e;
+    }
     // 양쪽이 확인해 확정되면 그 자리에서 선정 확정 → 프로젝트 시작 (DB confirm_chat_agreement 와 같은 규칙)
     if (next.finalizedAt && !previous.finalizedAt) {
       const post = db.posts.find((p) => p.id === app.postId)!;
       try { await mockRepo.selectApplicant(applicationId, post.authorId); }
-      catch (e) { agreements[applicationId] = previous; save(); throw e; }
+      catch (e) {
+        agreements[applicationId] = previous;
+        if (notification) demoNotifications = demoNotifications.filter(n => n.id !== notification.id);
+        save();
+        throw e;
+      }
     }
     return wait(next);
   },
@@ -358,7 +396,9 @@ export const mockRepo: Repo = {
     if (!previous) throw new Error("계약서가 없어요.");
     if (projectClosed(applicationId)) throw new Error("끝난 프로젝트의 계약서는 수정할 수 없어요");   // 0039 와 같은 규칙
     const next = proposeAgreementChange(previous, side, terms); agreements[applicationId] = next;
-    try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
+    // 0043 과 같은 알림: 상대방에게 수정 제안 도착
+    const notification = agreementNotification(applicationId, actorId, next.version, false, (t) => `'${t}' 계약서 수정 제안이 왔어요. 수락하거나 거절해 주세요.`);
+    try { save(); } catch (e) { agreements[applicationId] = previous; demoNotifications = demoNotifications.filter(n => n.id !== notification.id); throw e; }
     return wait(next);
   },
   async respondAgreementChange(applicationId, actorId, accept) {
@@ -367,7 +407,12 @@ export const mockRepo: Repo = {
     if (!previous) throw new Error("계약서가 없어요.");
     if (accept && projectClosed(applicationId)) throw new Error("끝난 프로젝트의 계약서는 수정할 수 없어요");   // 거절·철회는 허용
     const next = respondAgreementChange(previous, side, accept); agreements[applicationId] = next;
-    try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
+    // 0043 과 같은 알림: 수락 → 제안한 쪽에 재확정, 거절 → 제안한 쪽에, 철회 → 상대방에
+    const notification = agreementNotification(applicationId, actorId, next.version, false, (t) => accept
+      ? `'${t}' 계약서 수정 제안이 수락돼 v${next.version}로 다시 확정됐어요.`
+      : previous.proposedBy === side ? `'${t}' 계약서 수정 제안이 철회됐어요. 기존 계약서가 그대로 유지돼요.`
+      : `'${t}' 계약서 수정 제안이 거절됐어요. 기존 계약서가 그대로 유지돼요.`);
+    try { save(); } catch (e) { agreements[applicationId] = previous; demoNotifications = demoNotifications.filter(n => n.id !== notification.id); throw e; }
     return wait(next);
   },
   async shortlistApplicant(applicationId, actorId) { return tx(() => {

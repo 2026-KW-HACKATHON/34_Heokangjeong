@@ -13,6 +13,8 @@ export interface TemplateProps {
   blocks: DocBlock[];          // content + 잠긴 원본으로 만든 문서 블록
   editing: boolean;            // 소유자가 '편집'을 눌렀는가
   onChange: (c: PortfolioContent) => void;
+  onReplaceImage?: (evidenceId: string, file: File) => Promise<void>;
+  imageBusy?: boolean;
 }
 export interface PortfolioTemplate {
   id: TemplateId;

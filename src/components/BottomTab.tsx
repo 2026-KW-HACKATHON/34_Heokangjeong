@@ -41,8 +41,8 @@ export default function BottomTab() {
           const on = t.href === "/" ? path === "/" : path.startsWith(t.href);
           return (
             <li key={`${t.href}${t.label}`} className="flex-1">
-              <Link href={t.href} aria-current={on ? "page" : undefined} className={`flex min-h-[68px] flex-col items-center gap-1 py-2 text-[11px] ${on ? "text-[var(--primary)] font-semibold" : "text-[var(--sub)]"}`}>
-                <span className={`relative rounded-xl px-3 py-1 ${on ? "bg-[var(--primary-weak)]" : ""}`}><Icon name={t.icon as IconName} width={21} height={21} />{t.href === "/chats" && unread > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-4 text-white"><span aria-hidden="true">{unread > 99 ? "99+" : unread}</span><span className="sr-only">읽지 않은 메시지 {unread}개</span></span>}</span>{t.label}
+              <Link href={t.href} aria-current={on ? "page" : undefined} className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 py-1 text-[11px] ${on ? "text-[var(--primary)] font-semibold" : "text-[var(--sub)]"}`}>
+                <span className={`relative rounded-lg px-3 ${on ? "bg-[var(--primary-weak)]" : ""}`}><Icon name={t.icon as IconName} width={21} height={21} />{t.href === "/chats" && unread > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-4 text-white"><span aria-hidden="true">{unread > 99 ? "99+" : unread}</span><span className="sr-only">읽지 않은 메시지 {unread}개</span></span>}</span>{t.label}
               </Link>
             </li>
           );
