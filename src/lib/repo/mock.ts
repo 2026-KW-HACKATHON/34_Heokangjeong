@@ -506,7 +506,8 @@ export const mockRepo: Repo = {
   async sendMessage(applicationId, senderId, body) {
     ensure();
     const target = db.applications.find((a) => a.id === applicationId);
-    if (!target || !(target.status === "accepted" || (target.status === "pending" && target.shortlistedAt))) throw new Error("사장님이 선정하면 대화할 수 있어요."); const m: ChatMessage = { id: `m${Date.now()}`, applicationId, senderId, body, createdAt: new Date().toISOString() };
+    if (!target || !(target.status === "accepted" || target.status === "pending")) throw new Error("종료된 지원은 메시지를 보낼 수 없어요.");
+    if (senderId !== target.studentId && senderId !== db.posts.find(p => p.id === target.postId)?.authorId) throw new Error("채팅은 당사자만 보낼 수 있어요."); const m: ChatMessage = { id: `m${Date.now()}`, applicationId, senderId, body, createdAt: new Date().toISOString() };
     msgs.push(m); const application = db.applications.find((a) => a.id === applicationId); const post = application && db.posts.find((p) => p.id === application.postId);
     if (application && post) pushNotification({ userId: senderId === application.studentId ? post.authorId : application.studentId, postId: post.id, kind: "CHAT", href: `/chats/room?id=${applicationId}`, text: `${users.find((u) => u.id === senderId)?.name ?? "상대방"}님이 새 메시지를 보냈어요.` });
     save(); listeners.forEach((l) => l(m)); return wait(m);

@@ -83,7 +83,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql", "0036_public_portfolio_page.sql", "0037_agreement_selection.sql", "0038_club_worker_agreement.sql", "0039_agreement_closed_project.sql", "0040_profile_nickname.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql", "0036_public_portfolio_page.sql", "0037_agreement_selection.sql", "0038_club_worker_agreement.sql", "0039_agreement_closed_project.sql", "0040_profile_nickname.sql", "0041_chat_before_selection.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -136,8 +136,10 @@ describe("SQL: 선정·제출·검토 (DB 함수)", () => {
     expect(await as(U.stu, "update notifications set read=true where id=$1 returning id", [matched.id])).toHaveLength(1);
     const [application] = await as<{ id: string }>(U.stu, "insert into applications(post_id,student_id,message) values($1,$2,'지원') returning id", [postId, U.stu]);
     expect(await as(U.owner, "select id from notifications where kind='APPLICATION' and post_id=$1", [postId])).toHaveLength(1);
-    await expect(as(U.stu, "insert into messages(application_id,sender_id,body) values($1,$2,'안녕하세요')", [application.id, U.stu])).rejects.toThrow(/선정하면 대화/);   // 0037: 대화는 선정 뒤부터
-    await rpc(U.owner, "shortlist_applicant", [application.id]);
+    await as(U.owner, "insert into messages(application_id,sender_id,body) values($1,$2,'안녕하세요')", [application.id, U.owner]);
+    await expect(as(U.stu2, "insert into messages(application_id,sender_id,body) values($1,$2,'외부인')", [application.id, U.stu2])).rejects.toThrow();
+    await expect(as(U.owner, "insert into messages(application_id,sender_id,body) values($1,$2,'사칭')", [application.id, U.stu])).rejects.toThrow();
+    expect(await as(U.stu2, "select id from messages where application_id=$1", [application.id])).toHaveLength(0);
     await as(U.stu, "insert into messages(application_id,sender_id,body) values($1,$2,'안녕하세요')", [application.id, U.stu]);
     const [chat] = await as<{ href: string }>(U.owner, "select href from notifications where kind='CHAT' and post_id=$1", [postId]);
     expect(chat.href).toBe(`/chats/room?id=${application.id}`);
@@ -460,7 +462,7 @@ describe("SQL: 선정 → 약속서 → 확정 (0037)", () => {
     await expect(rpc(U.stu2, "cancel_shortlist", [appId])).rejects.toThrow(/FORBIDDEN/);
     await rpc(U.stu, "cancel_shortlist", [appId]);
     expect((await db.query("select 1 from chat_agreements where application_id=$1", [appId])).rows).toHaveLength(0);
-    await expect(as(U.stu, "insert into messages(application_id,sender_id,body) values($1,$2,'다시 이야기해요')", [appId, U.stu])).rejects.toThrow(/선정하면 대화/);
+    await as(U.stu, "insert into messages(application_id,sender_id,body) values($1,$2,'다시 이야기해요')", [appId, U.stu]);
     await rpc(U.owner, "shortlist_applicant", [other.id]);
     await as(U.stu2, "insert into messages(application_id,sender_id,body) values($1,$2,'안녕하세요')", [other.id, U.stu2]);
     // 확정되면 나머지 대기 지원자는 거절

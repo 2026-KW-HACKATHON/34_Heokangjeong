@@ -235,6 +235,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         deadline: p.deadline || null, revision_limit: p.revisionLimit ?? 2, compensation_type: p.compensationType ?? "VOLUNTEER",
         compensation_description: p.compensationDescription ?? "",
         // 평소 공고는 가게 쿠폰(NON_MONETARY). 긴급 공고일 때만 현금 사례비를 받는다
+        ongoing: p.ongoing ?? false, warranty_request_days: p.warrantyRequestDays ?? 30, warranty_request_count: p.warrantyRequestCount ?? 3, warranty_defect_days: p.warrantyDefectDays ?? 90, client_owned_billing: p.clientOwnedBilling ?? true,
         paid_amount: p.urgent && p.compensationType === "PAID" ? p.paidAmount ?? null : null,
       };
       // 새 컬럼이 아직 없는 DB 에서도 등록 자체는 되게 한다 (긴급·유지보수 기능만 빠진다)
