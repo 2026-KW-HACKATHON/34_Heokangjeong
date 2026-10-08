@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync, readdirSync } from "node:fs";
+import { selectWithAgreement } from "./agreementSelect";
 import path from "node:path";
 
 const dir = path.resolve(__dirname, "..", "supabase/migrations");
@@ -44,8 +45,7 @@ async function clubProject(clubId: string | null, student = U.leader) {
      values ('가게 웹사이트','웹/앱','만들어 주세요',$1,37.6,127.0,'DEVELOPMENT',true,$2) returning id`, [U.owner, clubId !== null]);
   const [app] = await as<{ id: string }>(student,
     `insert into applications (post_id, student_id, message, club_id) values ($1,$2,'지원',$3) returning id`, [post.id, student, clubId]);
-  const [r] = await as<{ select_applicant: string }>(U.owner, "select select_applicant($1,$2::jsonb)", [app.id, snapshot]);
-  const projectId = r.select_applicant;
+  const projectId = await selectWithAgreement(as, U.owner, student, app.id, snapshot);   // 0037: 약속서 확정 = 선정
   // 제출·승인 과정은 다른 테스트에서 검증하므로 여기서는 상태만 완료로 바꾼다
   await as(U.owner, "update projects set status = 'COMPLETED', completed_at = now() where id = $1", [projectId]);
   return projectId;
@@ -153,7 +153,7 @@ describe("공고 삭제", () => {
   it("학생이 선정된 뒤에는 지울 수 없다 (활동 기록 보호)", async () => {
     const id = await newPost();
     const [app] = await as<{ id: string }>(U.leader, "insert into applications (post_id, student_id, message) values ($1,$2,'지원') returning id", [id, U.leader]);
-    await as(U.owner, "select select_applicant($1,$2::jsonb)", [app.id, snapshot]);
+    await selectWithAgreement(as, U.owner, U.leader, app.id, snapshot);   // 0037: 약속서 확정 = 선정
     await expect(as(U.owner, "select delete_post($1)", [id])).rejects.toThrow(/HAS_PROJECT/);
   });
 
@@ -298,6 +298,16 @@ describe("단체가 맡은 서비스", () => {
     const rows = (await db.query<{ student_id: string; role_label: string }>("select * from project_members where project_id = $1", [projectId])).rows;
     expect(rows.map((r) => r.student_id).sort()).toEqual([U.leader, U.member].sort());
     expect(rows.find((r) => r.student_id === U.member)?.role_label).toBe("디자인");
+  });
+
+  it("참여 부원은 지원서가 없어도 단체 약속서가 확정돼 있으면 제출할 수 있다 (0038)", async () => {
+    const club = await makeClub();
+    await joinClub(club, U.member);
+    const projectId = await clubProject(club);
+    await as(U.leader, "select add_club_worker($1,$2,$3)", [projectId, U.member, "디자인"]);
+    const ins = (who: string, v: number) => db.query("insert into submission_versions (project_id, version, evidence_ids, submitted_by) values ($1,$2,'{}',$3)", [projectId, v, who]);
+    await ins(U.member, 1);
+    await expect(ins(U.outsider, 2)).rejects.toThrow(/AGREEMENT_REQUIRED/);   // 프로젝트 밖 학생은 여전히 막힘
   });
 
   it("단체 밖 학생은 참여자로 추가할 수 없다", async () => {

@@ -4,10 +4,11 @@ import { matchStage } from "@/lib/matchStage";
 const T0 = "2026-10-08T10:00:00Z", T1 = "2026-10-08T11:00:00Z";
 
 describe("채팅·진행 중인 작업 단계", () => {
-  it("약속서 확정 전은 매칭 대기 (선정 전 대화 포함)", () => {
-    expect(matchStage({ applicationStatus: "pending" })).toBe("WAITING");
-    expect(matchStage({ applicationStatus: "pending", lastMessageAt: T1 })).toBe("WAITING");
-    expect(matchStage({ applicationStatus: "accepted", projectStatus: "IN_PROGRESS", lastMessageAt: T1 })).toBe("WAITING");
+  it("지원 → (사장님 선정) 매칭 대기 → (선정 취소) 선정 취소", () => {
+    expect(matchStage({ applicationStatus: "pending" })).toBe("APPLIED");
+    expect(matchStage({ applicationStatus: "pending", shortlisted: true, lastMessageAt: T1 })).toBe("WAITING");
+    expect(matchStage({ applicationStatus: "pending", shortlistCancelled: true })).toBe("SHORTLIST_CANCELLED");
+    expect(matchStage({ applicationStatus: "accepted", projectStatus: "IN_PROGRESS", lastMessageAt: T1 })).toBe("WAITING");   // 약속서 없는 예전 선정
   });
   it("약속서 확정 직후는 매칭됨, 그 뒤 대화가 오가면 진행 중", () => {
     expect(matchStage({ applicationStatus: "accepted", projectStatus: "IN_PROGRESS", agreementFinalizedAt: T1, lastMessageAt: T0 })).toBe("MATCHED");

@@ -57,8 +57,10 @@ function PostDetail() {
     });
   }
   async function select(a: Application) {
-    await act.run(async () => { const p = await repo.selectApplicant(a.id, user!.id); router.push(`/projects/detail?id=${p.id}`); });
+    await act.run(async () => { await repo.shortlistApplicant(a.id, user!.id); router.push(`/chats/room?id=${a.id}`); });
   }
+  async function cancelSelect(a: Application) { await act.run(async () => { await repo.cancelShortlist(a.id, user!.id); reload(); }); }
+  const shortlisting = apps.some((x) => x.status === "pending" && x.shortlistedAt);   // 개인 공고: 한 번에 한 명만 선정 중
   async function reject(a: Application) { await act.run(async () => { await repo.updateApplicationStatus(a.id, "rejected"); reload(); }); }
 
   return (
@@ -131,8 +133,10 @@ function PostDetail() {
             <h3 className="mb-2 font-bold">{mine ? "지원 완료" : "지원하기"}</h3>
             {mine ? (
               <>
-                <p className="sub text-sm">&ldquo;{mine.message}&rdquo; · {mine.status === "pending" ? "확인 대기 중" : mine.status === "accepted" ? "선정됨 🎉" : "이번에는 함께하지 못해요"}</p>
-                <Link href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">💬 {author?.name ?? "가게"}와 채팅하기</Link>
+                <p className="sub text-sm">&ldquo;{mine.message}&rdquo; · {mine.status === "accepted" ? "선정 확정 🎉" : mine.status === "rejected" ? "이번에는 함께하지 못해요" : mine.shortlistedAt ? "선정됐어요 · 대화하며 계약서를 확정하면 시작해요" : mine.shortlistCancelledAt ? "선정이 취소됐어요 · 다시 선정되면 대화할 수 있어요" : "확인 대기 중"}</p>
+                {mine.status === "accepted" || mine.shortlistedAt
+                  ? <Link href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">💬 {author?.name ?? "가게"}와 대화하기</Link>
+                  : mine.status === "pending" && <p className="sub mt-3 rounded-xl bg-[var(--line)] px-3 py-2 text-xs">사장님이 선정하면 대화하며 계약서를 쓸 수 있어요.</p>}
               </>
             ) : (
               <>
@@ -189,13 +193,16 @@ function PostDetail() {
               {apps.map((a) => { const s = users.find((u) => u.id === a.studentId) as Extract<User, { role: "student" }> | undefined; const role = post.teamSlots?.find((x) => x.id === a.roleId); return (
                 <li key={a.id} className="rounded-xl bg-[var(--line)] px-3 py-2">
                   <div className="flex items-center justify-between"><span><b>{s?.name}</b> <span className="sub">{s?.department}</span></span>
-                    <span className={a.status === "accepted" ? "font-semibold text-[var(--primary)]" : "sub"}>{a.status === "pending" ? "대기" : a.status === "accepted" ? "선정" : "거절"}</span></div>
+                    <span className={a.status === "accepted" || a.shortlistedAt ? "font-semibold text-[var(--primary)]" : "sub"}>{a.status === "accepted" ? "선정 확정" : a.status === "rejected" ? "거절" : a.shortlistedAt ? "매칭 대기" : a.shortlistCancelledAt ? "선정 취소" : "대기"}</span></div>
                   {s && s.skills.length > 0 && <p className="sub mt-0.5 text-xs">{s.skills.join(" · ")}</p>}
                   {role && <p className="mt-1 text-xs font-semibold text-[var(--primary)]">지원 역할 · {role.label ?? role.category}</p>}
                   <p className="mt-1">{a.message}</p>
-                  {a.status === "pending" && !individualDecisionComplete ? <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
-                    <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
-                    <button onClick={() => select(a)} disabled={act.busy} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
+                  {a.status === "pending" && a.shortlistedAt ? <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                    {/* 매칭 대기: 대화하며 계약서를 확정하면 선정 확정, 틀어지면 선정 취소 */}
+                    <Link href={`/chats/room?id=${a.id}`} className="btn btn-primary px-2 py-2">💬 대화 · 계약서</Link>
+                    <button onClick={() => cancelSelect(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">선정 취소</button>
+                  </div> : a.status === "pending" && !individualDecisionComplete ? <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                    <button onClick={() => select(a)} disabled={act.busy || (!post.isTeam && shortlisting)} title={!post.isTeam && shortlisting ? "선정 중인 지원자가 있어요" : undefined} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
                     <button onClick={() => reject(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
                   </div> : <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
                     <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
@@ -204,7 +211,7 @@ function PostDetail() {
                 </li>); })}
               {apps.length === 0 && <li className="sub">아직 지원자가 없어요</li>}
             </ul>
-            <p className="sub mt-2 text-xs">채팅은 선택 사항이에요. 바로 선정하거나 거절할 수 있으며, 선정하면 프로젝트가 시작됩니다.{individualDecisionComplete && " 다시 시험하려면 ‘나 → 데모 데이터 초기화’를 이용하세요."}</p>
+            <p className="sub mt-2 text-xs">선정하면 그 학생과 대화하며 계약서를 써요. 계약서를 양쪽이 확정하면 선정이 확정되고 프로젝트가 시작돼요. 대화하다 맞지 않으면 선정을 취소하고 다른 지원자를 선정할 수 있어요{!post.isTeam && " (한 번에 한 명)"}.{individualDecisionComplete && " 다시 시험하려면 ‘나 → 데모 데이터 초기화’를 이용하세요."}</p>
             <ErrorText text={act.error} />
           </div>
         )}

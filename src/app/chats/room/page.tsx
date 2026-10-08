@@ -14,13 +14,24 @@ export default function ChatRoomPage() {
 }
 
 function Room() {
-  const id = useSearchParams().get("id") ?? "";
+  const params = useSearchParams();
+  const id = params.get("id") ?? "";
+  const autoOpenAgreement = params.get("agreement") === "1";
   const { user, users } = useSession();
   const [app, setApp] = useState<Application | null | undefined>(undefined);
   const [post, setPost] = useState<Post | null | undefined>(undefined);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [projectId, setProjectId] = useState<string | undefined>();
+  const [projectStatus, setProjectStatus] = useState<string | undefined>();   // 계약서 수정 제안은 끝나지 않은(완료·취소 아닌) 프로젝트에서만
   const bottom = useRef<HTMLDivElement>(null);
+  /** 지원서 다시 읽기 (선정·선정 취소·계약서 확정 뒤) */
+  const reloadApp = () => repo.getApplication(id).then(async (a) => {
+    setApp(a ?? null);
+    if (a?.status === "accepted") { const pr = await repo.getProjectByPost(a.postId); setProjectId(pr?.id); setProjectStatus(pr?.status); }
+  });
 
   useEffect(() => {
     let active = true;
@@ -30,6 +41,7 @@ function Room() {
       if (!a) return setPost(null);
       const p = await repo.getPost(a.postId);
       if (active) setPost(p ?? null);
+      if (active && a.status === "accepted") { const pr = await repo.getProjectByPost(a.postId); if (active) { setProjectId(pr?.id); setProjectStatus(pr?.status); } }
     }).catch(() => { if (active) { setApp(null); setPost(null); } });
     repo.listMessages(id).then((value) => { if (active) setMsgs(value); }).catch(() => { if (active) setMsgs([]); });
     return () => { active = false; };
@@ -50,6 +62,10 @@ function Room() {
     return () => document.removeEventListener("visibilitychange", mark);
   }, [user, app, post, id, msgs]);
 
+  async function act(f: () => Promise<unknown>) {
+    setBusy(true); setNotice("");
+    try { await f(); await reloadApp(); } catch (e) { setNotice((e as Error).message); } finally { setBusy(false); }
+  }
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const body = text.trim();
@@ -60,6 +76,9 @@ function Room() {
   }
 
   const otherId = app && post ? (user?.id === app.studentId ? post.authorId : app.studentId) : null;
+  const isOwner = !!user && !!post && user.id === post.authorId;
+  const chatOpen = !!app && app.status === "pending" && !!app.shortlistedAt;   // 매칭 대기
+  const canChat = !!app && (app.status === "accepted" || chatOpen);           // 대화는 선정된 뒤부터
   const other = users.find((u) => u.id === otherId);
   const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit" });
 
@@ -76,7 +95,18 @@ function Room() {
   return (
     <>
       <TopBar title={other?.name ?? "채팅"} back />
-      {user && <ChatAgreement key={`${app.id}:${user.id}`} application={app} post={post} actorId={user.id} studentName={users.find(u=>u.id===app.studentId)?.name ?? "작업자"} ownerName={users.find(u=>u.id===post.authorId)?.name ?? "의뢰인"} />}
+      {/* 선정 → 대화·계약서(매칭 대기) → 계약서 확정 = 선정 확정. 틀어지면 선정 취소 */}
+      <div className="mx-4 mb-2 rounded-xl bg-white px-3 py-2 text-sm">
+        {app.status === "accepted" ? <p className="flex items-center justify-between gap-2"><span className="font-semibold text-[var(--green)]">선정 확정 · 계약서 확정됨</span>{projectId && <Link href={`/projects/detail?id=${projectId}`} className="shrink-0 text-xs font-semibold underline">프로젝트 보기 ›</Link>}</p>
+        : app.status === "rejected" ? <p className="sub">이번에는 함께하지 않기로 했어요.</p>
+        : chatOpen ? <div className="flex items-center justify-between gap-2"><span><b>매칭 대기</b><span className="sub"> · 계약서를 양쪽이 확정하면 선정이 확정돼요</span></span>
+            <button type="button" disabled={busy} onClick={() => act(() => repo.cancelShortlist(app.id, user!.id))} className="shrink-0 text-xs font-semibold underline disabled:opacity-40">선정 취소</button></div>
+        : isOwner ? <div className="flex items-center justify-between gap-2"><span className="sub">{app.shortlistCancelledAt ? "선정이 취소된 지원자예요. 다시 선정하면 대화할 수 있어요." : "선정하면 이 학생과 대화하며 계약서를 쓸 수 있어요."}</span>
+            <button type="button" disabled={busy} onClick={() => act(() => repo.shortlistApplicant(app.id, user!.id))} className="btn btn-primary shrink-0 px-3 py-1.5 text-xs disabled:opacity-40">선정</button></div>
+        : <p className="sub">{app.shortlistCancelledAt ? "선정이 취소됐어요. 다시 선정되면 대화할 수 있어요." : "사장님이 선정하면 대화하며 계약서를 쓸 수 있어요."}</p>}
+        {notice && <p role="alert" className="mt-1 text-xs text-[var(--red)]">{notice}</p>}
+      </div>
+      {user && (chatOpen || app.status === "accepted") && <ChatAgreement key={`${app.id}:${user.id}`} application={app} post={post} actorId={user.id} studentName={users.find(u=>u.id===app.studentId)?.name ?? "작업자"} ownerName={users.find(u=>u.id===post.authorId)?.name ?? "의뢰인"} onChange={reloadApp} autoOpen={autoOpenAgreement} canPropose={!!projectStatus && projectStatus !== "COMPLETED" && projectStatus !== "CANCELLED"} />}
       {post && (
         <Link href={`/posts/detail?id=${post.id}`} className="mx-4 mb-2 flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
           <span className="truncate">{post.title}</span><span className="sub shrink-0">공고 보기 ›</span>
@@ -96,8 +126,8 @@ function Room() {
         <div ref={bottom} />
       </section>
       <form onSubmit={send} className="fixed bottom-0 left-1/2 z-[1001] pb-[env(safe-area-inset-bottom)] flex w-full max-w-[480px] -translate-x-1/2 gap-2 border-t border-[var(--line)] bg-white p-2">
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="메시지 보내기" className="flex-1 rounded-full bg-[var(--line)] px-4 py-2.5 text-[15px] outline-none" />
-        <button disabled={!text.trim()} className="btn btn-primary rounded-full px-4 py-2.5 disabled:opacity-40">전송</button>
+        <input value={text} onChange={(e) => setText(e.target.value)} disabled={!canChat} placeholder={canChat ? "메시지 보내기" : "선정된 뒤에 대화할 수 있어요"} className="flex-1 rounded-full bg-[var(--line)] px-4 py-2.5 text-[15px] outline-none disabled:opacity-60" />
+        <button disabled={!canChat || !text.trim()} className="btn btn-primary rounded-full px-4 py-2.5 disabled:opacity-40">전송</button>
       </form>
     </>
   );

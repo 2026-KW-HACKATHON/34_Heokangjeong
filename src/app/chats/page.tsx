@@ -30,7 +30,7 @@ export default function Chats() {
               {/* 단계(매칭 대기 → 매칭됨 → 진행 중 → 완료 · 거절됨 · 취소됨)와 읽지 않은 수를 함께 */}
               <span className="flex items-center gap-1.5">
                 {(() => {
-                  const stage = matchStage({ applicationStatus: r.application.status, projectStatus: r.projectStatus, agreementFinalizedAt: r.agreementFinalizedAt, lastMessageAt: r.last?.createdAt });
+                  const stage = matchStage({ applicationStatus: r.application.status, shortlisted: !!r.application.shortlistedAt, shortlistCancelled: !!r.application.shortlistCancelledAt, projectStatus: r.projectStatus, agreementFinalizedAt: r.agreementFinalizedAt, lastMessageAt: r.last?.createdAt });
                   return <span className={`chip ${stage === "MATCHED" || stage === "IN_PROGRESS" ? "chip-on" : ""}`}>{MATCH_STAGE_LABEL[stage]}</span>;
                 })()}
                 {(unreadCounts[r.application.id] ?? 0) > 0 && (

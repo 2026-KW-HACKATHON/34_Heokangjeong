@@ -31,7 +31,7 @@ function Activity() {
   }, [user]);
 
   const active = (rooms ?? [])
-    .map((r) => ({ r, stage: matchStage({ applicationStatus: r.application.status, projectStatus: r.projectStatus, agreementFinalizedAt: r.agreementFinalizedAt, lastMessageAt: r.last?.createdAt }) }))
+    .map((r) => ({ r, stage: matchStage({ applicationStatus: r.application.status, shortlisted: !!r.application.shortlistedAt, shortlistCancelled: !!r.application.shortlistCancelledAt, projectStatus: r.projectStatus, agreementFinalizedAt: r.agreementFinalizedAt, lastMessageAt: r.last?.createdAt }) }))
     .filter((x) => x.stage === "IN_PROGRESS");
   const done = (projects ?? []).filter(({ project }) => project.status === "COMPLETED")
     .sort((a, b) => (b.project.completedAt ?? "").localeCompare(a.project.completedAt ?? ""));
@@ -59,7 +59,7 @@ function Activity() {
       {loading ? <p role="status" className="sub p-6 text-center text-sm">불러오는 중…</p>
       : tab === "active" ? (
         active.length === 0
-          ? <div className="card text-sm"><p className="sub">지금 진행 중인 작업이 없어요. 약속서를 확정하고 대화를 시작하면 여기에 떠요.</p><Link href="/" className="btn mt-3 w-full">공고 둘러보기</Link></div>
+          ? <div className="card text-sm"><p className="sub">지금 진행 중인 작업이 없어요. 계약서를 확정하고 대화를 시작하면 여기에 떠요.</p><Link href="/" className="btn mt-3 w-full">공고 둘러보기</Link></div>
           : active.map(({ r, stage }) => (
             <article key={r.application.id} className="card">
               <div className="flex items-center justify-between gap-2"><span className="sub text-xs">{r.other?.name ?? "의뢰인"}</span><span className="chip chip-on">{MATCH_STAGE_LABEL[stage]}</span></div>
