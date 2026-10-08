@@ -70,7 +70,7 @@ const glyphSvg = (kind: string) =>
   `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SHOP_GLYPH[kind] ?? '<circle cx="12" cy="12" r="5"/>'}</svg>`;
 
 /** 동네 가게 마커: 작은 색 원 + 같은 색 이름. 흰 알약을 없애 지도가 덜 답답하다 */
-function shopIcon(poi: Poi, withLabel: boolean) {
+function shopIcon(poi: Poi, withLabel: boolean, hasPost = false) {
   const color = SHOP_COLOR[poi.kind] ?? "#6b7280";
   // 이름은 색을 빼고 회색으로. 색이 많으면 지도가 혼잡해 보인다
   const label = withLabel
@@ -79,7 +79,10 @@ function shopIcon(poi: Poi, withLabel: boolean) {
   return L.divIcon({
     className: "",
     html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-11px,-11px)">
-      <span style="display:flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:${color};opacity:.88;box-shadow:0 1px 2px rgba(0,0,0,.18);line-height:0">${glyphSvg(poi.kind)}</span>
+      <span style="position:relative;display:flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:${color};opacity:${hasPost ? 1 : .88};box-shadow:0 1px 2px rgba(0,0,0,.18);line-height:0">
+        ${glyphSvg(poi.kind)}
+        ${hasPost ? `<span style="position:absolute;top:-5px;right:-5px;display:flex;width:13px;height:13px;align-items:center;justify-content:center;border-radius:50%;background:#f04452;border:1.5px solid #fff;color:#fff;font-size:9px;font-weight:900;line-height:1">!</span>` : ""}
+      </span>
       ${label}
     </div>`,
     iconSize: [0, 0], iconAnchor: [0, 0],
@@ -133,7 +136,27 @@ function thinOut(shops: Poi[], zoom: number) {
   return [...picked.values()];
 }
 
-function ShopLayer() {
+/**
+ * 같은 자리에 찍힌 공고를 살짝 흩어 놓는다.
+ * 지금은 공고 위치가 가게 주소가 아니라 동 중심점이라, 여러 공고가 한 점에 포개져 글자가 겹쳐 보인다.
+ * (근본 해결은 공고 등록 때 지도에서 위치를 찍게 하는 것)
+ */
+function spread(posts: Post[]) {
+  const seen = new Map<string, number>();
+  return posts.map((post) => {
+    const key = `${post.location.lat.toFixed(4)}:${post.location.lng.toFixed(4)}`;
+    const n = seen.get(key) ?? 0;
+    seen.set(key, n + 1);
+    if (n === 0) return { post, lat: post.location.lat, lng: post.location.lng };
+    const angle = (n * 2.39996);                      // 겹칠수록 둘레를 따라 벌린다
+    const r = 0.00035 + 0.00012 * Math.floor(n / 6);  // 약 40m 부터
+    return { post, lat: post.location.lat + r * Math.cos(angle), lng: post.location.lng + r * Math.sin(angle) * 1.26 };
+  });
+}
+
+const normalize = (name: string) => name.replace(/\s|\(.*?\)/g, "").toLowerCase();
+
+function ShopLayer({ postByShop }: { postByShop: Map<string, Post> }) {
   const { zoom, bounds } = useViewport();
   const all = useShops(zoom >= 16);
   // 보이는 범위 안에서만 추려 그린다 (1,300곳을 모두 그리면 지도가 버벅인다)
@@ -144,9 +167,7 @@ function ShopLayer() {
   if (zoom < 16) return null;
   const withLabel = zoom >= 17;      // 많이 확대했을 때만 이름까지 (글자가 뭉치지 않게)
   return <>{shops.map((poi) => (
-    <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={shopIcon(poi, withLabel)} zIndexOffset={-500}>
-      <Popup><div className="text-sm"><b>{poi.name}</b><div className="text-xs text-gray-500">{poi.kind}</div></div></Popup>
-    </Marker>
+    <ShopMarker key={poi.id} poi={poi} withLabel={withLabel} post={postByShop.get(normalize(poi.name))} />
   ))}</>;
 }
 
@@ -193,6 +214,27 @@ function VectorBasemap({ onReady, onFail }: { onReady: () => void; onFail: () =>
   return null;
 }
 
+/** 가게 마커 하나. 공고가 올라온 가게면 느낌표를 달고, 눌렀을 때 공고 정보를 보여 준다 */
+function ShopMarker({ poi, withLabel, post }: { poi: Poi; withLabel: boolean; post?: Post }) {
+  return (
+    <Marker position={[poi.lat, poi.lng]} icon={shopIcon(poi, withLabel, !!post)} zIndexOffset={post ? 200 : -500}>
+      <Popup>
+        <div className="min-w-[160px] text-sm">
+          <b>{poi.name}</b>
+          <div className="text-xs text-gray-500">{poi.kind}</div>
+          {post ? (
+            <div className="mt-2 border-t border-gray-200 pt-2">
+              <div className="text-xs">{STATUS[post.status].dot} {STATUS[post.status].label} · {post.category}</div>
+              <div className="mt-0.5 font-bold">{post.title}</div>
+              <Link href={`/posts/detail?id=${post.id}`} className="mt-1.5 block font-semibold text-[var(--primary)]">공고 보러 가기 ›</Link>
+            </div>
+          ) : <div className="sub mt-1 text-xs">올라온 공고가 없어요</div>}
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
 function Recenter({ center, request }: { center: GeoPoint; request: number }) {
   const map = useMap();
   useEffect(() => { map.setView([center.lat, center.lng], map.getZoom()); }, [center.lat, center.lng, request, map]);
@@ -207,6 +249,15 @@ function Recenter({ center, request }: { center: GeoPoint; request: number }) {
 /** OpenStreetMap + Leaflet. API 키 없음. 카카오/네이버 지도로 바꾸려면 이 컴포넌트만 교체. */
 export default function MapView({ posts, me, center, recenterRequest = 0, authorName }:
   { posts: Post[]; me?: GeoPoint; center: GeoPoint; recenterRequest?: number; authorName?: (id: string) => string | undefined }) {
+  // 가게 이름으로 공고를 연결한다 (모집 중인 공고를 먼저)
+  const postByShop = useMemo(() => {
+    const map = new Map<string, Post>();
+    for (const p of [...posts].sort((a, b) => (a.status === "open" ? -1 : 1) - (b.status === "open" ? -1 : 1))) {
+      const shop = authorName?.(p.authorId);
+      if (shop) map.set(normalize(shop), p);
+    }
+    return map;
+  }, [posts, authorName]);
   const [tilesFailed, setTilesFailed] = useState(false);
   const [vector, setVector] = useState<"loading" | "ok" | "fail">("loading");   // 벡터가 실패하면 기본 지도 그림으로 돌아간다
   return (
@@ -222,10 +273,10 @@ export default function MapView({ posts, me, center, recenterRequest = 0, author
             maxZoom={19}
           eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }}
         />}
-        <ShopLayer />
+        <ShopLayer postByShop={postByShop} />
         {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
-        {posts.map((p) => (
-          <Marker key={p.id} position={[p.location.lat, p.location.lng]} icon={postIcon(p, authorName?.(p.authorId) ?? p.title)} zIndexOffset={p.status === "open" ? 100 : 0}>
+        {spread(posts).map(({ post: p, lat, lng }) => (
+          <Marker key={p.id} position={[lat, lng]} icon={postIcon(p, authorName?.(p.authorId) ?? p.title)} zIndexOffset={p.status === "open" ? 100 : 0}>
             <Popup>
               <div className="min-w-[170px] text-sm">
                 <div className="text-xs">{STATUS[p.status].dot} {STATUS[p.status].label} · {CATEGORY_ICON[p.category] ?? ""} {p.category}</div>
