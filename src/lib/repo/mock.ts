@@ -401,7 +401,10 @@ export const mockRepo: Repo = {
       const post = db.posts.find((p) => p.id === a.postId);
       if (!post || (a.studentId !== userId && post.authorId !== userId)) return [];
       const last = msgs.filter((m) => m.applicationId === a.id).at(-1);
-      return [{ application: a, post, other: users.find((u) => u.id === (a.studentId === userId ? post.authorId : a.studentId)), last }];
+      // 단계 표시용: 약속서 확정 시각, 이 학생이 들어간 프로젝트
+      const project = db.projects.find((p) => p.postId === a.postId && db.members.some((m) => m.projectId === p.id && m.studentId === a.studentId));
+      return [{ application: a, post, other: users.find((u) => u.id === (a.studentId === userId ? post.authorId : a.studentId)), last,
+        agreementFinalizedAt: agreements[a.id]?.finalizedAt ?? null, projectId: project?.id, projectStatus: project?.status }];
     });
     return wait(rooms.sort((x, y) => (y.last?.createdAt ?? y.application.createdAt).localeCompare(x.last?.createdAt ?? x.application.createdAt)));
   },
