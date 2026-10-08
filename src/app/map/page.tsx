@@ -15,7 +15,7 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, load
 export default function MapPage() {
   const { user, users } = useSession();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [hideDone, setHideDone] = useState(false);
+  const [hideDone, setHideDone] = useState(true);   // 끝난 공고까지 보이면 지도가 지저분하다
   const [currentLocation, setCurrentLocation] = useState<GeoPoint | null>(null);
   const [locationMessage, setLocationMessage] = useState("");
   const [locating, setLocating] = useState(false);
