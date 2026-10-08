@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
-import "maplibre-gl/dist/maplibre-gl.css";   // OpenFreeMap 벡터 지도용
 import { SessionProvider } from "@/lib/session";
 import BottomTab from "@/components/BottomTab";
 import AuthGate from "@/components/AuthGate";
