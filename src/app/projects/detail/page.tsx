@@ -125,7 +125,7 @@ function Project() {
         {isMember && status !== "RECRUITING" && (
           <div className="card">
             <h3 className="mb-1 font-bold">활동 기록</h3>
-            <p className="sub mb-3 text-xs">한 번에 1~3개 질문만 물어봐요. 짧게 답해도 괜찮아요.</p>
+            <p className="sub mb-3 text-xs">시작 3개·진행 3개·마무리 2개, 총 8개만 답하면 돼요.</p>
             <div className="grid grid-cols-3 gap-2">
               {STAGES.map((s) => {
                 const p = stageProgress(b, user.id, s.key);
@@ -247,7 +247,7 @@ function StatusGuide({ status, isOwner, isMember, id, latestComment }: { status:
     <div className={`card ${status === "REVISION_REQUESTED" && isMember ? "bg-orange-50" : "bg-[var(--primary-weak)]"}`}>
       <p className="font-bold">{m[0]}</p>
       {m[1] && <p className="mt-0.5 text-sm">{m[1]}</p>}
-      {isMember && status === "IN_PROGRESS" && <Link href={`/projects/log?id=${id}&stage=START`} className="btn btn-primary mt-3 w-full">시작 기록하기</Link>}
+      {isMember && status === "IN_PROGRESS" && <Link href={`/projects/log?id=${id}&stage=next`} className="btn btn-primary mt-3 w-full">기록 추가하기</Link>}
     </div>
   );
 }

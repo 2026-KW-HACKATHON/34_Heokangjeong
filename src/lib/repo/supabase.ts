@@ -8,7 +8,7 @@ import type {
   SubmissionVersion, TierScoreEvent, User, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember,
 } from "@/types";
 import type { GenerateResult, Repo } from "./index";
-import { DOMAINS, QUESTION_SET_VERSION, domainForCategory } from "@shared/portfolio/domains";
+import { DOMAINS, QUESTION_SET_VERSION, coreQuestions, domainForCategory } from "@shared/portfolio/domains";
 import { templateDraft } from "@shared/portfolio/narrative";
 import { sourceHash } from "@shared/portfolio/snapshot";
 import { listingOf } from "../listing";
@@ -180,7 +180,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     const post = app && await repo.getPost(app.postId);
     if (!post) throw new Error("지원서를 찾을 수 없어요");
     const domain = post.teamSlots?.find((role) => role.id === app?.roleId)?.domain ?? listingOf(post).domain;
-    return { domain, version: QUESTION_SET_VERSION, questions: DOMAINS[domain].questions, takenAt: new Date().toISOString() };
+    return { domain, version: QUESTION_SET_VERSION, questions: coreQuestions(domain), takenAt: new Date().toISOString() };
   };
   const repo: Repo = {
     async getAgreement(applicationId) {

@@ -2,8 +2,8 @@
 // 새 분야(VIDEO, PHOTO …)는 모듈 하나를 만들어 DOMAINS 에 넣으면 화면 수정 없이 동작한다.
 import type { DomainKey, DomainModule, FieldDef, QuestionDefinition } from "./types.ts";
 
-// v2: 모든 질문에 답변 예시, 분야마다 '다른 방법'·'확인 방법'·'피드백 반영' 질문 추가
-export const QUESTION_SET_VERSION = 2;
+// v3: 기본 기록은 시작 3개·진행 3개·마무리 2개로 간추린다.
+export const QUESTION_SET_VERSION = 3;
 
 const TOOLS_DESIGN = ["Figma", "Photoshop", "Illustrator", "Canva", "미리캔버스", "Procreate"];
 const TOOLS_MARKETING = ["인스타그램", "네이버 플레이스", "Canva", "CapCut", "구글 시트", "당근 비즈프로필"];
@@ -353,6 +353,18 @@ const GENERAL: DomainModule = {
 
 export const DOMAINS: Record<DomainKey, DomainModule> = { DESIGN, MARKETING, DEVELOPMENT, GENERAL };
 export const DOMAIN_KEYS = Object.keys(DOMAINS) as DomainKey[];
+
+/** 기본 기록 질문. 예전 프로젝트의 스냅샷에도 같은 기준을 적용하되 저장된 답은 보존한다. */
+const CORE_QUESTION_IDS: Record<DomainKey, readonly string[]> = {
+  DESIGN: ["d_problem", "d_target", "d_role", "d_decision", "d_process", "d_rationale", "d_deliverable", "d_after"],
+  MARKETING: ["m_problem", "m_audience", "m_role", "m_strategy", "m_execution", "m_kpi", "m_deliverable", "m_result"],
+  DEVELOPMENT: ["v_problem", "v_requirements", "v_role", "v_features", "v_implementation", "v_tech", "v_delivery", "v_testing"],
+  GENERAL: ["g_problem", "g_goal", "g_role", "g_process", "g_validation", "g_alternatives", "g_deliverable", "g_usage"],
+};
+export function coreQuestions(domain: DomainKey, questions: QuestionDefinition[] = DOMAINS[domain].questions): QuestionDefinition[] {
+  const ids = new Set(CORE_QUESTION_IDS[domain]);
+  return questions.filter((question) => ids.has(question.id));
+}
 
 /** 기존 공고 카테고리 → 분야 모듈. 전용 모듈이 없는 카테고리는 GENERAL. */
 const CATEGORY_DOMAIN: Record<string, DomainKey> = { "디자인": "DESIGN", "SNS홍보": "MARKETING", "웹/앱": "DEVELOPMENT" };
