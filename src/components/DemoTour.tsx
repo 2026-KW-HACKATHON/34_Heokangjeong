@@ -12,7 +12,7 @@ const steps: Record<DemoRole, Step[]> = {
     { path: "/posts/detail/", target: '[data-demo-tour="post-created"]', title: "공고 등록 완료", description: "방금 올린 공고가 등록됐어요. 제목과 요청 내용을 확인하세요.", action: "next" },
     { path: "/posts/detail/", target: '[data-demo-tour="post-applicants"]', title: "지원자 비교", description: "데모 학생 두 명이 방금 올린 포스터 공고에 지원했어요. 학과와 제안 내용을 비교하세요.", action: "next" },
     { path: "/posts/detail/", target: '[data-demo-tour="merchant-select"]', title: "학생 선정하기", description: "디자인 작업 경험이 맞는 윤서연 학생을 선정해 보세요. 계약서를 양쪽이 확인해야 최종 확정됩니다." },
-    { path: "/chats/room/", target: '[data-demo-tour="agreement"]', title: "양쪽이 확인하는 계약서", description: "계약서를 열어 자유 입력칸에 작업 내용을 적고 'Gemini로 계약서 요약'을 눌러 보세요. 실제 AI 응답이 항목에 반영됩니다. 내용을 확인한 뒤 다음으로 진행하세요." },
+    { path: "/chats/room/", target: '[data-demo-tour="agreement"]', title: "양쪽이 확인하는 계약서", description: "계약서를 열어 자유 입력칸에 작업 내용을 적고 'Gemini 요약'을 눌러 보세요. 실제 AI 응답이 항목에 반영됩니다. 내용을 확인한 뒤 다음으로 진행하세요." },
     { path: "/chats/room/", target: '[data-demo-tour="merchant-match-status"]', title: "상인 흐름 완료", description: "데모에서는 학생 확인도 자동으로 재현해 선정이 확정되고 프로젝트가 시작됩니다. 실제 이용에서는 학생이 직접 확인해야 해요. 다른 지원자에게는 미선정 안내가 갑니다.", action: "next" },
   ],
   student: [
@@ -44,6 +44,14 @@ export default function DemoTour() {
   const [clicked, setClicked] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [tipHeight, setTipHeight] = useState(230);
+  const [tipElement, setTipElement] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!tipElement) return;
+    const observer = new ResizeObserver(() => setTipHeight(tipElement.getBoundingClientRect().height));
+    observer.observe(tipElement);
+    return () => observer.disconnect();
+  }, [tipElement]);
   useEffect(() => { setTour(getDemoTour()); }, []);
   useEffect(() => { document.body.classList.toggle("guided-demo", !!tour || completed); return () => document.body.classList.remove("guided-demo"); }, [tour, completed]);
   const finish = useCallback(() => { saveDemoTour(null); setTour(null); setRect(null); setCompleted(false); }, []);
@@ -106,11 +114,11 @@ export default function DemoTour() {
 
   useEffect(() => {
     if (step?.target.includes('"post-submit"') && clicked && path?.replace(/\/$/, "") === "/posts/detail") advance();
-  }, [tour, clicked, path, advance]);
+  }, [tour, step?.target, clicked, path, advance]);
 
   useEffect(() => {
     if (step?.target.includes('"merchant-select"') && clicked && path?.replace(/\/$/, "") === "/chats/room") advance();
-  }, [step, clicked, path, advance]);
+  }, [step, step?.target, clicked, path, advance]);
 
   useEffect(() => {
     if (!step?.target.includes('"student-apply"') || !clicked || !matchesStep(step, path)) return;
@@ -138,20 +146,24 @@ export default function DemoTour() {
   </div>;
   if (!tour || !step || !rect || loading || mode !== "mock" || !matchesStep(step, path)) return null;
   const pad = 6;
-  const left = Math.max(0, rect.left - pad), top = Math.max(0, rect.top - pad);
-  const right = Math.min(window.innerWidth, rect.right + pad), bottom = Math.min(window.innerHeight, rect.bottom + pad);
+  const left = Math.min(window.innerWidth, Math.max(0, rect.left - pad)), top = Math.min(window.innerHeight, Math.max(0, rect.top - pad));
+  const right = Math.max(left, Math.min(window.innerWidth, rect.right + pad)), bottom = Math.max(top, Math.min(window.innerHeight, rect.bottom + pad));
+  const scrollDirection = rect.top < 0 ? "up" : rect.bottom > window.innerHeight ? "down" : null;
   const shade: React.CSSProperties = { position: "fixed", background: "rgba(14, 19, 27, .72)", zIndex: 1500 };
-  const tipTop = Math.max(12, Math.min(window.innerHeight - 190, bottom + 180 < window.innerHeight ? bottom + 12 : top - 180));
+  const tipTop = Math.max(12, Math.min(window.innerHeight - tipHeight - 12, bottom + tipHeight + 24 < window.innerHeight ? bottom + 12 : top - tipHeight - 12));
   return <div aria-label="데모 안내" role="dialog" aria-live="polite">
     <div style={{ ...shade, left: 0, right: 0, top: 0, height: top }} />
     <div style={{ ...shade, left: 0, top, width: left, height: bottom - top }} />
     <div style={{ ...shade, left: right, top, right: 0, height: bottom - top }} />
     <div style={{ ...shade, left: 0, right: 0, top: bottom, bottom: 0 }} />
     <div aria-hidden="true" style={{ position: "fixed", left, top, width: right - left, height: bottom - top, border: "3px solid #52a6ff", borderRadius: 12, boxShadow: "0 0 0 4px rgba(82,166,255,.3)", zIndex: 1501, pointerEvents: "none" }} />
-    <div style={{ position: "fixed", zIndex: 1502, top: tipTop, left: Math.max(12, Math.min(left, window.innerWidth - 322)), width: "min(310px, calc(100vw - 24px))", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
+    <div ref={setTipElement} style={{ position: "fixed", zIndex: 1502, top: tipTop, left: Math.max(12, Math.min(left, window.innerWidth - 322)), width: "min(310px, calc(100vw - 24px))", maxHeight: "calc(100dvh - 24px)", overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
       <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>{step.title}</h2>
       <p style={{ fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>{step.description}</p>
+      {scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
+        {scrollDirection === "down" ? "↓ 아래로 내려 강조된 곳 보기" : "↑ 위로 올려 강조된 곳 보기"}
+      </button>}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, alignItems: "center" }}>
         <button type="button" onClick={finish} style={{ fontSize: 12, color: "#68717e" }}>안내 종료</button>
         {step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{tour.step + 1 === steps[tour.role].length ? "완료" : "다음"}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>파란 테두리 안을 눌러주세요</span>}

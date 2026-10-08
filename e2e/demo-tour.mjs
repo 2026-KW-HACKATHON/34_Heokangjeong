@@ -20,7 +20,7 @@ try {
   assert.match(await agreement.getByRole("textbox", { name: "작업 범위" }).inputValue(), /월계 미용실/);
   await agreement.getByRole("button", { name: "다음", exact: true }).click();
   await agreement.getByRole("button", { name: "다음", exact: true }).click();
-  assert.match(await agreement.getByRole("textbox", { name: "제공할 쿠폰과 지급 시점" }).inputValue(), /7만원/);
+  assert.match(await agreement.getByRole("textbox", { name: "보상 지급" }).inputValue(), /7만원/);
   await agreement.getByRole("button", { name: "다음", exact: true }).click();
   await agreement.getByRole("button", { name: "저장하고 양쪽 확인받기" }).click();
   await agreement.getByRole("button", { name: "이 버전 최종 확인" }).waitFor();
@@ -107,7 +107,7 @@ try {
   assert.match(await merchantAgreement.getByRole("textbox", { name: "작업 범위" }).inputValue(), /A3 포스터/);
   await merchantAgreement.getByRole("button", { name: "다음", exact: true }).click();
   await merchantAgreement.getByRole("button", { name: "다음", exact: true }).click();
-  assert.match(await merchantAgreement.getByRole("textbox", { name: "제공할 쿠폰과 지급 시점" }).inputValue(), /커트 1회/);
+  assert.match(await merchantAgreement.getByRole("textbox", { name: "보상 지급" }).inputValue(), /커트 1회/);
   await merchantAgreement.getByRole("button", { name: "다음", exact: true }).click();
   await merchantAgreement.getByRole("button", { name: "저장하고 양쪽 확인받기" }).click();
   await merchantAgreement.getByRole("button", { name: "이 버전 최종 확인" }).click();
