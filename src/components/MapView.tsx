@@ -35,6 +35,53 @@ function postIcon(post: Post, label: string) {
 }
 const meIcon = L.divIcon({ className: "", html: '<div style="width:16px;height:16px;border-radius:50%;background:#3182f6;border:3px solid white;box-shadow:0 0 0 2px #3182f6"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
 
+interface Poi { id: number; name: string; kind: string; icon: string; lat: number; lng: number }
+
+/** 동네 가게 마커 (public/pois.json). 카카오맵처럼 어떤 가게인지 한눈에 보이게 한다 */
+function shopIcon(poi: Poi) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="display:flex;align-items:center;gap:3px;transform:translate(-14px,-14px)">
+      <span style="display:flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:50%;background:#fff;border:1.5px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.14);font-size:14px">${poi.icon}</span>
+      <span style="max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;color:#4b5563;text-shadow:0 1px 3px #fff,0 -1px 3px #fff,1px 0 3px #fff,-1px 0 3px #fff">${poi.name}</span>
+    </div>`,
+    iconSize: [0, 0], iconAnchor: [0, 0],
+  });
+}
+
+/** 가게 목록을 한 번만 불러온다 (앱에 포함된 파일이라 외부 서버에 기대지 않는다) */
+function useShops(enabled: boolean) {
+  const [shops, setShops] = useState<Poi[]>([]);
+  useEffect(() => {
+    if (!enabled || shops.length) return;
+    fetch("/pois.json").then((r) => r.json()).then(setShops).catch(() => {});
+  }, [enabled, shops.length]);
+  return shops;
+}
+
+/** 지도를 많이 줄이면 가게 마커는 감춘다 (글자가 뭉쳐 보이지 않게) */
+function useZoom() {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  useEffect(() => {
+    const onZoom = () => setZoom(map.getZoom());
+    map.on("zoomend", onZoom);
+    return () => { map.off("zoomend", onZoom); };
+  }, [map]);
+  return zoom;
+}
+
+function ShopLayer() {
+  const zoom = useZoom();
+  const shops = useShops(zoom >= 16);
+  if (zoom < 16) return null;
+  return <>{shops.map((poi) => (
+    <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={shopIcon(poi)} zIndexOffset={-500}>
+      <Popup><div className="text-sm"><b>{poi.name}</b><div className="text-xs text-gray-500">{poi.kind}</div></div></Popup>
+    </Marker>
+  ))}</>;
+}
+
 function Recenter({ center, request }: { center: GeoPoint; request: number }) {
   const map = useMap();
   useEffect(() => { map.setView([center.lat, center.lng], map.getZoom()); }, [center.lat, center.lng, request, map]);
@@ -62,6 +109,7 @@ export default function MapView({ posts, me, center, recenterRequest = 0, author
             maxZoom={19}
           eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }}
         />
+        <ShopLayer />
         {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
         {posts.map((p) => (
           <Marker key={p.id} position={[p.location.lat, p.location.lng]} icon={postIcon(p, authorName?.(p.authorId) ?? p.title)} zIndexOffset={p.status === "open" ? 100 : 0}>
