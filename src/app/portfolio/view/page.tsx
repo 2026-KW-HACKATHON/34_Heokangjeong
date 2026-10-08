@@ -90,6 +90,11 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
     setEditing(false); setRestored(false); onSaved();
   }
 
+  /** 소유자든 아니든 늘 바로 이전 페이지로. 주소로 바로 들어와 이전 페이지가 없을 때만 목록·갤러리로 */
+  const goBack = () => {
+    if (window.history.length > 1) router.back();
+    else router.push(owner ? "/portfolio" : `/portfolio/gallery?s=${encodeURIComponent(page.studentId)}`);
+  };
   const blocks = useMemo(() => pageBlocks(page, content, editing), [page, content, editing]);
   const tpl = templateFor(content.templateId);
   const newerDraft = owner && page.latestDraft && page.latestDraft.createdAt > page.edit.createdAt && page.latestDraft.id !== baseDraftId ? page.latestDraft : undefined;
@@ -123,7 +128,7 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
             </>
           ) : (
             <>
-              <Link href="/portfolio">‹ 목록</Link>
+              <button type="button" onClick={goBack}>‹ 뒤로</button>
               <button type="button" onClick={() => router.push(`/portfolio/templates?id=${page.projectId}`)}>디자인</button>
               <button type="button" onClick={() => setEditing(true)}>편집</button>
               <button type="button" aria-label="더보기" aria-expanded={menu} onClick={() => setMenu(true)}>⋯</button>
@@ -134,7 +139,7 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
 
       {!owner && (
         <div className="pf-pill" role="group" aria-label="포트폴리오 메뉴">
-          <button type="button" onClick={() => (window.history.length > 1 ? router.back() : router.push(`/portfolio/gallery?s=${encodeURIComponent(page.studentId)}`))}>‹ 뒤로</button>
+          <button type="button" onClick={goBack}>‹ 뒤로</button>
         </div>
       )}
 
