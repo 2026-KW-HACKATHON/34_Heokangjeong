@@ -150,9 +150,19 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const changed = !!shown && !!agreement && shown.version!==agreement.version;
   return <>
     <div className="chat-agreement-pin"><button data-demo-tour="agreement" type="button" disabled={busy} onClick={open}><span className="agreement-pin-icon" aria-hidden="true">▤</span><span><strong>작업 계약서</strong><small>{loadError || (!loaded ? "불러오는 중…" : !agreement ? "범위와 일정을 함께 정해요" : agreement.finalizedAt ? (agreement.proposedTerms ? `수정 제안 대기 · v${agreement.version}` : `양쪽 확인 완료 · v${agreement.version}`) : `v${agreement.version} · ${Number(!!agreement.studentConfirmedAt)+Number(!!agreement.ownerConfirmedAt)}/2명 확인`)}</small></span><span>{agreement ? "보기 ›" : "작성 ›"}</span></button></div>
-    <dialog className="agreement-dialog" ref={dialog} aria-label="작업 계약서 작성" onClose={()=>setOpened(false)} onCancel={e=>{if(busy)e.preventDefault();}}>
+    <dialog className="agreement-dialog" data-guided-step={guidedAgreement ? editing ? step : "confirm" : undefined} ref={dialog} aria-label="작업 계약서 작성" onClose={()=>setOpened(false)} onCancel={e=>{if(busy)e.preventDefault();}}>
       <header><span>작업 계약서 {shown && <small>v{shown.version}</small>}</span><button type="button" disabled={busy} aria-label="계약서 닫기" onClick={()=>dialog.current?.close()}>×</button></header>
       <div className="agreement-body">
+        {guidedAgreement && <aside className="agreement-tour-tip" role="status" aria-live="polite" aria-label="작업 계약서 체험 안내">
+          <strong>{editing ? `계약서 체험 ${step + 1}/4 · ${["작업 내용과 Gemini 요약", "작업 일정", "보상과 AS", "저장 전 확인"][step]}` : shown?.finalizedAt ? "계약서 체험 완료" : "마지막 · 양쪽 확인"}</strong>
+          <p>{editing ? [
+            aiDraft ? "Gemini가 정리한 작업 범위·결과물·완료 기준을 확인하고 아래 ‘다음’을 눌러 주세요." : "자유 입력칸에 작업 내용을 적고 ‘Gemini 요약’을 눌러 보세요. 정리된 항목을 확인한 뒤 아래 ‘다음’으로 이동하세요.",
+            "달력에서 시작일과 완료일을 드래그하거나 두 날짜를 눌러 정하세요. 확인한 뒤 아래 ‘다음’을 눌러 주세요.",
+            "보상 지급, 완료 전 AS 횟수와 파일 인계 방법을 확인하고 아래 ‘다음’을 눌러 주세요.",
+            "내용을 읽고 ‘저장하고 양쪽 확인받기’를 눌러 주세요. 저장만으로 계약이 확정되지는 않아요.",
+          ][step] : shown?.finalizedAt ? "양쪽 확인이 끝났어요. 오른쪽 위 닫기 버튼을 누르면 다음 튜토리얼로 이어집니다." : "내용을 확인하고 동의 체크 후 ‘이 버전 최종 확인’을 눌러 주세요. 데모에서는 상대방 확인도 자동으로 재현해요."}</p>
+        </aside>}
+
         <p className="agreement-eyebrow">작은 계약, 편안한 협업</p>
         <h2>{editing ? (proposing ? "바꿀 내용을 적어 주세요" : ["어떤 일을 함께 할까요?","언제 시작하고 끝낼까요?","보상과 마무리를 정해요","마지막으로 확인해 주세요"][step]) : pending ? "계약서 수정 제안이 있어요" : shown?.finalizedAt ? "우리의 계약이 확정됐어요" : "같은 내용을 함께 확인해요"}</h2>
         <p className="agreement-subtitle">{post.title}</p>

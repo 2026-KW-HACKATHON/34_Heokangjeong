@@ -21,11 +21,16 @@ try {
  await page.getByRole('heading',{name:'양쪽이 확인하는 계약서',exact:true}).waitFor();
  await page.locator('[data-demo-tour="agreement"]').click();
  const d=page.locator('.agreement-dialog');
+ await d.getByLabel('작업 계약서 체험 안내',{exact:true}).waitFor();
+ assert.match(await d.getByLabel('작업 계약서 체험 안내',{exact:true}).innerText(),/Gemini 요약/);
  assert.match(await d.getByLabel('작업 범위',{exact:true}).inputValue(),/A3 포스터/);
- for(let n=0;n<3;n++) await d.getByRole('button',{name:'다음',exact:true}).click();
+ for(let n=0;n<3;n++) { await d.getByRole('button',{name:'다음',exact:true}).click(); assert.match(await d.getByLabel('작업 계약서 체험 안내',{exact:true}).innerText(),new RegExp(`${n+2}/4`)); } 
  await d.getByRole('button',{name:'저장하고 양쪽 확인받기',exact:true}).click();
+ await d.getByText('마지막 · 양쪽 확인',{exact:true}).waitFor();
  await d.getByRole('button',{name:'이 버전 최종 확인',exact:true}).click();
  await d.getByRole('heading',{name:'우리의 계약이 확정됐어요',exact:true}).waitFor();
+ await d.getByText('계약서 체험 완료',{exact:true}).waitFor();
+ await page.screenshot({path:'outputs/agreement-tutorial-complete.png'});
  await d.getByRole('button',{name:'계약서 닫기',exact:true}).click();
  await page.getByRole('heading',{name:'상인 흐름 완료',exact:true}).waitFor();
  await page.getByRole('button',{name:'완료',exact:true}).click();
