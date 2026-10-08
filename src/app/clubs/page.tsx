@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import EmptyState from "@/components/EmptyState";
@@ -9,17 +9,20 @@ import { useSession } from "@/lib/session";
 import { CLUB_KINDS, clubKindLabel } from "@/lib/clubs";
 import { COLLEGES, collegeLabel } from "@/lib/colleges";
 import type { Club, ClubKind } from "@/types";
+import { useUrlState } from "@/lib/useUrlState";
 
 /**
  * 단체(동아리·학회·학생회) 목록.
  * 이미 등록된 단체 중에서 고르고, 없으면 새로 신청한다(관리자 승인 후 목록에 뜬다).
  * 가입은 신청만 하고, 그 단체 대표가 수락해야 소속이 된다.
  */
-export default function Clubs() {
+// 종류 필터는 주소에 둔다 → 단체를 보고 뒤로 와도 고른 그대로
+export default function ClubsPage() { return <Suspense fallback={null}><Clubs /></Suspense>; }
+function Clubs() {
   const { user } = useSession();
   const [clubs, setClubs] = useState<Club[] | null>(null);
   const [mine, setMine] = useState<{ club: Club; role: string }[]>([]);
-  const [kind, setKind] = useState<ClubKind | "ALL">("ALL");
+  const [kind, setKind] = useUrlState<ClubKind | "ALL">("kind", "ALL", ["ALL", ...CLUB_KINDS.map((k) => k.key)]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", kind: "CENTRAL" as ClubKind, kindOther: "", description: "", college: "" });

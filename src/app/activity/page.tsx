@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { MATCH_STAGE_LABEL, matchStage } from "@/lib/matchStage";
+import { useUrlState } from "@/lib/useUrlState";
 import { DOMAINS } from "@shared/portfolio/domains";
 import type { ChatRoom, Post, Project } from "@/types";
 
@@ -14,9 +15,11 @@ import type { ChatRoom, Post, Project } from "@/types";
  *  - 완료  : 의뢰인이 승인한 프로젝트. 포트폴리오(보기/만들기) · 프로젝트 보기(검증·평가)
  * 기록한 답·중간 기록·증빙이 포트폴리오 재료가 된다. 분야별 작업 기록(통계)은 내 프로필에 있다.
  */
-export default function ActivityPage() {
+export default function ActivityPage() { return <Suspense fallback={<TopBar title="작업 기록" />}><Activity /></Suspense>; }
+function Activity() {
   const { user } = useSession();
-  const [tab, setTab] = useState<"active" | "done">("active");
+  // 탭은 주소에 둔다 → 포트폴리오·프로젝트를 보고 뒤로 와도 보던 탭 그대로
+  const [tab, setTab] = useUrlState<"active" | "done">("tab", "active", ["active", "done"]);
   const [rooms, setRooms] = useState<ChatRoom[] | null>(null);
   const [projects, setProjects] = useState<{ project: Project; post: Post }[] | null>(null);
   const [withPortfolio, setWithPortfolio] = useState<Set<string>>(new Set());
@@ -87,7 +90,6 @@ export default function ActivityPage() {
             </article>
           ))
       )}
-      <Link href="/portfolio" className="btn w-full">내 포트폴리오 보기</Link>
     </section>
   </>;
 }
