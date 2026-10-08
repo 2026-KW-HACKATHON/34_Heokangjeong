@@ -8,7 +8,7 @@ try {
   const base=process.env.BASE_URL || "http://127.0.0.1:3000";
   await page.goto(`${base}/chats/room/?id=a2`);
   await page.locator(".chat-agreement-pin button").click();
-  const dialog=page.getByRole("dialog",{name:"작업 약속서 작성"});
+  const dialog=page.getByRole("dialog",{name:"작업 계약서 작성"});
   await dialog.getByLabel("작업 범위",{exact:true}).fill("메뉴판 1장 디자인");
   await dialog.getByLabel("전달할 결과물").fill("인쇄용 PDF와 원본 파일");
   await dialog.getByLabel("완료 확인 기준").fill("가격 확인 후 파일 수령");
@@ -42,7 +42,7 @@ try {
   await page.evaluate(()=>localStorage.setItem("wolgye-user","s1"));
   await page.reload(); await page.locator(".chat-agreement-pin button").click();
   await dialog.getByRole("checkbox").check(); await dialog.getByRole("button",{name:"이 버전 최종 확인"}).click();
-  await dialog.getByRole("heading",{name:"우리의 약속이 확정됐어요"}).waitFor();
+  await dialog.getByRole("heading",{name:"우리의 계약이 확정됐어요"}).waitFor();
   assert.equal(await dialog.getByRole("button",{name:"내용 수정"}).count(),0);
   if(process.env.SHOT_PATH) await page.screenshot({path:process.env.SHOT_PATH});
   assert.deepEqual(errors,[]);

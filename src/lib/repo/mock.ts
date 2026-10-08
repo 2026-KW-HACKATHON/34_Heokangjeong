@@ -248,7 +248,7 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications, publications, profileExtras, agreements })); }
   catch { throw new Error("브라우저 저장 공간이 가득 찼어요. 나 › 데모 데이터 초기화 후 다시 시도해 주세요"); }
 }
-/** 진행 중 데모의 약속서·대화를 채운다 (없는 것만). 바뀌었으면 true */
+/** 진행 중 데모의 계약서·대화를 채운다 (없는 것만). 바뀌었으면 true */
 /** 데모의 선정 전 대화 → 이미 선정된(매칭 대기) 대화로. 월계 미용실(p10)은 지원자 4명 중 김하늘(a13)만 (개인 공고는 한 명씩) */
 const DEMO_SHORTLISTED = ["a2", "a4", "a5", "a7", "a8", "a10", "a11", "a12", "a13"];
 function seedDemoChats(): boolean {
@@ -258,7 +258,7 @@ function seedDemoChats(): boolean {
   for (const m of extra.messages) if (!msgs.some((x) => x.id === m.id)) { msgs.push(m); changed = true; }
   for (const app of db.applications) {
     if (DEMO_SHORTLISTED.includes(app.id) && app.status === "pending" && !app.shortlistedAt && !app.shortlistCancelledAt) { app.shortlistedAt = app.createdAt; changed = true; }
-    // 이 규칙 전에 선정된 지원(accepted)은 공고 내용으로 확정된 약속서를 만들어 둔다 (DB 0037 과 같은 규칙)
+    // 이 규칙 전에 선정된 지원(accepted)은 공고 내용으로 확정된 계약서를 만들어 둔다 (DB 0037 과 같은 규칙)
     if (app.status === "accepted" && !agreements[app.id]) {
       const post = db.posts.find((p) => p.id === app.postId);
       if (!post) continue;
@@ -310,7 +310,7 @@ function agreementParty(applicationId: string, actorId: string): "student" | "ow
   if (!application || !post) throw new Error("채팅방을 찾을 수 없어요.");
   if (actorId === application.studentId) return "student";
   if (actorId === post.authorId) return "owner";
-  throw new Error("이 약속서는 채팅 당사자만 볼 수 있어요.");
+  throw new Error("이 계약서는 채팅 당사자만 볼 수 있어요.");
 }
 
 import { chatReads } from "./chatReads";
@@ -319,9 +319,9 @@ export const mockRepo: Repo = {
   async saveAgreement(applicationId, actorId, expectedVersion, terms) {
     ensure(); load(); agreementParty(applicationId, actorId);
     const previous = agreements[applicationId];
-    if (previous?.finalizedAt) throw new Error("이미 확정된 최종본이에요 (바꾸려면 변경 제안을 보내 주세요).");
+    if (previous?.finalizedAt) throw new Error("이미 확정된 최종본이에요 (바꾸려면 수정 제안을 보내 주세요).");
     const app = db.applications.find((a) => a.id === applicationId)!;
-    if (app.status !== "pending" || !app.shortlistedAt) throw new Error("사장님이 선정한 뒤에 약속서를 쓸 수 있어요.");
+    if (app.status !== "pending" || !app.shortlistedAt) throw new Error("사장님이 선정한 뒤에 계약서를 쓸 수 있어요.");
     const next = reviseAgreement(previous ?? null, applicationId, expectedVersion, terms);
     agreements[applicationId] = next;
     try { save(); } catch (e) { if (previous) agreements[applicationId] = previous; else delete agreements[applicationId]; throw e; }
@@ -330,7 +330,7 @@ export const mockRepo: Repo = {
   async confirmAgreement(applicationId, actorId, version) {
     ensure(); load(); const side = agreementParty(applicationId, actorId);
     const previous = agreements[applicationId];
-    if (!previous) throw new Error("먼저 약속서를 저장해 주세요.");
+    if (!previous) throw new Error("먼저 계약서를 저장해 주세요.");
     const app = db.applications.find((a) => a.id === applicationId)!;
     if (!previous.finalizedAt && (app.status !== "pending" || !app.shortlistedAt)) throw new Error("선정이 취소됐거나 마감된 지원이에요.");
     const next = confirmAgreement(previous, version, side); agreements[applicationId] = next;
@@ -346,7 +346,7 @@ export const mockRepo: Repo = {
   async proposeAgreementChange(applicationId, actorId, terms) {
     ensure(); load(); const side = agreementParty(applicationId, actorId);
     const previous = agreements[applicationId];
-    if (!previous) throw new Error("약속서가 없어요.");
+    if (!previous) throw new Error("계약서가 없어요.");
     const next = proposeAgreementChange(previous, side, terms); agreements[applicationId] = next;
     try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
     return wait(next);
@@ -354,7 +354,7 @@ export const mockRepo: Repo = {
   async respondAgreementChange(applicationId, actorId, accept) {
     ensure(); load(); const side = agreementParty(applicationId, actorId);
     const previous = agreements[applicationId];
-    if (!previous) throw new Error("약속서가 없어요.");
+    if (!previous) throw new Error("계약서가 없어요.");
     const next = respondAgreementChange(previous, side, accept); agreements[applicationId] = next;
     try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
     return wait(next);
@@ -372,7 +372,7 @@ export const mockRepo: Repo = {
       if (!role || (role.filled?.length ?? 0) + active.filter((x) => x.roleId === a.roleId).length >= role.count) throw new Error("이 역할은 이미 선정 중이거나 모집 인원이 찼어요. 선정을 취소한 뒤 다시 선정해 주세요.");
     } else if (active.length) throw new Error("선정 중인 지원자가 있어요. 선정을 취소한 뒤 다시 선정해 주세요.");
     a.shortlistedAt = new Date().toISOString(); a.shortlistCancelledAt = undefined;
-    pushNotification({ userId: a.studentId, postId: post.id, kind: "APPLICATION_SHORTLISTED", href: `/chats/room?id=${a.id}`, text: `'${post.title}' 공고에 선정됐어요. 대화하며 약속서를 확정하면 시작해요.` });
+    pushNotification({ userId: a.studentId, postId: post.id, kind: "APPLICATION_SHORTLISTED", href: `/chats/room?id=${a.id}`, text: `'${post.title}' 공고에 선정됐어요. 대화하며 계약서를 확정하면 시작해요.` });
   }); },
   async cancelShortlist(applicationId, actorId) {
     ensure(); load(); const side = agreementParty(applicationId, actorId);
@@ -483,7 +483,7 @@ export const mockRepo: Repo = {
       const post = db.posts.find((p) => p.id === a.postId);
       if (!post || (a.studentId !== userId && post.authorId !== userId)) return [];
       const last = msgs.filter((m) => m.applicationId === a.id).at(-1);
-      // 단계 표시용: 약속서 확정 시각, 이 학생이 들어간 프로젝트
+      // 단계 표시용: 계약서 확정 시각, 이 학생이 들어간 프로젝트
       const project = db.projects.find((p) => p.postId === a.postId && db.members.some((m) => m.projectId === p.id && m.studentId === a.studentId));
       return [{ application: a, post, other: users.find((u) => u.id === (a.studentId === userId ? post.authorId : a.studentId)), last,
         agreementFinalizedAt: agreements[a.id]?.finalizedAt ?? null, projectId: project?.id, projectStatus: project?.status }];
@@ -547,7 +547,7 @@ export const mockRepo: Repo = {
   onNotification(userId, cb) { const listener = (n: Notification) => { if (n.userId === userId) cb(n); }; notificationListeners.add(listener); return () => { notificationListeners.delete(listener); }; },
   // ── 검증형 포트폴리오 파이프라인 (규칙은 workflow/engine.ts) ──────────────────
   async selectApplicant(applicationId, actorId) { return tx(() => {
-    if (!agreements[applicationId]?.finalizedAt) throw new Error("약속서를 양쪽이 확인해 확정하면 선정돼요.");
+    if (!agreements[applicationId]?.finalizedAt) throw new Error("계약서를 양쪽이 확인해 확정하면 선정돼요.");
     const application = db.applications.find((a) => a.id === applicationId)!;
     const post = db.posts.find((p) => p.id === application.postId)!;
     const wasPending = application.status === "pending";

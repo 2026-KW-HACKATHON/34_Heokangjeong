@@ -134,7 +134,7 @@ const toNotification = (r: Row): Notification => ({ id: r.id, userId: r.user_id,
 /** DB 에러 → 화면용 문장. DB 함수는 'CODE: 설명' 으로 던진다 */
 export function friendly(message: string) {
   if (/row-level security/i.test(message)) return "권한이 없어요 (선정된 학생 또는 해당 의뢰인만 할 수 있어요)";
-  return message.replace(/^[A-Z_]+: /, "");
+  return message.replace(/^[A-Z_]+: /, "").replace(/약속서/g, "계약서").replace(/변경 제안/g, "수정 제안");   // DB 함수 문구는 예전 이름(약속서)
 }
 /** 에러는 그대로 던져서 화면에서 알 수 있게 한다 */
 // 타입 없는 클라이언트라 결과는 Row(any)로 받고, 위의 to* 함수가 도메인 타입으로 바꾼다
@@ -164,7 +164,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     if (/post_roles|relationship/i.test(result.error.message)) return maybe(await db.from("posts").select("*").eq("id", id).maybeSingle());
     throw new Error(friendly(result.error.message));
   };
-  /** 약속서 행 → 화면용 (변경 제안자 id 를 학생/의뢰인으로) */
+  /** 계약서 행 → 화면용 (수정 제안자 id 를 학생/의뢰인으로) */
   const withSide = async (row: Row): Promise<WorkAgreement> => {
     const a = toAgreement(row) as WorkAgreement & { proposedById?: string | null };
     if (a.proposedById) {
@@ -286,7 +286,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         const other = r.student_id === userId ? await repo.getUser(post.authorId) : toUser(r.student);
         rooms.push({ application: toApp(r), post, other, last: r.messages?.[0] ? toMsg(r.messages[0]) : undefined });
       }
-      // 단계 표시용: 약속서 확정 시각, 이 학생이 들어간 프로젝트 (읽기 실패해도 목록은 보여 준다)
+      // 단계 표시용: 계약서 확정 시각, 이 학생이 들어간 프로젝트 (읽기 실패해도 목록은 보여 준다)
       try {
         const appIds = rooms.map((r) => r.application.id), postIds = [...new Set(rooms.map((r) => r.post.id))];
         const [agreementRows, projectRows] = await Promise.all([

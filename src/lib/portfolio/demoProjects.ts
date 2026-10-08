@@ -22,7 +22,7 @@ interface Spec {
   feed: { title: string; category: string };
   portfolio?: PortfolioContent;                          // HTML 포트폴리오 (메뉴판만)
   day: number;                                           // 9월 며칠에 시작했는지 (완료 순서용)
-  /** 진행 중 데모: 제출·승인 없이 멈춘다. 약속서 확정 + 그 뒤 대화가 있어 '진행 중' 단계로 보인다 */
+  /** 진행 중 데모: 제출·승인 없이 멈춘다. 계약서 확정 + 그 뒤 대화가 있어 '진행 중' 단계로 보인다 */
   inProgress?: { notes: string[]; chat: { from: "student" | "client"; body: string }[] };
 }
 
@@ -202,7 +202,7 @@ const SPECS: Spec[] = [
     inProgress: {
       notes: ["사장님과 통화: 클래스 4개 중 '꽃바구니'와 '리스' 문의가 가장 많다고 하심 → 카드 맨 위에 두기로"],
       chat: [
-        { from: "client", body: "약속서 확인했어요. 시안은 언제쯤 볼 수 있을까요?" },
+        { from: "client", body: "계약서 확인했어요. 시안은 언제쯤 볼 수 있을까요?" },
         { from: "student", body: "이번 주 금요일까지 두 가지 버전으로 보내 드릴게요!" },
         { from: "client", body: "좋아요. 리스 클래스 사진은 오늘 보내 드릴게요." },
       ],
@@ -233,7 +233,7 @@ const COVER = (key: Spec["key"]) => `/portfolio-samples/${key}.png`;
 const postId = (key: Spec["key"]) => `demo-post-${key}`;
 
 /** 데모 내용을 바꾸면 올린다 → 이미 넣어 둔 브라우저도 데모 프로젝트만 새로 만든다 */
-const SEED_VERSION = 4;   // 3: 진행 중 데모 추가 · 4: 선정(매칭 대기) 시각 — 약속서 확정 = 선정 확정 규칙
+const SEED_VERSION = 4;   // 3: 진행 중 데모 추가 · 4: 선정(매칭 대기) 시각 — 계약서 확정 = 선정 확정 규칙
 const isDemo = (v: unknown) => typeof v === "string" && v.startsWith("demo-");
 
 /**
@@ -272,7 +272,7 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
   };
   db.posts.push(post);
   const app = wf.apply(db, { postId: post.id, studentId: DEMO_STUDENT, message: "이 작업 꼭 해 보고 싶어요." }, ctx);
-  app.shortlistedAt = app.createdAt;   // 사장님 선정 → 대화·약속서 → 확정 (약속서는 demoAgreementsAndChats 가 넣는다)
+  app.shortlistedAt = app.createdAt;   // 사장님 선정 → 대화·계약서 → 확정 (계약서는 demoAgreementsAndChats 가 넣는다)
   const project = wf.selectApplicant(db, { applicationId: app.id, actorId: s.clientId }, ctx);
   const qs = DOMAINS[project.domain as DomainKey].questions;
   for (const [qid, a] of Object.entries(s.answers)) {
@@ -329,8 +329,8 @@ export function demoProjectPublications(db: wf.WorkflowDB, studentId: string): P
 }
 
 /**
- * 진행 중 데모의 약속서·대화 (채팅 저장소가 프로젝트 DB 와 따로라 mock 이 넣는다).
- * 약속서는 양쪽 확인으로 확정, 대화는 확정 뒤 → 채팅·기록 탭에서 '진행 중'으로 보인다.
+ * 진행 중 데모의 계약서·대화 (채팅 저장소가 프로젝트 DB 와 따로라 mock 이 넣는다).
+ * 계약서는 양쪽 확인으로 확정, 대화는 확정 뒤 → 채팅·기록 탭에서 '진행 중'으로 보인다.
  */
 export function demoInProgressChats(db: wf.WorkflowDB): { agreements: WorkAgreement[]; messages: ChatMessage[] } {
   const agreements: WorkAgreement[] = [], messages: ChatMessage[] = [];

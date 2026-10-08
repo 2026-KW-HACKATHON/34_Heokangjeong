@@ -45,10 +45,10 @@ export interface Repo {
   saveAgreement(applicationId: string, actorId: string, expectedVersion: number, terms: AgreementTerms): Promise<WorkAgreement>;
   /** 양쪽이 확인하면 확정 = 선정 확정 (프로젝트가 만들어진다) */
   confirmAgreement(applicationId: string, actorId: string, version: number): Promise<WorkAgreement>;
-  /** 확정 뒤 변경 제안 / 답하기 (수락 = 새 내용으로 다시 확정, 거절·철회 = 기존 유지) */
+  /** 확정 뒤 수정 제안 / 답하기 (수락 = 새 내용으로 다시 확정, 거절·철회 = 기존 유지) */
   proposeAgreementChange(applicationId: string, actorId: string, terms: AgreementTerms): Promise<WorkAgreement>;
   respondAgreementChange(applicationId: string, actorId: string, accept: boolean): Promise<WorkAgreement>;
-  /** 사장님 '선정' = 매칭 대기 시작 (대화·약속서가 열린다). 개인 공고는 한 명씩 */
+  /** 사장님 '선정' = 매칭 대기 시작 (대화·계약서가 열린다). 개인 공고는 한 명씩 */
   shortlistApplicant(applicationId: string, actorId: string): Promise<void>;
   /** 선정 취소 (확정 전에만, 사장님·학생 모두) */
   cancelShortlist(applicationId: string, actorId: string): Promise<void>;

@@ -14,7 +14,9 @@ export default function ChatRoomPage() {
 }
 
 function Room() {
-  const id = useSearchParams().get("id") ?? "";
+  const params = useSearchParams();
+  const id = params.get("id") ?? "";
+  const autoOpenAgreement = params.get("agreement") === "1";
   const { user, users } = useSession();
   const [app, setApp] = useState<Application | null | undefined>(undefined);
   const [post, setPost] = useState<Post | null | undefined>(undefined);
@@ -23,11 +25,12 @@ function Room() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [projectId, setProjectId] = useState<string | undefined>();
+  const [projectStatus, setProjectStatus] = useState<string | undefined>();   // 계약서 수정 제안은 진행 중 프로젝트에서만
   const bottom = useRef<HTMLDivElement>(null);
-  /** 지원서 다시 읽기 (선정·선정 취소·약속서 확정 뒤) */
+  /** 지원서 다시 읽기 (선정·선정 취소·계약서 확정 뒤) */
   const reloadApp = () => repo.getApplication(id).then(async (a) => {
     setApp(a ?? null);
-    if (a?.status === "accepted") setProjectId((await repo.getProjectByPost(a.postId))?.id);
+    if (a?.status === "accepted") { const pr = await repo.getProjectByPost(a.postId); setProjectId(pr?.id); setProjectStatus(pr?.status); }
   });
 
   useEffect(() => {
@@ -38,7 +41,7 @@ function Room() {
       if (!a) return setPost(null);
       const p = await repo.getPost(a.postId);
       if (active) setPost(p ?? null);
-      if (active && a.status === "accepted") setProjectId((await repo.getProjectByPost(a.postId))?.id);
+      if (active && a.status === "accepted") { const pr = await repo.getProjectByPost(a.postId); if (active) { setProjectId(pr?.id); setProjectStatus(pr?.status); } }
     }).catch(() => { if (active) { setApp(null); setPost(null); } });
     repo.listMessages(id).then((value) => { if (active) setMsgs(value); }).catch(() => { if (active) setMsgs([]); });
     return () => { active = false; };
@@ -92,18 +95,18 @@ function Room() {
   return (
     <>
       <TopBar title={other?.name ?? "채팅"} back />
-      {/* 선정 → 대화·약속서(매칭 대기) → 약속서 확정 = 선정 확정. 틀어지면 선정 취소 */}
+      {/* 선정 → 대화·계약서(매칭 대기) → 계약서 확정 = 선정 확정. 틀어지면 선정 취소 */}
       <div className="mx-4 mb-2 rounded-xl bg-white px-3 py-2 text-sm">
-        {app.status === "accepted" ? <p className="flex items-center justify-between gap-2"><span className="font-semibold text-[var(--green)]">선정 확정 · 약속서 확정됨</span>{projectId && <Link href={`/projects/detail?id=${projectId}`} className="shrink-0 text-xs font-semibold underline">프로젝트 보기 ›</Link>}</p>
+        {app.status === "accepted" ? <p className="flex items-center justify-between gap-2"><span className="font-semibold text-[var(--green)]">선정 확정 · 계약서 확정됨</span>{projectId && <Link href={`/projects/detail?id=${projectId}`} className="shrink-0 text-xs font-semibold underline">프로젝트 보기 ›</Link>}</p>
         : app.status === "rejected" ? <p className="sub">이번에는 함께하지 않기로 했어요.</p>
-        : chatOpen ? <div className="flex items-center justify-between gap-2"><span><b>매칭 대기</b><span className="sub"> · 약속서를 양쪽이 확정하면 선정이 확정돼요</span></span>
+        : chatOpen ? <div className="flex items-center justify-between gap-2"><span><b>매칭 대기</b><span className="sub"> · 계약서를 양쪽이 확정하면 선정이 확정돼요</span></span>
             <button type="button" disabled={busy} onClick={() => act(() => repo.cancelShortlist(app.id, user!.id))} className="shrink-0 text-xs font-semibold underline disabled:opacity-40">선정 취소</button></div>
-        : isOwner ? <div className="flex items-center justify-between gap-2"><span className="sub">{app.shortlistCancelledAt ? "선정이 취소된 지원자예요. 다시 선정하면 대화할 수 있어요." : "선정하면 이 학생과 대화하며 약속서를 쓸 수 있어요."}</span>
+        : isOwner ? <div className="flex items-center justify-between gap-2"><span className="sub">{app.shortlistCancelledAt ? "선정이 취소된 지원자예요. 다시 선정하면 대화할 수 있어요." : "선정하면 이 학생과 대화하며 계약서를 쓸 수 있어요."}</span>
             <button type="button" disabled={busy} onClick={() => act(() => repo.shortlistApplicant(app.id, user!.id))} className="btn btn-primary shrink-0 px-3 py-1.5 text-xs disabled:opacity-40">선정</button></div>
-        : <p className="sub">{app.shortlistCancelledAt ? "선정이 취소됐어요. 다시 선정되면 대화할 수 있어요." : "사장님이 선정하면 대화하며 약속서를 쓸 수 있어요."}</p>}
+        : <p className="sub">{app.shortlistCancelledAt ? "선정이 취소됐어요. 다시 선정되면 대화할 수 있어요." : "사장님이 선정하면 대화하며 계약서를 쓸 수 있어요."}</p>}
         {notice && <p role="alert" className="mt-1 text-xs text-[var(--red)]">{notice}</p>}
       </div>
-      {user && (chatOpen || app.status === "accepted") && <ChatAgreement key={`${app.id}:${user.id}`} application={app} post={post} actorId={user.id} studentName={users.find(u=>u.id===app.studentId)?.name ?? "작업자"} ownerName={users.find(u=>u.id===post.authorId)?.name ?? "의뢰인"} onChange={reloadApp} />}
+      {user && (chatOpen || app.status === "accepted") && <ChatAgreement key={`${app.id}:${user.id}`} application={app} post={post} actorId={user.id} studentName={users.find(u=>u.id===app.studentId)?.name ?? "작업자"} ownerName={users.find(u=>u.id===post.authorId)?.name ?? "의뢰인"} onChange={reloadApp} autoOpen={autoOpenAgreement} canPropose={projectStatus === "IN_PROGRESS"} />}
       {post && (
         <Link href={`/posts/detail?id=${post.id}`} className="mx-4 mb-2 flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
           <span className="truncate">{post.title}</span><span className="sub shrink-0">공고 보기 ›</span>

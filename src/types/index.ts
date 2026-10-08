@@ -104,7 +104,7 @@ export interface Application {
   roleId?: string;
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
-  /** 사장님이 선정한 시각 = 매칭 대기 시작 (대화·약속서가 열린다). 약속서가 확정되면 status 가 accepted */
+  /** 사장님이 선정한 시각 = 매칭 대기 시작 (대화·계약서가 열린다). 계약서가 확정되면 status 가 accepted */
   shortlistedAt?: string;
   /** 선정 취소된 시각 (다시 선정할 수 있다) */
   shortlistCancelledAt?: string;
@@ -166,7 +166,7 @@ export interface ChatMessage {           // 채팅 메시지. 채팅방 = 지원
 
 export interface ChatRoom {
   application: Application; post: Post; other: User | undefined; last?: ChatMessage;
-  /** 단계 표시용 (src/lib/matchStage.ts): 약속서 확정 시각, 이 학생이 들어간 프로젝트 */
+  /** 단계 표시용 (src/lib/matchStage.ts): 계약서 확정 시각, 이 학생이 들어간 프로젝트 */
   agreementFinalizedAt?: string | null; projectId?: string; projectStatus?: ProjectStatus;
 }
 

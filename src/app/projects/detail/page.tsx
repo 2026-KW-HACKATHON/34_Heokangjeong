@@ -119,7 +119,7 @@ function Project() {
           </dl>
         </div>
 
-        {/* 대화에서 쓰고 양쪽이 확인한 약속서 (읽기 전용) */}
+        {/* 대화에서 쓰고 양쪽이 확인한 계약서 (읽기 전용) */}
         <ProjectAgreement bundle={b} userId={user.id} users={users} />
 
         {isMember && status !== "RECRUITING" && (
