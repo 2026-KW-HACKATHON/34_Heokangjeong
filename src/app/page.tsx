@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import TopBar from "@/components/TopBar";
 import PostCard from "@/components/PostCard";
 import EmptyState from "@/components/EmptyState";
@@ -9,8 +9,9 @@ import { distanceM } from "@/lib/geo";
 import { recommendScore } from "@/lib/recommend";
 import type { Post } from "@/types";
 import Icon from "@/components/Icon";
-import TalentConnection, { categoryMatches, type HomeCategory } from "@/components/home/TalentConnection";
+import { categoryMatches, type HomeCategory } from "@/components/home/categories";
 import { HOME_CATEGORIES } from "@/components/home/categories";
+import CategoryPicker from "@/components/home/CategoryPicker";
 import { useUrlFlag, useUrlState } from "@/lib/useUrlState";
 import ConnectionWorld from "@/components/home/ConnectionWorld";
 
@@ -25,13 +26,6 @@ function Home() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [exploring, setExploring] = useState(false);
-  const feedTitle = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    if (!exploring) return;
-    const timeout = window.setTimeout(() => setExploring(false), 1000);
-    return () => window.clearTimeout(timeout);
-  }, [exploring]);
   useEffect(() => { repo.listPosts().then(setPosts).catch(() => setError("공고를 불러오지 못했어요. 잠시 후 새로고침해 주세요.")).finally(() => setLoading(false)); }, []);
   const name = (id: string) => users.find((u) => u.id === id)?.name;
   // 사장님: 내 공고 / 동네 공고, 학생: 추천 공고 / 내가 지원한 공고
@@ -42,22 +36,31 @@ function Home() {
     repo.listApplications().then((list) => setAppliedIds(new Set(list.filter((a) => a.studentId === user.id).map((a) => a.postId)))).catch(() => {});
   }, [user]);
 
-  const rows = useMemo(() => {
+  const eligiblePosts = useMemo(() => {
     const hideDone = onlyOpen && mineOnly;   // 내 공고·내가 지원한 공고 탭에서는 끝난 것도 보여 준다
     let list = posts.filter((p) => categoryMatches(cat, p.category) && (!hideDone || p.status !== "done") && `${p.title} ${p.description} ${p.address}`.toLowerCase().includes(query.trim().toLowerCase()));
     if (user?.role === "student") {
       if (!mineOnly) list = list.filter((p) => appliedIds.has(p.id));          // '내가 지원한 공고' 탭
-      return list.map((p) => ({ p, d: distanceM(user.location, p.location), s: recommendScore(user, p) })).sort((a, b) => b.s - a.s);
     }
     if (user?.role === "resident") list = mineOnly ? list.filter((p) => p.authorId === user.id) : list.filter((p) => p.authorId !== user.id);
-    return list.map((p) => ({ p, d: user ? distanceM(user.location, p.location) : undefined, s: undefined as number | undefined }));
+    return list;
   }, [posts, cat, onlyOpen, user, query, mineOnly, appliedIds]);
+  const categoryCounts = useMemo(() => {
+    const base = posts.filter((p) => {
+      if (onlyOpen && mineOnly && p.status === "done") return false;
+      if (!`${p.title} ${p.description} ${p.address}`.toLowerCase().includes(query.trim().toLowerCase())) return false;
+      if (user?.role === "student" && !mineOnly && !appliedIds.has(p.id)) return false;
+      if (user?.role === "resident" && (mineOnly ? p.authorId !== user.id : p.authorId === user.id)) return false;
+      return true;
+    });
+    return Object.fromEntries((["전체", ...HOME_CATEGORIES.map((item) => item.value)] as HomeCategory[]).map((value) => [value, base.filter((p) => categoryMatches(value, p.category)).length])) as Record<HomeCategory, number>;
+  }, [posts, onlyOpen, user, query, mineOnly, appliedIds]);
+  const rows = useMemo(() => {
+    if (user?.role === "student") return eligiblePosts.map((p) => ({ p, d: distanceM(user.location, p.location), s: recommendScore(user, p) })).sort((a, b) => b.s - a.s);
+    const list = eligiblePosts;
+    return list.map((p) => ({ p, d: user ? distanceM(user.location, p.location) : undefined, s: undefined as number | undefined }));
+  }, [eligiblePosts, user]);
 
-  // The hero and its CTA use the same active requests as the feed after exploration.
-  const connections = useMemo(() => {
-    const list = posts.filter((p) => p.status !== "done" && categoryMatches(cat, p.category));
-    return user?.role === "student" ? list.sort((a, b) => recommendScore(user, b) - recommendScore(user, a)) : list;
-  }, [posts, cat, user]);
   // 아래로 내리면 상단을 숨기고, 조금이라도 위로 올리면 다시 보여 준다 (맨 위 근처에서는 항상 보임)
   useEffect(() => {
     let last = window.scrollY;
@@ -70,28 +73,20 @@ function Home() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { window.removeEventListener("scroll", onScroll); delete document.body.dataset.homeBars; };
   }, []);
-  function explore() {
-    setQuery("");
-    setOnlyOpen(true);
-    setExploring(true);
-    feedTitle.current?.focus({ preventScroll: true });
-    feedTitle.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
-  }
-
   return (
     <ConnectionWorld>
       <TopBar title="월계 재능나눔" brand />
       <section className="home-content px-5 pb-6">
-        <TalentConnection category={cat} onCategoryChange={setCat} onExplore={explore} count={connections.length} suggestedPost={connections[0]} authorName={connections[0] && name(connections[0].authorId)} loading={loading} failed={!!error} resident={user?.role === "resident"} />
-        <div className={`home-feed ${exploring ? "is-arriving" : ""}`}>
+        <CategoryPicker category={cat} counts={categoryCounts} onChange={setCat} />
+        <div className="home-feed">
         {(user?.role === "resident" || user?.role === "student") && (
-          <div className="mb-4 flex gap-2" role="tablist" aria-label="공고 보기">
+          <div className="filter-pill-row mb-4" role="tablist" aria-label="공고 보기">
             {(user.role === "resident" ? [[true, "내 공고"], [false, "동네 공고"]] as const : [[true, "추천 공고"], [false, "내가 지원한 공고"]] as const).map(([v, label]) => (
-              <button key={label} role="tab" aria-selected={mineOnly === v} onClick={() => setMineOnly(v)} className={`chip ${mineOnly === v ? "chip-on" : ""}`}>{label}</button>
+              <button key={label} role="tab" aria-selected={mineOnly === v} onClick={() => setMineOnly(v)} className="filter-pill">{label}</button>
             ))}
           </div>
         )}
-        <div className="mb-4 flex items-center justify-between gap-3"><h2 ref={feedTitle} tabIndex={-1} className="home-feed-title text-xl font-bold tracking-tight">{user?.role === "resident" ? (mineOnly ? "내가 올린 공고" : "동네 다른 가게 공고") : user?.role === "student" && !mineOnly ? "내가 지원한 공고" : "이웃이 기다리는 도움"}</h2><span className="sub text-xs" role="status">{loading ? "불러오는 중" : `${rows.length}개의 공고`}</span></div>
+        <div className="mb-4 flex items-center justify-between gap-3"><h2 className="text-base font-bold tracking-tight">{user?.role === "resident" ? (mineOnly ? "내가 올린 공고" : "동네 공고") : user?.role === "student" && !mineOnly ? "내가 지원한 공고" : "동네 공고"}</h2><span className="sub text-xs" role="status">{loading ? "불러오는 중" : `${rows.length}개의 공고`}</span></div>
         <label className="home-search mb-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-[var(--sub)]"><Icon name="search" width={20} height={20} /><input aria-label="공고 검색" type="search" placeholder="제목, 내용, 동네로 찾아보세요" value={query} onChange={(e) => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none" /></label>
         <label className="sub mb-3 flex items-center gap-2 text-xs"><input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} /> 완료된 공고 숨기기</label>
         <div className="flex flex-col gap-3">

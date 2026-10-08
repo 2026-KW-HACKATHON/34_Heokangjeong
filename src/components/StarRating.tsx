@@ -12,7 +12,7 @@ export default function StarRating({ value, label = "평판 별점", size = "md"
   const textSize = size === "lg" ? "text-3xl" : size === "sm" ? "text-base" : "text-xl";
   return (
     <span className="inline-flex items-center gap-2" aria-label={`${label} 5점 중 ${score.toFixed(1)}점`}>
-      <span className={`relative inline-block select-none tracking-[0.08em] ${textSize}`} aria-hidden="true">
+      <span className={`relative inline-block shrink-0 select-none whitespace-nowrap tracking-[0.08em] ${textSize}`} aria-hidden="true">
         <span className="text-[#d1d5db]">★★★★★</span>
         <span className="absolute inset-0 overflow-hidden whitespace-nowrap text-[#f59e0b]" style={{ width: percent }}>★★★★★</span>
       </span>
