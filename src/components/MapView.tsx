@@ -1,6 +1,6 @@
 "use client";
 import { MapContainer, TileLayer, Popup, Marker, useMap } from "react-leaflet";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 import Link from "next/link";
 import type { GeoPoint, Post } from "@/types";
@@ -96,16 +96,17 @@ function useShops(enabled: boolean) {
   return shops;
 }
 
-/** 지도를 많이 줄이면 가게 마커는 감춘다 (글자가 뭉쳐 보이지 않게) */
-function useZoom() {
+/** 지금 보이는 범위와 확대 수준. 화면 밖 가게까지 그리면 지도가 느려진다. */
+function useViewport() {
   const map = useMap();
-  const [zoom, setZoom] = useState(map.getZoom());
+  const read = useCallback(() => ({ zoom: map.getZoom(), bounds: map.getBounds().pad(0.25) }), [map]);
+  const [view, setView] = useState(read);
   useEffect(() => {
-    const onZoom = () => setZoom(map.getZoom());
-    map.on("zoomend", onZoom);
-    return () => { map.off("zoomend", onZoom); };
-  }, [map]);
-  return zoom;
+    const update = () => setView(read());
+    map.on("moveend", update).on("zoomend", update);
+    return () => { map.off("moveend", update).off("zoomend", update); };
+  }, [map, read]);
+  return view;
 }
 
 /** 업종 우선순위: 학생 도움이 필요할 가게를 먼저 보여 준다 */
@@ -133,10 +134,14 @@ function thinOut(shops: Poi[], zoom: number) {
 }
 
 function ShopLayer() {
-  const zoom = useZoom();
+  const { zoom, bounds } = useViewport();
   const all = useShops(zoom >= 16);
+  // 보이는 범위 안에서만 추려 그린다 (1,300곳을 모두 그리면 지도가 버벅인다)
+  const shops = useMemo(() => {
+    if (zoom < 16) return [];
+    return thinOut(all.filter((p) => bounds.contains([p.lat, p.lng])), zoom);
+  }, [all, zoom, bounds]);
   if (zoom < 16) return null;
-  const shops = thinOut(all, zoom);
   const withLabel = zoom >= 17;      // 많이 확대했을 때만 이름까지 (글자가 뭉치지 않게)
   return <>{shops.map((poi) => (
     <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={shopIcon(poi, withLabel)} zIndexOffset={-500}>
