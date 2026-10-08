@@ -320,7 +320,7 @@ function agreementParty(applicationId: string, actorId: string): "student" | "ow
   throw new Error("이 계약서는 채팅 당사자만 볼 수 있어요.");
 }
 
-function agreementNotification(applicationId: string, actorId: string, version: number, finalized = false) {
+function agreementNotification(applicationId: string, actorId: string, version: number, finalized = false, custom?: (title: string) => string) {
   const application = db.applications.find(a => a.id === applicationId)!;
   const post = db.posts.find(p => p.id === application.postId)!;
   const recipientId = actorId === application.studentId ? post.authorId : application.studentId;
@@ -329,7 +329,7 @@ function agreementNotification(applicationId: string, actorId: string, version: 
     postId: post.id,
     kind: "AGREEMENT",
     href: `/chats/room?id=${applicationId}`,
-    text: finalized
+    text: custom ? custom(post.title) : finalized
       ? `'${post.title}' 계약서가 양쪽 확인으로 확정됐어요.`
       : `'${post.title}' 계약서 v${version}을 확인해 주세요.`,
   });
@@ -396,7 +396,9 @@ export const mockRepo: Repo = {
     if (!previous) throw new Error("계약서가 없어요.");
     if (projectClosed(applicationId)) throw new Error("끝난 프로젝트의 계약서는 수정할 수 없어요");   // 0039 와 같은 규칙
     const next = proposeAgreementChange(previous, side, terms); agreements[applicationId] = next;
-    try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
+    // 0043 과 같은 알림: 상대방에게 수정 제안 도착
+    const notification = agreementNotification(applicationId, actorId, next.version, false, (t) => `'${t}' 계약서 수정 제안이 왔어요. 수락하거나 거절해 주세요.`);
+    try { save(); } catch (e) { agreements[applicationId] = previous; demoNotifications = demoNotifications.filter(n => n.id !== notification.id); throw e; }
     return wait(next);
   },
   async respondAgreementChange(applicationId, actorId, accept) {
@@ -405,7 +407,12 @@ export const mockRepo: Repo = {
     if (!previous) throw new Error("계약서가 없어요.");
     if (accept && projectClosed(applicationId)) throw new Error("끝난 프로젝트의 계약서는 수정할 수 없어요");   // 거절·철회는 허용
     const next = respondAgreementChange(previous, side, accept); agreements[applicationId] = next;
-    try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
+    // 0043 과 같은 알림: 수락 → 제안한 쪽에 재확정, 거절 → 제안한 쪽에, 철회 → 상대방에
+    const notification = agreementNotification(applicationId, actorId, next.version, false, (t) => accept
+      ? `'${t}' 계약서 수정 제안이 수락돼 v${next.version}로 다시 확정됐어요.`
+      : previous.proposedBy === side ? `'${t}' 계약서 수정 제안이 철회됐어요. 기존 계약서가 그대로 유지돼요.`
+      : `'${t}' 계약서 수정 제안이 거절됐어요. 기존 계약서가 그대로 유지돼요.`);
+    try { save(); } catch (e) { agreements[applicationId] = previous; demoNotifications = demoNotifications.filter(n => n.id !== notification.id); throw e; }
     return wait(next);
   },
   async shortlistApplicant(applicationId, actorId) { return tx(() => {
