@@ -28,7 +28,7 @@ export default function WorkFieldSummary({ studentId, detailed = false }: { stud
   const showcase = detailed ? undefined : PROFILE_SHOWCASE_STATS[studentId];
   const displayedFields = showcase?.fields ?? summary?.mostFrequent ?? [];
   return <section className="card work-field-summary" aria-label="분야별 작업 기록">
-    <h2 className="text-base font-bold">분야별 작업 기록{showcase && <span className="ml-2 text-[9px] font-normal text-sky-700">시연 예시</span>}</h2>
+    <h2 className="text-base font-bold">분야별 작업 기록</h2>
     {!summary ? <p role="status" className="sub mt-3 text-sm">{error ? "작업 기록을 불러오지 못했어요." : "작업 기록을 불러오는 중…"}</p> : <>
       <dl className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">검증 프로젝트</dt><dd className="mt-1 font-bold">{showcase?.verifiedCount ?? verifiedCount}건</dd></div>
