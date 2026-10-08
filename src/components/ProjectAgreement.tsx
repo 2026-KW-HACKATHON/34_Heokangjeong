@@ -40,6 +40,7 @@ export default function ProjectAgreement({ bundle, userId, users }: { bundle: Pr
                 <p className={`mb-2 text-xs font-semibold ${a.finalizedAt ? "text-[var(--green)]" : "text-[#c2410c]"}`}>
                   {a.finalizedAt ? `양쪽 확인 완료 · ${a.finalizedAt.slice(0, 10)} 확정` : "아직 확정 전이에요 · 양쪽이 확인하면 확정돼요"}
                 </p>
+                {a.proposedTerms && <p className="mb-2 rounded-lg bg-[#fff7ed] px-2 py-1.5 text-xs text-[#c2410c]">변경 제안이 와 있어요 · 상대가 수락하기 전까지는 아래 약속서가 그대로 효력이 있어요 (대화방에서 확인)</p>}
                 <dl className="grid grid-cols-[84px_1fr] gap-y-1.5">
                   {([
                     ["작업 기간", `${a.terms.startDate} ~ ${a.terms.endDate}`], ["작업 범위", a.terms.scope], ["결과물", a.terms.deliverables],

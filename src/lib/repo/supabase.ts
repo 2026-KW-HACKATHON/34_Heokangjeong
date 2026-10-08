@@ -45,7 +45,8 @@ const toPost = (r: Row): Post => ({
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount), minimumTier: r.minimum_tier ?? "SEED",
 });
-const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, clubId: u(r.club_id), message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
+const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, clubId: u(r.club_id), message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at,
+  shortlistedAt: u(r.shortlisted_at), shortlistCancelledAt: u(r.shortlist_cancelled_at) });
 /** Edge Function 이 보낸 한국어 에러 메시지를 꺼낸다 */
 const fnError = async (error: unknown) =>
   (await (error as { context?: Response }).context?.json?.().then((b: { error?: string }) => b.error).catch(() => undefined)) ?? (error as Error).message;
@@ -163,10 +164,28 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     if (/post_roles|relationship/i.test(result.error.message)) return maybe(await db.from("posts").select("*").eq("id", id).maybeSingle());
     throw new Error(friendly(result.error.message));
   };
+  /** 약속서 행 → 화면용 (변경 제안자 id 를 학생/의뢰인으로) */
+  const withSide = async (row: Row): Promise<WorkAgreement> => {
+    const a = toAgreement(row) as WorkAgreement & { proposedById?: string | null };
+    if (a.proposedById) {
+      const app = maybe(await db.from("applications").select("student_id").eq("id", row.application_id).maybeSingle());
+      a.proposedBy = app?.student_id === a.proposedById ? "student" : "owner";
+    }
+    delete a.proposedById;
+    return a;
+  };
+  /** 선정 확정 때 프로젝트에 고정할 질문 목록 (지원 역할의 분야, 없으면 공고 분야) */
+  const snapshotFor = async (applicationId: string) => {
+    const app = await repo.getApplication(applicationId);
+    const post = app && await repo.getPost(app.postId);
+    if (!post) throw new Error("지원서를 찾을 수 없어요");
+    const domain = post.teamSlots?.find((role) => role.id === app?.roleId)?.domain ?? listingOf(post).domain;
+    return { domain, version: QUESTION_SET_VERSION, questions: DOMAINS[domain].questions, takenAt: new Date().toISOString() };
+  };
   const repo: Repo = {
     async getAgreement(applicationId) {
       const row = maybe(await db.from("chat_agreements").select("*").eq("application_id", applicationId).maybeSingle());
-      return row ? toAgreement(row) : null;
+      return row ? withSide(row) : null;
     },
     async saveAgreement(applicationId, _actorId, version, terms) {
       validateAgreement(terms);
@@ -174,9 +193,21 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return toAgreement(Array.isArray(row) ? row[0] : row);
     },
     async confirmAgreement(applicationId, _actorId, version) {
-      const row = ok(await db.rpc("confirm_chat_agreement", { p_application: applicationId, p_version: version }));
-      return toAgreement(Array.isArray(row) ? row[0] : row);
+      // 양쪽이 확인하면 DB 가 그 자리에서 선정 확정한다 → 프로젝트 질문 목록을 같이 보낸다
+      const row = ok(await db.rpc("confirm_chat_agreement", { p_application: applicationId, p_version: version, p_question_snapshot: await snapshotFor(applicationId) }));
+      return withSide(Array.isArray(row) ? row[0] : row);
     },
+    async proposeAgreementChange(applicationId, _actorId, terms) {
+      validateAgreement(terms);
+      const row = ok(await db.rpc("propose_agreement_change", { p_application: applicationId, p_terms: terms }));
+      return withSide(Array.isArray(row) ? row[0] : row);
+    },
+    async respondAgreementChange(applicationId, _actorId, accept) {
+      const row = ok(await db.rpc("respond_agreement_change", { p_application: applicationId, p_accept: accept }));
+      return withSide(Array.isArray(row) ? row[0] : row);
+    },
+    async shortlistApplicant(applicationId) { done(await db.rpc("shortlist_applicant", { p_application: applicationId })); },
+    async cancelShortlist(applicationId) { done(await db.rpc("cancel_shortlist", { p_application: applicationId })); },
     ...chatReads(`supabase:${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`),
     async listUsers() { return ok(await db.from("profiles").select("*")).map(toUser); },
     async getUser(id) { const r = maybe(await db.from("profiles").select("*").eq("id", id).maybeSingle()); return r ? toUser(r) : undefined; },
@@ -339,12 +370,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     },
     // ── 검증형 포트폴리오 파이프라인 (규칙은 DB 함수가 강제: supabase/migrations/0005) ──────
     async selectApplicant(applicationId) {
-      const app = await repo.getApplication(applicationId);
-      const post = app && await repo.getPost(app.postId);
-      if (!post) throw new Error("지원서를 찾을 수 없어요");
-      const domain = post.teamSlots?.find((role) => role.id === app?.roleId)?.domain ?? listingOf(post).domain;
-      const snapshot = { domain, version: QUESTION_SET_VERSION, questions: DOMAINS[domain].questions, takenAt: new Date().toISOString() };
-      const id: string = ok(await db.rpc("select_applicant", { p_application: applicationId, p_question_snapshot: snapshot }));
+      const id: string = ok(await db.rpc("select_applicant", { p_application: applicationId, p_question_snapshot: await snapshotFor(applicationId) }));
       return toProject(ok(await db.from("projects").select("*").eq("id", id).single()));
     },
     async startTeamProject(projectId, _actorId, leaderId) {

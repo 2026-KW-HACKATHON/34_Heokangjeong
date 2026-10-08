@@ -31,7 +31,7 @@ function Activity() {
   }, [user]);
 
   const active = (rooms ?? [])
-    .map((r) => ({ r, stage: matchStage({ applicationStatus: r.application.status, projectStatus: r.projectStatus, agreementFinalizedAt: r.agreementFinalizedAt, lastMessageAt: r.last?.createdAt }) }))
+    .map((r) => ({ r, stage: matchStage({ applicationStatus: r.application.status, shortlisted: !!r.application.shortlistedAt, shortlistCancelled: !!r.application.shortlistCancelledAt, projectStatus: r.projectStatus, agreementFinalizedAt: r.agreementFinalizedAt, lastMessageAt: r.last?.createdAt }) }))
     .filter((x) => x.stage === "IN_PROGRESS");
   const done = (projects ?? []).filter(({ project }) => project.status === "COMPLETED")
     .sort((a, b) => (b.project.completedAt ?? "").localeCompare(a.project.completedAt ?? ""));

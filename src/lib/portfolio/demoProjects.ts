@@ -233,7 +233,7 @@ const COVER = (key: Spec["key"]) => `/portfolio-samples/${key}.png`;
 const postId = (key: Spec["key"]) => `demo-post-${key}`;
 
 /** 데모 내용을 바꾸면 올린다 → 이미 넣어 둔 브라우저도 데모 프로젝트만 새로 만든다 */
-const SEED_VERSION = 3;   // 3: 진행 중 데모(공방 클래스 안내 카드) 추가
+const SEED_VERSION = 4;   // 3: 진행 중 데모 추가 · 4: 선정(매칭 대기) 시각 — 약속서 확정 = 선정 확정 규칙
 const isDemo = (v: unknown) => typeof v === "string" && v.startsWith("demo-");
 
 /**
@@ -272,6 +272,7 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
   };
   db.posts.push(post);
   const app = wf.apply(db, { postId: post.id, studentId: DEMO_STUDENT, message: "이 작업 꼭 해 보고 싶어요." }, ctx);
+  app.shortlistedAt = app.createdAt;   // 사장님 선정 → 대화·약속서 → 확정 (약속서는 demoAgreementsAndChats 가 넣는다)
   const project = wf.selectApplicant(db, { applicationId: app.id, actorId: s.clientId }, ctx);
   const qs = DOMAINS[project.domain as DomainKey].questions;
   for (const [qid, a] of Object.entries(s.answers)) {

@@ -104,6 +104,10 @@ export interface Application {
   roleId?: string;
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
+  /** 사장님이 선정한 시각 = 매칭 대기 시작 (대화·약속서가 열린다). 약속서가 확정되면 status 가 accepted */
+  shortlistedAt?: string;
+  /** 선정 취소된 시각 (다시 선정할 수 있다) */
+  shortlistCancelledAt?: string;
 }
 
 export interface Review {                 // 주민·상인의 인증·평가
