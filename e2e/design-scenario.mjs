@@ -26,6 +26,8 @@ const go = async (path) => { await page.goto(`${BASE}${path}`); await page.waitF
 const click = (name, opts = {}) => page.getByRole("button", { name, exact: opts.exact ?? false }).first().click();
 const shot = (n) => page.screenshot({ path: `${SHOTS}/${n}.png`, fullPage: true });
 const expectText = async (t) => { await page.getByText(t, { exact: false }).first().waitFor({ timeout: 8000 }); };
+/** 포트폴리오 페이지의 편집본 버전 (⋯ 메뉴 안에 있다) */
+const version = async (v) => { await page.getByRole("button", { name: "더보기" }).click(); await expectText(`편집본 v${v}`); await page.getByRole("button", { name: "닫기" }).click(); };
 
 process.on("unhandledRejection", async (e) => { console.error("FAIL:", e?.message ?? e); try { await shot("fail"); console.error("URL:", page.url()); } catch {} process.exit(1); });
 try {
@@ -271,7 +273,7 @@ await shot("16a-templates");
 await click("‘에디토리얼’ 디자인 쓰기");
 await page.waitForURL(/portfolio\/view/);
 await expectText("월계 재능나눔 · 의뢰인 검증 포트폴리오");          // 에디토리얼 템플릿의 꼬리말
-await expectText("편집본 v2");                                      // v1 초안 + 디자인 선택 = v2
+await version(2);                                                   // v1 초안 + 디자인 선택 = v2
 log("19 템플릿 넘겨 보고 고르기 → 포트폴리오 페이지");
 
 // 17. 같은 페이지에서 편집 → 저장하면 버전이 쌓인다. 잠긴 원본에는 입력칸이 없다
@@ -284,7 +286,7 @@ await page.getByLabel("제목", { exact: true }).fill("행복분식 메뉴판 �
 await page.getByLabel("한 줄 요약", { exact: true }).fill("38개 메뉴를 4개 구역으로 재구성해 손님이 대표 메뉴를 먼저 찾도록 만든 디자인 프로젝트");
 await shot("16b-editing");
 await click("v3 저장");
-await expectText("편집본 v3");
+await version(3);
 await expectText("행복분식 메뉴판 정보 구조 개선");
 await expectText("의뢰인 평가");
 await expectText("손님들이 메뉴를 훨씬 빨리");
@@ -298,7 +300,7 @@ await expectText("지금 쓰는 디자인");
 await page.getByRole("option", { name: "기본" }).click();
 await click("‘기본’ 디자인 쓰기");
 await page.waitForURL(/portfolio\/view/);
-await expectText("편집본 v4");
+await version(4);
 await expectText("행복분식 메뉴판 정보 구조 개선");
 if (await page.getByText("월계 재능나눔 · 의뢰인 검증 포트폴리오").count()) throw new Error("기본 템플릿으로 바뀌지 않음");
 log("21 디자인 바꾸기 → 글은 그대로, 버전 v4");
