@@ -117,7 +117,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
     setError("");
     if(step===0 && (!terms.scope.trim() || !terms.deliverables.trim() || !terms.acceptance.trim())) return setError("작업 범위, 결과물, 완료 기준을 적어 주세요.");
     if(step===1 && (!terms.startDate || !terms.endDate || terms.endDate<terms.startDate)) return setError("시작일과 완료 예정일을 확인해 주세요.");
-    if(step===2 && (!terms.coupon.trim() || !terms.handoff.trim())) return setError("쿠폰과 인계 방법을 적어 주세요.");
+    if(step===2 && (!terms.coupon.trim() || !terms.handoff.trim())) return setError("보상 지급 내용과 인계 방법을 적어 주세요.");
     setStep(s=>s+1); dialog.current?.scrollTo({top:0});
   }
   async function save() {
@@ -161,7 +161,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         {editing && step===0 && <div className="agreement-fields">
           {!proposing && <div className="agreement-support" data-demo-tour="agreement-ai"><strong>자유롭게 적고 Gemini로 정리하기</strong><p>할 일, 결과물, 보상 등을 평소 말하듯 적어 주세요. AI가 계약서 항목으로 나눠 줍니다. 빈 내용은 만들어내지 않으며, 적용 후 아래에서 직접 수정할 수 있어요.</p>
             <textarea aria-label="계약서 자유 입력" maxLength={2000} value={freeText} onChange={e=>setFreeText(e.target.value)} placeholder="예: 미용실 시술 안내 포스터를 만들어 주세요. A3 PDF와 SNS 이미지 하나를 받고, 가격을 확인한 뒤 완료할게요. 커트 1회 이용권을 드립니다." className="mt-3 min-h-28 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm" />
-            <button type="button" className="agreement-primary mt-2" disabled={aiBusy || !freeText.trim()} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini로 계약서 요약"}</button>
+            <button type="button" className="agreement-ai-button" disabled={aiBusy || !freeText.trim()} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini 요약"}</button>
             {aiDraft && <p role="status" className="mt-3 whitespace-pre-wrap"><strong>Gemini 요약</strong> · {aiDraft.summary}<br /><small>실제 Gemini 응답 · {aiDraft.model} · 아래 항목에 반영됐어요. 저장 전에 확인해 주세요.</small></p>}
             {aiError && <p role="alert" className="agreement-error mt-2">{aiError}</p>}
           </div>}
@@ -171,23 +171,23 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         </div>}
         {editing && step===1 && <AgreementCalendar start={terms.startDate} end={terms.endDate} onChange={(startDate,endDate)=>setTerms(t=>({...t,startDate,endDate}))}/>}
         {editing && step===2 && <div className="agreement-fields">
-          <label>{salonPriceboard ? "사례비와 지급 시점" : "제공할 쿠폰과 지급 시점"}<textarea aria-label="제공할 쿠폰과 지급 시점" maxLength={3000} value={terms.coupon} onChange={e=>change("coupon",e.target.value)} placeholder={salonPriceboard ? "예: 결과물 확인 후 3일 이내 사례비 7만원" : salonPoster ? "예: 완료 확인 후 3일 이내 커트 1회 이용권" : "예: 완료 확인 후 3일 이내 음료 쿠폰 5장 · 유효기간 3개월"} /></label>
-          <label>완료 전 수정 횟수<select aria-label="완료 전 수정 횟수" value={terms.revisions} onChange={e=>change("revisions",Number(e.target.value))}>{Array.from({length:11},(_,i)=><option key={i} value={i}>{i}회</option>)}</select></label>
+          <label>보상 지급<small>Tip: 가게 쿠폰으로 지급해 주세요.</small><textarea aria-label="보상 지급" maxLength={3000} value={terms.coupon} onChange={e=>change("coupon",e.target.value)} placeholder={salonPriceboard ? "예: 결과물 확인 후 3일 이내 사례비 7만원" : salonPoster ? "예: 완료 확인 후 3일 이내 커트 1회 이용권" : "예: 완료 확인 후 3일 이내 음료 쿠폰 5장 · 유효기간 3개월"} /></label>
+          <label>완료 전 AS 횟수<small>완료 전에 요청할 수 있는 수정 횟수예요.</small><select aria-label="완료 전 AS 횟수" value={terms.revisions} onChange={e=>change("revisions",Number(e.target.value))}>{Array.from({length:11},(_,i)=><option key={i} value={i}>{i}회</option>)}</select></label>
           <label>파일·계정 인계 방법<textarea aria-label="파일·계정 인계 방법" maxLength={3000} value={terms.handoff} onChange={e=>change("handoff",e.target.value)} /></label>
           <label>포함하지 않는 작업 <small>선택</small><textarea aria-label="포함하지 않는 작업" maxLength={3000} value={terms.exclusions} onChange={e=>change("exclusions",e.target.value)} placeholder={salonDemo ? "예: 실제 인쇄·배송 비용, 시술명·가격 정보 작성" : "예: 인쇄 비용, 새 기능 추가, 추가 촬영"} /></label>
           <div className="agreement-support"><strong>AS 1개월 · 버그 접수 3개월</strong><p>{AGREEMENT_SUPPORT}</p></div>
         </div>}
         {pending && <div className="agreement-support"><strong>{mineProposal ? "내가 보낸 수정 제안" : `${shown?.proposedBy==="owner" ? ownerName : studentName} 님의 수정 제안`} · 수락하면 이 내용으로 다시 확정돼요</strong>
-          <dl className="agreement-review">{[["작업 기간",`${pending.startDate} ~ ${pending.endDate}`],["작업 범위",pending.scope],["결과물",pending.deliverables],["완료 기준",pending.acceptance],[salonPriceboard ? "사례비·지급" : "쿠폰·지급",pending.coupon],["완료 전 수정",`${pending.revisions}회`],["인계 방법",pending.handoff],["제외 범위",pending.exclusions || "별도 기재 없음"]].map(([key,value])=><div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl>
+          <dl className="agreement-review">{[["작업 기간",`${pending.startDate} ~ ${pending.endDate}`],["작업 범위",pending.scope],["결과물",pending.deliverables],["완료 기준",pending.acceptance],["보상 지급",pending.coupon],["완료 전 AS",`${pending.revisions}회`],["인계 방법",pending.handoff],["제외 범위",pending.exclusions || "별도 기재 없음"]].map(([key,value])=><div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl>
           <p>아래는 지금 효력이 있는 계약서예요.</p></div>}
         {step===3 && <>
-          <dl className="agreement-review">{[["작업 기간",`${terms.startDate} ~ ${terms.endDate}`],["작업 범위",terms.scope],["결과물",terms.deliverables],["완료 기준",terms.acceptance],[salonPriceboard ? "사례비·지급" : "쿠폰·지급",terms.coupon],["완료 전 수정",`${terms.revisions}회`],["인계 방법",terms.handoff],["제외 범위",terms.exclusions || "별도 기재 없음"]].map(([key,value])=><div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl>
+          <dl className="agreement-review">{[["작업 기간",`${terms.startDate} ~ ${terms.endDate}`],["작업 범위",terms.scope],["결과물",terms.deliverables],["완료 기준",terms.acceptance],["보상 지급",terms.coupon],["완료 전 AS",`${terms.revisions}회`],["인계 방법",terms.handoff],["제외 범위",terms.exclusions || "별도 기재 없음"]].map(([key,value])=><div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl>
           <div className="agreement-support"><strong>AS 1개월 · 버그 접수 3개월</strong><p>{AGREEMENT_SUPPORT}</p></div>
           <details className="agreement-smallprint"><summary>사용·공개 범위와 변경 원칙</summary><p>{AGREEMENT_USAGE}</p><p>{AGREEMENT_CHANGE}</p></details>
           {!editing && shown && <div className="agreement-confirmations"><p>의뢰인 · {shown.ownerConfirmedAt ? `확인 완료 (${new Date(shown.ownerConfirmedAt).toLocaleString("ko-KR")})` : "확인 대기"}</p><p>작업자 · {shown.studentConfirmedAt ? `확인 완료 (${new Date(shown.studentConfirmedAt).toLocaleString("ko-KR")})` : "확인 대기"}</p></div>}
           {guidedAgreement && !shown?.finalizedAt && <p className="agreement-footnote">데모 안내에서는 내 확인 후 상대방 확인을 자동으로 재현해요. 실제 이용에서는 상대방이 직접 확인해야 합니다.</p>}
           {demoAutoConfirmed && shown?.finalizedAt && <p role="status" className="agreement-footnote">데모에서 상대방 확인을 재현해 계약서가 확정됐어요.</p>}
-          {!editing && !shown?.finalizedAt && !mineConfirmed && <label className="agreement-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>{salonPriceboard ? "작업 범위·사례비·지원 기간" : "작업 범위·쿠폰·지원 기간"}을 읽고 이 버전에 동의해요.</label>}
+          {!editing && !shown?.finalizedAt && !mineConfirmed && <label className="agreement-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>작업 범위·보상 지급·지원 기간을 읽고 이 버전에 동의해요.</label>}
         </>}
         {changed && <p role="status" className="agreement-error">상대방이 수정했어요. 최신본을 불러와 다시 확인해 주세요.</p>}
         {error && <p role="alert" className="agreement-error">{error}</p>}

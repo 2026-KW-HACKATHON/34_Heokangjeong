@@ -20,7 +20,7 @@ try {
   assert.equal(await dialog.getByLabel("시작일",{exact:true}).inputValue(),await first.getAttribute("data-agreement-day"));
   assert.equal(await dialog.getByLabel("완료 예정일",{exact:true}).inputValue(),await last.getAttribute("data-agreement-day"));
   await dialog.getByRole("button",{name:"다음",exact:true}).click();
-  await dialog.getByLabel("제공할 쿠폰과 지급 시점").fill("완료 후 3일 이내 음료 쿠폰 5장, 3개월 유효");
+  await dialog.getByLabel("보상 지급").fill("완료 후 3일 이내 음료 쿠폰 5장, 3개월 유효");
   await dialog.getByRole("button",{name:"다음",exact:true}).click();
   await dialog.getByRole("button",{name:"저장하고 양쪽 확인받기"}).click();
   await dialog.getByRole("checkbox").check();
