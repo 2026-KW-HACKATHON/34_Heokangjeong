@@ -36,25 +36,27 @@ const meIcon = L.divIcon({ className: "", html: '<div style="width:16px;height:1
 interface Poi { id: number; name: string; kind: string; icon: string; lat: number; lng: number }
 
 /** 업종별 색. 카카오맵처럼 색으로 업종을 구분하고, 이름도 같은 색으로 적는다 */
+// 채도를 낮춘 색. 가게가 많아도 지도가 어지럽지 않게, 공고 마커만 또렷하게 보이도록 한다
 const SHOP_COLOR: Record<string, string> = {
-  "식당": "#f2711c", "분식·패스트푸드": "#f2711c", "주점": "#f2711c", "바": "#f2711c",
-  "카페": "#8d6e4b", "빵집": "#8d6e4b",
-  "편의점": "#2f7ed8", "마트": "#2f7ed8", "정육점": "#2f7ed8",
-  "미용실": "#c2449a", "뷰티": "#c2449a",
-  "서점": "#4c8c3f", "옷가게": "#4c8c3f", "꽃집": "#4c8c3f",
+  "식당": "#b5805c", "분식·패스트푸드": "#b5805c", "주점": "#b5805c", "바": "#b5805c",
+  "카페": "#9c8574", "빵집": "#9c8574",
+  "편의점": "#7d93ad", "마트": "#7d93ad", "정육점": "#7d93ad",
+  "미용실": "#a383a0", "뷰티": "#a383a0",
+  "서점": "#88a080", "옷가게": "#88a080", "꽃집": "#88a080",
 };
 const HALO = "0 1px 2px #fff,0 -1px 2px #fff,1px 0 2px #fff,-1px 0 2px #fff";
 
 /** 동네 가게 마커: 작은 색 원 + 같은 색 이름. 흰 알약을 없애 지도가 덜 답답하다 */
 function shopIcon(poi: Poi, withLabel: boolean) {
   const color = SHOP_COLOR[poi.kind] ?? "#6b7280";
+  // 이름은 색을 빼고 회색으로. 색이 많으면 지도가 혼잡해 보인다
   const label = withLabel
-    ? `<span style="margin-top:2px;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700;color:${color};text-shadow:${HALO}">${poi.name}</span>`
+    ? `<span style="margin-top:2px;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;color:#5b6472;text-shadow:${HALO}">${poi.name}</span>`
     : "";
   return L.divIcon({
     className: "",
     html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-11px,-11px)">
-      <span style="display:flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:${color};box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:11px;line-height:1">${poi.icon}</span>
+      <span style="display:flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:${color};opacity:.88;box-shadow:0 1px 2px rgba(0,0,0,.18);font-size:10px;line-height:1">${poi.icon}</span>
       ${label}
     </div>`,
     iconSize: [0, 0], iconAnchor: [0, 0],
