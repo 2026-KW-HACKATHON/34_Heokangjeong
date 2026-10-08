@@ -50,7 +50,7 @@ export default function ProjectAgreement({ bundle, userId, users }: { bundle: Pr
                   ] as const).map(([k, v]) => <div key={k} className="contents"><dt className="sub">{k}</dt><dd className="whitespace-pre-line">{v}</dd></div>)}
                 </dl>
                 {/* 확정된 계약서는 상호 합의로만 바뀐다: 한쪽이 수정 제안 → 상대가 수락. 진행 중 프로젝트에서만 */}
-                {bundle.project.status === "IN_PROGRESS" && <Link href={`/chats/room?id=${m.applicationId}&agreement=1`} className="btn btn-ghost mt-3 w-full text-xs">
+                {bundle.project.status !== "COMPLETED" && bundle.project.status !== "CANCELLED" && <Link href={`/chats/room?id=${m.applicationId}&agreement=1`} className="btn btn-ghost mt-3 w-full text-xs">
                   {a.proposedTerms ? "수정 제안 확인하기 ›" : a.finalizedAt ? "계약서 수정 제안하기 ›" : "계약서 확인하기 ›"}
                 </Link>}
               </>

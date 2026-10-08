@@ -83,7 +83,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql", "0036_public_portfolio_page.sql", "0037_agreement_selection.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql", "0036_public_portfolio_page.sql", "0037_agreement_selection.sql", "0038_club_worker_agreement.sql", "0039_agreement_closed_project.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -490,5 +490,15 @@ describe("SQL: 선정 → 약속서 → 확정 (0037)", () => {
     await rpc(U.owner, "respond_agreement_change", [appId, false]);                                // 제안한 쪽의 철회
     [a] = await as(U.stu, "select * from chat_agreements where application_id=$1", [appId]);
     expect(a.proposed_terms).toBeNull();
+  });
+  it("끝난 프로젝트의 계약서는 수정 제안·수락이 안 되고, 걸린 제안 거절은 된다 (0039)", async () => {
+    const { projectId, appId } = await startProject("끝난 프로젝트 계약서");
+    await rpc(U.owner, "propose_agreement_change", [appId, JSON.stringify({ ...AGREEMENT_TERMS, revisions: 4 })]);   // 진행 중에 걸린 제안
+    await db.query("update projects set status = 'COMPLETED' where id = $1", [projectId]);
+    await expect(rpc(U.stu, "respond_agreement_change", [appId, true])).rejects.toThrow(/PROJECT_CLOSED/);
+    await rpc(U.stu, "respond_agreement_change", [appId, false]);                                  // 거절은 된다
+    await expect(rpc(U.stu, "propose_agreement_change", [appId, JSON.stringify(AGREEMENT_TERMS)])).rejects.toThrow(/PROJECT_CLOSED/);
+    await db.query("update projects set status = 'REVIEW_PENDING' where id = $1", [projectId]);   // 검토 중은 아직 진행 중
+    await rpc(U.stu, "propose_agreement_change", [appId, JSON.stringify(AGREEMENT_TERMS)]);
   });
 });

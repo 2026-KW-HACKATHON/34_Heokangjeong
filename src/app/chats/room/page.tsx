@@ -25,7 +25,7 @@ function Room() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [projectId, setProjectId] = useState<string | undefined>();
-  const [projectStatus, setProjectStatus] = useState<string | undefined>();   // 계약서 수정 제안은 진행 중 프로젝트에서만
+  const [projectStatus, setProjectStatus] = useState<string | undefined>();   // 계약서 수정 제안은 끝나지 않은(완료·취소 아닌) 프로젝트에서만
   const bottom = useRef<HTMLDivElement>(null);
   /** 지원서 다시 읽기 (선정·선정 취소·계약서 확정 뒤) */
   const reloadApp = () => repo.getApplication(id).then(async (a) => {
@@ -106,7 +106,7 @@ function Room() {
         : <p className="sub">{app.shortlistCancelledAt ? "선정이 취소됐어요. 다시 선정되면 대화할 수 있어요." : "사장님이 선정하면 대화하며 계약서를 쓸 수 있어요."}</p>}
         {notice && <p role="alert" className="mt-1 text-xs text-[var(--red)]">{notice}</p>}
       </div>
-      {user && (chatOpen || app.status === "accepted") && <ChatAgreement key={`${app.id}:${user.id}`} application={app} post={post} actorId={user.id} studentName={users.find(u=>u.id===app.studentId)?.name ?? "작업자"} ownerName={users.find(u=>u.id===post.authorId)?.name ?? "의뢰인"} onChange={reloadApp} autoOpen={autoOpenAgreement} canPropose={projectStatus === "IN_PROGRESS"} />}
+      {user && (chatOpen || app.status === "accepted") && <ChatAgreement key={`${app.id}:${user.id}`} application={app} post={post} actorId={user.id} studentName={users.find(u=>u.id===app.studentId)?.name ?? "작업자"} ownerName={users.find(u=>u.id===post.authorId)?.name ?? "의뢰인"} onChange={reloadApp} autoOpen={autoOpenAgreement} canPropose={!!projectStatus && projectStatus !== "COMPLETED" && projectStatus !== "CANCELLED"} />}
       {post && (
         <Link href={`/posts/detail?id=${post.id}`} className="mx-4 mb-2 flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm">
           <span className="truncate">{post.title}</span><span className="sub shrink-0">공고 보기 ›</span>

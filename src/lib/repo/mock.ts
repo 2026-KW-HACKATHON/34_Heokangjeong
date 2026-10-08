@@ -314,6 +314,13 @@ function agreementParty(applicationId: string, actorId: string): "student" | "ow
 }
 
 import { chatReads } from "./chatReads";
+/** 이 지원서로 만든 프로젝트가 끝났는지 (완료·취소) — 끝난 계약서는 못 바꾼다 */
+function projectClosed(applicationId: string) {
+  const projectId = db.members.find((m) => m.applicationId === applicationId)?.projectId;
+  const status = db.projects.find((p) => p.id === projectId)?.status;
+  return status === "COMPLETED" || status === "CANCELLED";
+}
+
 export const mockRepo: Repo = {
   async getAgreement(applicationId, actorId) { ensure(); load(); agreementParty(applicationId, actorId); return wait(agreements[applicationId] ?? null); },
   async saveAgreement(applicationId, actorId, expectedVersion, terms) {
@@ -347,6 +354,7 @@ export const mockRepo: Repo = {
     ensure(); load(); const side = agreementParty(applicationId, actorId);
     const previous = agreements[applicationId];
     if (!previous) throw new Error("계약서가 없어요.");
+    if (projectClosed(applicationId)) throw new Error("끝난 프로젝트의 계약서는 수정할 수 없어요");   // 0039 와 같은 규칙
     const next = proposeAgreementChange(previous, side, terms); agreements[applicationId] = next;
     try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
     return wait(next);
@@ -355,6 +363,7 @@ export const mockRepo: Repo = {
     ensure(); load(); const side = agreementParty(applicationId, actorId);
     const previous = agreements[applicationId];
     if (!previous) throw new Error("계약서가 없어요.");
+    if (accept && projectClosed(applicationId)) throw new Error("끝난 프로젝트의 계약서는 수정할 수 없어요");   // 거절·철회는 허용
     const next = respondAgreementChange(previous, side, accept); agreements[applicationId] = next;
     try { save(); } catch (e) { agreements[applicationId] = previous; throw e; }
     return wait(next);
