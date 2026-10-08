@@ -82,7 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -250,13 +250,11 @@ describe("SQL: 팀 프로젝트 전체 흐름", () => {
     expect(await as(U.stu, "insert into portfolio_snapshots(project_id,student_id,hash,data) values($1,$2,'team-verified','{}') returning id", [projectId, U.stu])).toHaveLength(1);
 
     await expect(as(U.stu, `insert into team_peer_reviews(project_id,reviewer_id,reviewee_id,communication,collaboration,responsibility)
-      values($1,$2,$3,5,5,5)`, [projectId, U.stu, U.stu2])).rejects.toThrow(/row-level security/);
+      values($1,$2,$3,5,5,5)`, [projectId, U.stu, U.stu2])).rejects.toThrow(/permission denied|row-level security/);
     await db.query("update member_verifications set verified = true where project_id = $1 and student_id = $2", [projectId, U.stu2]);
-    expect(await as(U.stu, `insert into team_peer_reviews(project_id,reviewer_id,reviewee_id,communication,collaboration,responsibility,comment)
-      values($1,$2,$3,5,4,5,'협업과 소통이 원활했습니다') returning id`, [projectId, U.stu, U.stu2])).toHaveLength(1);
-    await expect(as(U.stu, `insert into team_peer_reviews(project_id,reviewer_id,reviewee_id,communication,collaboration,responsibility)
-      values($1,$2,$2,5,5,5)`, [projectId, U.stu])).rejects.toThrow(/check constraint|row-level security/);
-    expect(await as(U.stu2, "select * from team_peer_reviews where project_id = $1", [projectId])).toHaveLength(1);
+    await expect(as(U.stu, `insert into team_peer_reviews(project_id,reviewer_id,reviewee_id,communication,collaboration,responsibility,comment)
+      values($1,$2,$3,5,4,5,'협업과 소통이 원활했습니다') returning id`, [projectId, U.stu, U.stu2])).rejects.toThrow(/permission denied|row-level security/);
+    expect(await as(U.stu2, "select * from team_peer_reviews where project_id = $1", [projectId])).toHaveLength(0);
   });
 });
 
@@ -355,7 +353,7 @@ describe("SQL: Notion 저장 잠금과 사용자 격리", () => {
 });
 
 describe("SQL: 새 DB 에 번호 순서대로", () => {
-  it("applies every migration through 0034 in order", async () => {
+  it("applies every migration through 0035 in order", async () => {
     const fresh = new PGlite();
     await fresh.exec(STUBS);
     // 폴더에 있는 마이그레이션을 번호 순서대로 모두 적용한다 (파일이 늘어도 목록을 고칠 필요가 없다)

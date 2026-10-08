@@ -1,5 +1,5 @@
 import type {
-  Application, ChatMessage, Club, HandoverDoc, MaintenanceTicket, Notification, Post, PortfolioCard, PortfolioDoc, Review, User,
+  Application, ChatMessage, ClientReview, Club, HandoverDoc, MaintenanceTicket, Notification, Post, PortfolioCard, PortfolioDoc, Review, TierScoreEvent, User,
 } from "@/types";
 import type { Repo } from "./index";
 import { distanceM } from "../geo";
@@ -139,6 +139,32 @@ const reviews: Review[] = [
   { postId: "p6", studentId: "s4", rating: 5, comment: "게시물 반응이 정말 좋아졌어요.", verified: true },
   { postId: "p7", studentId: "s3", rating: 5, comment: "사진이 깔끔하고 빨랐어요.", verified: true },
 ];
+
+// 평판 별점 UI를 바로 확인할 수 있는 학생 계정용 데모 평가 원본.
+const demoReputationEvents: TierScoreEvent[] = [
+  { id: "demo-score-1", studentId: "s1", projectId: "demo-project-1", kind: "PROJECT_VERIFIED", points: 16, createdAt: "2026-08-18T09:00:00Z" },
+  { id: "demo-score-2", studentId: "s1", projectId: "demo-project-2", kind: "PROJECT_VERIFIED", points: 13, createdAt: "2026-09-02T09:00:00Z" },
+];
+const demoReputationReviews: ClientReview[] = [
+  { projectId: "demo-project-1", reviewerId: "r1", satisfaction: 5, deadline: 4, communication: 5, handoff: 4, deliverableQuality: 5, comment: "요청한 내용을 빠르게 반영해 줬어요.", createdAt: "2026-08-18T09:00:00Z", status: "NORMAL", reviewerReliability: 1, evidenceConsistency: 1, adjustedRating: 4.6, anomalyReasons: [], policyVersion: "2026-10-evidence-v1" },
+  { projectId: "demo-project-2", reviewerId: "r2", satisfaction: 4, deadline: 5, communication: 4, handoff: 5, deliverableQuality: 5, comment: "결과물과 설명이 모두 좋았습니다.", createdAt: "2026-09-02T09:00:00Z", status: "NORMAL", reviewerReliability: 1, evidenceConsistency: 0.95, adjustedRating: 4.5, anomalyReasons: [], policyVersion: "2026-10-evidence-v1" },
+];
+
+function demoReputationFor(studentId: string) {
+  const projectId = (id: string) => `${id}-${studentId}`;
+  return {
+    events: demoReputationEvents.map((event) => ({
+      ...event,
+      id: `${event.id}-${studentId}`,
+      studentId,
+      projectId: projectId(event.projectId),
+    })),
+    reviews: demoReputationReviews.map((review) => ({
+      ...review,
+      projectId: projectId(review.projectId),
+    })),
+  };
+}
 
 const portfolio: PortfolioCard[] = [
   { id: "c1", studentId: "s4", postId: "p6", title: "월계 커피 홍보 프로젝트", roleLabel: "SNS 콘텐츠 기획·디자인", tasks: ["홍보 게시물 6개 제작", "해시태그·업로드 일정 정리"], durationDays: 14, rating: 5, verified: true },
@@ -713,10 +739,15 @@ export const mockRepo: Repo = {
 
   async trustSummary(studentId) {
     ensure();
-    const events = db.tierEvents.filter((e) => e.studentId === studentId);
+    const storedEvents = db.tierEvents.filter((e) => e.studentId === studentId);
+    const demo = demoReputationFor(studentId);
+    const events = storedEvents.length === 0 ? demo.events : storedEvents;
     const projectIds = new Set(events.map((e) => e.projectId));
-    const projectCount = new Set(db.members.filter(m => m.studentId === studentId).map(m => m.projectId)).size;
-    return wait(summarizeTrust(events, db.reviews.filter((r) => projectIds.has(r.projectId)), db.badges.filter((b) => b.studentId === studentId), db.peerReviews.filter((r) => r.revieweeId === studentId), db.reviews, db.peerReviews, projectCount));
+    const storedReviews = db.reviews.filter((r) => projectIds.has(r.projectId));
+    const studentReviews = storedReviews.length === 0 ? demo.reviews : storedReviews;
+    const projectCount = Math.max(new Set(db.members.filter(m => m.studentId === studentId).map(m => m.projectId)).size, 2);
+    const allReviews = [...db.reviews, ...demo.reviews];
+    return wait(summarizeTrust(events, studentReviews, db.badges.filter((b) => b.studentId === studentId), [], allReviews, [], projectCount));
   },
   async disputeReview(projectId, studentId, reason) { return tx(() => {
     const member = db.members.find(m => m.projectId === projectId && m.studentId === studentId);
