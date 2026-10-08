@@ -453,3 +453,6 @@ input.pf-edit { display: inline-block; font-size: 14px; }
 /* 가운데 안내 창 (예: 등록된 포트폴리오 없음) — 하단 메뉴바(z 1000) 위 */
 .pf-dialog-backdrop { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.35); }
 .pf-dialog { width: 100%; max-width: 340px; border-radius: 20px; background: #fff; padding: 22px; box-shadow: 0 12px 32px rgba(0,0,0,.2); }
+
+/* 프로필 이름 아래 닉네임 (동명이인 구분) */
+.portfolio-identity-nick { margin-top: 2px; font-size: 13px; color: var(--sub); }

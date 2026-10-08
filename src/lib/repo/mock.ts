@@ -11,34 +11,34 @@ import { summarizeTrust } from "../trust";
 import { fileToDataUrl } from "../files";
 import { domainForCategory } from "@shared/portfolio/domains";
 import type { PublishedPortfolio } from "@/types";
-import { demoPortfolio } from "../portfolio/demo";
+import { nicknameProblem } from "../nickname";
 import { demoInProgressChats, demoProjectPublications, seedDemoProjects } from "../portfolio/demoProjects";
 import { publicationFromSource } from "../portfolio/publication";
 import { reviseAgreement, confirmAgreement, type WorkAgreement, proposeAgreementChange, respondAgreementChange } from "../agreement";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
 export const users: User[] = [
-  { id: "s1", role: "student", name: "김하늘", department: "디자인학과", skills: ["포스터", "일러스트", "Figma"], interests: ["디자인", "SNS홍보"], availableHours: "평일 저녁, 주말", maxDistanceM: 1500, location: { lat: 37.6196, lng: 127.0592 }, school: "광운대학교", age: 22, phone: "010-0000-1001" },
-  { id: "s2", role: "student", name: "박도윤", department: "소프트웨어학부", skills: ["React", "웹페이지", "QR"], interests: ["웹/앱", "디지털도움"], availableHours: "주말", maxDistanceM: 2000, location: { lat: 37.6210, lng: 127.0620 }, school: "광운대학교", age: 24, phone: "010-0000-1002" },
-  { id: "s3", role: "student", name: "이서준", department: "미디어영상학부", skills: ["숏폼", "프리미어", "촬영"], interests: ["영상", "사진"], availableHours: "평일 오후", maxDistanceM: 1200, location: { lat: 37.6230, lng: 127.0580 }, school: "광운대학교", age: 23, phone: "010-0000-1003" },
-  { id: "s4", role: "student", name: "최지우", department: "경영학부", skills: ["인스타그램", "카피", "마케팅"], interests: ["SNS홍보", "기타"], availableHours: "평일 저녁", maxDistanceM: 1000, location: { lat: 37.6250, lng: 127.0610 }, school: "광운대학교", age: 21, phone: "010-0000-1004" },
-  { id: "s5", role: "student", name: "윤서연", department: "시각디자인학과", skills: ["브랜딩", "패키지", "Illustrator"], interests: ["디자인", "SNS홍보"], availableHours: "화·목 오후, 주말", maxDistanceM: 1800, location: { lat: 37.6207, lng: 127.0577 }, school: "광운대학교", age: 22, phone: "010-0000-1005" },
-  { id: "s6", role: "student", name: "정민재", department: "컴퓨터정보공학부", skills: ["Next.js", "Supabase", "반응형 웹"], interests: ["웹/앱", "디지털도움"], availableHours: "평일 저녁", maxDistanceM: 2200, location: { lat: 37.6218, lng: 127.0640 }, school: "광운대학교", age: 25, phone: "010-0000-1006" },
-  { id: "s7", role: "student", name: "한유진", department: "미디어커뮤니케이션학부", skills: ["인터뷰", "영상 기획", "캡컷"], interests: ["영상", "SNS홍보"], availableHours: "월·수 오후", maxDistanceM: 1600, location: { lat: 37.6241, lng: 127.0569 }, school: "광운대학교", age: 21, phone: "010-0000-1007" },
-  { id: "s8", role: "student", name: "오지훈", department: "전자통신공학과", skills: ["기기 설정", "와이파이", "키오스크"], interests: ["디지털도움", "웹/앱"], availableHours: "금요일, 주말", maxDistanceM: 2500, location: { lat: 37.6260, lng: 127.0631 }, school: "광운대학교", age: 24, phone: "010-0000-1008" },
-  { id: "s9", role: "student", name: "강민서", department: "콘텐츠융합학부", skills: ["사진 촬영", "Lightroom", "숏폼"], interests: ["사진", "영상", "SNS홍보"], availableHours: "평일 오전, 토요일", maxDistanceM: 2000, location: { lat: 37.6275, lng: 127.0590 }, school: "광운대학교", age: 23, phone: "010-0000-1009" },
-  { id: "s10", role: "student", name: "배수아", department: "경영학부", skills: ["브랜드 전략", "시장 조사", "카피라이팅"], interests: ["SNS홍보", "디자인"], availableHours: "평일 저녁, 일요일", maxDistanceM: 1700, location: { lat: 37.6280, lng: 127.0618 }, school: "광운대학교", age: 22, phone: "010-0000-1010" },
-  { id: "s11", role: "student", name: "임태현", department: "정보융합학부", skills: ["Flutter", "UX 프로토타입", "데이터 시각화"], interests: ["웹/앱", "디자인"], availableHours: "수·금 저녁", maxDistanceM: 2300, location: { lat: 37.6199, lng: 127.0645 }, school: "광운대학교", age: 24, phone: "010-0000-1011" },
-  { id: "s12", role: "student", name: "송예린", department: "국어국문학과", skills: ["인터뷰", "블로그 글쓰기", "콘텐츠 교정"], interests: ["SNS홍보", "기타"], availableHours: "평일 오후, 토요일", maxDistanceM: 1400, location: { lat: 37.6258, lng: 127.0575 }, school: "광운대학교", age: 21, phone: "010-0000-1012" },
-  { id: "s13", role: "student", name: "정만교", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 }, school: "광운대학교", age: 23, phone: "010-0000-1013" },
-  { id: "r1", role: "resident", name: "월계 커피", kind: "상인", location: { lat: 37.6248, lng: 127.0598 }, address: "월계로 45길 12" },
-  { id: "r2", role: "resident", name: "행복분식", kind: "상인", location: { lat: 37.6272, lng: 127.0615 }, address: "월계1동 광운로 21" },
-  { id: "r3", role: "resident", name: "동네책방 소소", kind: "상인", location: { lat: 37.6285, lng: 127.0580 }, address: "석계로 7" },
-  { id: "r4", role: "resident", name: "정순자 님", kind: "주민", location: { lat: 37.6238, lng: 127.0632 }, address: "월계1동 주민센터 인근" },
-  { id: "r5", role: "resident", name: "삼거리 정육점", kind: "상인", location: { lat: 37.6302, lng: 127.0622 }, address: "월계로 60" },
-  { id: "r6", role: "resident", name: "꽃길 공방", kind: "상인", location: { lat: 37.6224, lng: 127.0568 }, address: "광운로 12길 8" },
-  { id: "r7", role: "resident", name: "월계 미용실", kind: "상인", location: { lat: 37.6264, lng: 127.0601 }, address: "월계로 53길 4" },
-  { id: "r8", role: "resident", name: "햇살 반찬", kind: "상인", location: { lat: 37.6291, lng: 127.0605 }, address: "석계로 18" },
+  { id: "s1", role: "student", name: "김하늘", nickname: "하늘그림", department: "디자인학과", skills: ["포스터", "일러스트", "Figma"], interests: ["디자인", "SNS홍보"], availableHours: "평일 저녁, 주말", maxDistanceM: 1500, location: { lat: 37.6196, lng: 127.0592 }, school: "광운대학교", age: 22, phone: "010-0000-1001" },
+  { id: "s2", role: "student", name: "박도윤", nickname: "도윤코딩", department: "소프트웨어학부", skills: ["React", "웹페이지", "QR"], interests: ["웹/앱", "디지털도움"], availableHours: "주말", maxDistanceM: 2000, location: { lat: 37.6210, lng: 127.0620 }, school: "광운대학교", age: 24, phone: "010-0000-1002" },
+  { id: "s3", role: "student", name: "이서준", nickname: "서준필름", department: "미디어영상학부", skills: ["숏폼", "프리미어", "촬영"], interests: ["영상", "사진"], availableHours: "평일 오후", maxDistanceM: 1200, location: { lat: 37.6230, lng: 127.0580 }, school: "광운대학교", age: 23, phone: "010-0000-1003" },
+  { id: "s4", role: "student", name: "최지우", nickname: "지우마케팅", department: "경영학부", skills: ["인스타그램", "카피", "마케팅"], interests: ["SNS홍보", "기타"], availableHours: "평일 저녁", maxDistanceM: 1000, location: { lat: 37.6250, lng: 127.0610 }, school: "광운대학교", age: 21, phone: "010-0000-1004" },
+  { id: "s5", role: "student", name: "윤서연", nickname: "서연브랜딩", department: "시각디자인학과", skills: ["브랜딩", "패키지", "Illustrator"], interests: ["디자인", "SNS홍보"], availableHours: "화·목 오후, 주말", maxDistanceM: 1800, location: { lat: 37.6207, lng: 127.0577 }, school: "광운대학교", age: 22, phone: "010-0000-1005" },
+  { id: "s6", role: "student", name: "정민재", nickname: "민재웹", department: "컴퓨터정보공학부", skills: ["Next.js", "Supabase", "반응형 웹"], interests: ["웹/앱", "디지털도움"], availableHours: "평일 저녁", maxDistanceM: 2200, location: { lat: 37.6218, lng: 127.0640 }, school: "광운대학교", age: 25, phone: "010-0000-1006" },
+  { id: "s7", role: "student", name: "한유진", nickname: "유진기록", department: "미디어커뮤니케이션학부", skills: ["인터뷰", "영상 기획", "캡컷"], interests: ["영상", "SNS홍보"], availableHours: "월·수 오후", maxDistanceM: 1600, location: { lat: 37.6241, lng: 127.0569 }, school: "광운대학교", age: 21, phone: "010-0000-1007" },
+  { id: "s8", role: "student", name: "오지훈", nickname: "지훈설정", department: "전자통신공학과", skills: ["기기 설정", "와이파이", "키오스크"], interests: ["디지털도움", "웹/앱"], availableHours: "금요일, 주말", maxDistanceM: 2500, location: { lat: 37.6260, lng: 127.0631 }, school: "광운대학교", age: 24, phone: "010-0000-1008" },
+  { id: "s9", role: "student", name: "강민서", nickname: "민서사진", department: "콘텐츠융합학부", skills: ["사진 촬영", "Lightroom", "숏폼"], interests: ["사진", "영상", "SNS홍보"], availableHours: "평일 오전, 토요일", maxDistanceM: 2000, location: { lat: 37.6275, lng: 127.0590 }, school: "광운대학교", age: 23, phone: "010-0000-1009" },
+  { id: "s10", role: "student", name: "배수아", nickname: "수아전략", department: "경영학부", skills: ["브랜드 전략", "시장 조사", "카피라이팅"], interests: ["SNS홍보", "디자인"], availableHours: "평일 저녁, 일요일", maxDistanceM: 1700, location: { lat: 37.6280, lng: 127.0618 }, school: "광운대학교", age: 22, phone: "010-0000-1010" },
+  { id: "s11", role: "student", name: "임태현", nickname: "태현앱", department: "정보융합학부", skills: ["Flutter", "UX 프로토타입", "데이터 시각화"], interests: ["웹/앱", "디자인"], availableHours: "수·금 저녁", maxDistanceM: 2300, location: { lat: 37.6199, lng: 127.0645 }, school: "광운대학교", age: 24, phone: "010-0000-1011" },
+  { id: "s12", role: "student", name: "송예린", nickname: "예린글", department: "국어국문학과", skills: ["인터뷰", "블로그 글쓰기", "콘텐츠 교정"], interests: ["SNS홍보", "기타"], availableHours: "평일 오후, 토요일", maxDistanceM: 1400, location: { lat: 37.6258, lng: 127.0575 }, school: "광운대학교", age: 21, phone: "010-0000-1012" },
+  { id: "s13", role: "student", name: "정만교", nickname: "만교도우미", department: "전자공학과", skills: ["스마트폰 활용", "키오스크", "디지털 교육"], interests: ["디지털도움"], availableHours: "주말 오후", maxDistanceM: 1500, location: { lat: 37.6225, lng: 127.0605 }, school: "광운대학교", age: 23, phone: "010-0000-1013" },
+  { id: "r1", role: "resident", name: "월계 커피", nickname: "월계커피", kind: "상인", location: { lat: 37.6248, lng: 127.0598 }, address: "월계로 45길 12" },
+  { id: "r2", role: "resident", name: "행복분식", nickname: "행복분식", kind: "상인", location: { lat: 37.6272, lng: 127.0615 }, address: "월계1동 광운로 21" },
+  { id: "r3", role: "resident", name: "동네책방 소소", nickname: "책방소소", kind: "상인", location: { lat: 37.6285, lng: 127.0580 }, address: "석계로 7" },
+  { id: "r4", role: "resident", name: "정순자 님", nickname: "순자님", kind: "주민", location: { lat: 37.6238, lng: 127.0632 }, address: "월계1동 주민센터 인근" },
+  { id: "r5", role: "resident", name: "삼거리 정육점", nickname: "삼거리정육", kind: "상인", location: { lat: 37.6302, lng: 127.0622 }, address: "월계로 60" },
+  { id: "r6", role: "resident", name: "꽃길 공방", nickname: "꽃길공방", kind: "상인", location: { lat: 37.6224, lng: 127.0568 }, address: "광운로 12길 8" },
+  { id: "r7", role: "resident", name: "월계 미용실", nickname: "월계미용실", kind: "상인", location: { lat: 37.6264, lng: 127.0601 }, address: "월계로 53길 4" },
+  { id: "r8", role: "resident", name: "햇살 반찬", nickname: "햇살반찬", kind: "상인", location: { lat: 37.6291, lng: 127.0605 }, address: "석계로 18" },
   { id: "r9", role: "resident", name: "깨끗한 세탁소", kind: "상인", location: { lat: 37.6246, lng: 127.0642 }, address: "광운로 33" },
   { id: "r10", role: "resident", name: "우리동네 피아노", kind: "상인", location: { lat: 37.6215, lng: 127.0604 }, address: "월계로 42길 15" },
   { id: "r11", role: "resident", name: "월계 과일상회", kind: "상인", location: { lat: 37.6283, lng: 127.0630 }, address: "초안산로 5길 9" },
@@ -217,6 +217,8 @@ const fresh = (): wf.WorkflowDB => {
   return d;
 };
 let db: wf.WorkflowDB = fresh();
+/** 예전에 모든 학생 계정에 붙던 화면 확인용 샘플 카드 (김하늘은 같은 5개가 실제 데모 프로젝트라 sourceKind 가 다르다) */
+const SAMPLE_CARD = /^demo-(real2sim|driving|menu|banner|cafe)$/;
 let msgs: ChatMessage[] = structuredClone(messages);
 let demoNotifications: Notification[] = structuredClone(seedNotifications);
 let publications: PublishedPortfolio[] = [];
@@ -227,7 +229,7 @@ function load() {
   if (typeof window === "undefined") return;
   try {
     const s = localStorage.getItem(KEY);
-    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; publications = d.publications ?? []; profileExtras = d.profileExtras ?? {}; agreements = d.agreements ?? {}; db.posts = db.posts.map(post => {
+    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; publications = (d.publications ?? []).filter((p: PublishedPortfolio) => !SAMPLE_CARD.test(p.sourceId)); profileExtras = d.profileExtras ?? {}; agreements = d.agreements ?? {}; db.posts = db.posts.map(post => {
       const updatedSeed = posts.find(seed => seed.id === post.id);
       return updatedSeed && /사례비/.test(post.reward ?? "") ? { ...post, reward: updatedSeed.reward, compensationType: "NON_MONETARY", compensationDescription: updatedSeed.reward, paidAmount: undefined } : post;
     }); }
@@ -401,6 +403,7 @@ export const mockRepo: Repo = {
     ensure();
     if (!users.some(user => user.id === studentId && user.role === "student")) throw new Error("학생 프로필을 찾을 수 없어요.");
     if (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
+    if (data.nickname !== undefined) { const problem = nicknameProblem(data.nickname, users.map(withPortfolioProfile), studentId); if (problem) throw new Error(problem); }
     profileExtras[studentId] = { ...profileExtras[studentId], ...data, avatarUrl: data.avatarUrl ?? profileExtras[studentId]?.avatarUrl };
     save();
   },
@@ -524,7 +527,7 @@ export const mockRepo: Repo = {
     ensure();
     if (actorId !== item.studentId || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 게시물만 수정할 수 있어요.");
     const existing = publications.find(p => p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind);
-    if (!existing && !["demo-real2sim", "demo-driving", "demo-menu", "demo-banner", "demo-cafe"].includes(item.sourceId) && !demoProjectPublications(db, actorId).some(p => p.sourceId === item.sourceId && p.sourceKind === item.sourceKind)) throw new Error("공개된 게시물을 찾을 수 없어요.");
+    if (!existing && !demoProjectPublications(db, actorId).some(p => p.sourceId === item.sourceId && p.sourceKind === item.sourceKind)) throw new Error("공개된 게시물을 찾을 수 없어요.");
     if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
     const previous = publications;
     publications = [structuredClone(item), ...publications.filter(p => !(p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind))];
@@ -534,7 +537,7 @@ export const mockRepo: Repo = {
     ensure();
     const own = typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") === studentId;
     const saved = publications.filter(p => p.studentId === studentId);
-    const samples = [...demoProjectPublications(db, studentId), ...demoPortfolio(studentId)].filter(p => !saved.some(s => s.sourceId === p.sourceId && s.sourceKind === p.sourceKind));
+    const samples = demoProjectPublications(db, studentId).filter(p => !saved.some(s => s.sourceId === p.sourceId && s.sourceKind === p.sourceKind));
     return wait([...saved, ...samples].filter(p => p.visible !== false || (includeHidden && own)));
   },
   async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {

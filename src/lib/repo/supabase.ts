@@ -30,8 +30,8 @@ let realtimeChannelSequence = 0;
 export const toUser = (r: Row): User => r.role === "admin"
   ? { id: r.id, role: "admin", name: r.name, location: { lat: r.lat, lng: r.lng } }
   : r.role === "student"
-  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
-  : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
+  ? { id: r.id, role: "student", name: r.name, nickname: u(r.nickname), department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
+  : { id: r.id, role: "resident", name: r.name, nickname: u(r.nickname), kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
   id: r.id, title: r.title, category: r.category, description: r.description, authorId: r.author_id,
@@ -214,7 +214,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async updatePortfolioProfile(studentId, data) {
       const { data: auth } = await db.auth.getUser();
       if (auth.user?.id !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
-      done(await db.from("profiles").update({ about: data.about, ...(data.department !== undefined ? { department: data.department } : {}), ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
+      done(await db.from("profiles").update({ about: data.about, ...(data.department !== undefined ? { department: data.department } : {}), ...(data.nickname !== undefined ? { nickname: data.nickname } : {}), ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
     },
     async uploadPortfolioImage(studentId, file) {
       const { data: auth } = await db.auth.getUser();
