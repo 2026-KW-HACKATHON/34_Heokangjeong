@@ -8,7 +8,7 @@
 - Production Branch: `main`
 - Framework: Next.js
 - Build Command: `npm run build`
-- Output Directory: `out`
+- Output Directory: Next.js 기본값 (직접 `out`으로 덮어쓰지 않는다)
 - Root Directory: 저장소 루트
 
 빌드 설정은 루트의 `vercel.json`에 있다. `JMK` 등 다른 브랜치는 Preview 배포로 사용한다.
