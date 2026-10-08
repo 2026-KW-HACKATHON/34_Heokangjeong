@@ -46,6 +46,26 @@ const SHOP_COLOR: Record<string, string> = {
 };
 const HALO = "0 1px 2px #fff,0 -1px 2px #fff,1px 0 2px #fff,-1px 0 2px #fff";
 
+/** 업종 도형. 지도에서 흔히 쓰는 모양(수저·컵·가위 등)을 흰 선으로 그린다 */
+const SHOP_GLYPH: Record<string, string> = {
+  "식당": '<path d="M5 2v7m0 0v11M5 9a2 2 0 0 0 2-2V2M3 2v5a2 2 0 0 0 2 2m14-7c-2 1-3 3-3 6s1 4 3 4v9"/>',
+  "분식·패스트푸드": '<path d="M3 12h18M4 12a8 8 0 0 1 16 0M5 16h14a2 2 0 0 1-2 3H7a2 2 0 0 1-2-3Z"/>',
+  "주점": '<path d="M7 3h10l-1 7a4 4 0 0 1-8 0ZM12 14v6M9 21h6"/>',
+  "바": '<path d="M7 3h10l-1 7a4 4 0 0 1-8 0ZM12 14v6M9 21h6"/>',
+  "카페": '<path d="M4 5h13v7a5 5 0 0 1-10 0ZM17 7h2a2 2 0 0 1 0 5h-2M3 20h16"/>',
+  "빵집": '<path d="M4 12c0-3 2-5 4-5s3 1 4 2 2-2 4-2 4 2 4 5-2 6-4 6H8c-2 0-4-3-4-6Z"/>',
+  "편의점": '<path d="M4 7h16l-1 12H5ZM9 7V5a3 3 0 0 1 6 0v2"/>',
+  "마트": '<path d="M3 4h2l2 11h11l2-7H6M9 20h.01M17 20h.01"/>',
+  "정육점": '<path d="M6 10a6 6 0 1 1 12 0c0 4-3 6-3 9H9c0-3-3-5-3-9ZM12 10a2 2 0 0 0 0 4"/>',
+  "미용실": '<path d="M6 4l12 12M18 4L6 16M7 19a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM17 19a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/>',
+  "뷰티": '<path d="M9 3h6l1 6H8ZM8 9h8v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2Z"/>',
+  "서점": '<path d="M4 4h7v16H4ZM13 4h7v16h-7M7 8h1M16 8h1"/>',
+  "옷가게": '<path d="M9 3 5 6l2 3 2-1v12h6V8l2 1 2-3-4-3-2 2h-2Z"/>',
+  "꽃집": '<path d="M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12 10a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM12 10a3 3 0 1 0-6 0 3 3 0 0 0 6 0ZM12 13v8"/>',
+};
+const glyphSvg = (kind: string) =>
+  `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SHOP_GLYPH[kind] ?? '<circle cx="12" cy="12" r="5"/>'}</svg>`;
+
 /** 동네 가게 마커: 작은 색 원 + 같은 색 이름. 흰 알약을 없애 지도가 덜 답답하다 */
 function shopIcon(poi: Poi, withLabel: boolean) {
   const color = SHOP_COLOR[poi.kind] ?? "#6b7280";
@@ -56,7 +76,7 @@ function shopIcon(poi: Poi, withLabel: boolean) {
   return L.divIcon({
     className: "",
     html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-11px,-11px)">
-      <span style="display:flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:${color};opacity:.88;box-shadow:0 1px 2px rgba(0,0,0,.18);font-size:10px;line-height:1">${poi.icon}</span>
+      <span style="display:flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:${color};opacity:.88;box-shadow:0 1px 2px rgba(0,0,0,.18);line-height:0">${glyphSvg(poi.kind)}</span>
       ${label}
     </div>`,
     iconSize: [0, 0], iconAnchor: [0, 0],
