@@ -115,14 +115,31 @@ export interface PortfolioSource {
 
 // ── 포트폴리오 본문 ──────────────────────────────────────────────────────────
 export interface PortfolioSection { key: string; title: string; body: string; evidenceIds: string[] }
+export interface WebPortfolioDesign {
+  fontFamily?: "sans" | "serif" | "modern";
+  fontScale?: number;
+  spacing?: "compact" | "balanced" | "airy";
+  imageLayout?: "split" | "stack";
+  accent?: "coral" | "blue" | "green" | "charcoal";
+  heroEvidenceId?: string;
+  imageWidths?: Record<string, number>;
+  imageAligns?: Record<string, "left" | "center" | "right">;
+  sectionOrder?: string[];
+}
 export interface PortfolioContent {
   title: string;
   summary: string;
   sections: PortfolioSection[];
+  /** 사용자가 꾸미기용으로 올린 사진. 검증 증빙 원본과 별도로 관리한다. */
+  portfolioImages?: { id: string; url: string; caption: string }[];
+  /** 기존 증빙 자리에 표시할 학생 사진. 검증 원본의 URL은 변경하지 않는다. */
+  imageOverrides?: Record<string, { url: string; caption: string }>;
   skills: string[];
   tools: { name: string; why: string }[];
   /** 고른 포트폴리오 템플릿 id (앱의 src/templates/portfolio). 없으면 기본 템플릿. AI 는 이 값을 만들지 않는다 */
   templateId?: string;
+  /** PC 웹 포트폴리오 전용 디자인. 앱 템플릿은 이 값을 사용하지 않는다. */
+  webDesign?: WebPortfolioDesign;
 }
 export type DraftGenerator = "AI" | "TEMPLATE";
 export interface GuardReport {
