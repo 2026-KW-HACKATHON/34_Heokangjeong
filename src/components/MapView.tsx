@@ -114,8 +114,8 @@ const KIND_RANK: Record<string, number> = { "식당": 0, "카페": 1, "분식·�
  */
 function thinOut(shops: Poi[], zoom: number) {
   if (zoom >= 19) return shops;                                      // 아주 가까이 보면 전부
-  // 확대할수록 칸을 잘게: 16단계 약 330m, 17단계 170m, 18단계 80m 간격으로 대표 한 곳씩
-  const cell = zoom >= 18 ? 0.00075 : zoom >= 17 ? 0.0015 : 0.003;
+  // 화면에 비슷한 수가 보이도록 확대할수록 칸을 잘게 나눈다 (16단계 약 150m, 17단계 80m, 18단계 40m)
+  const cell = zoom >= 18 ? 0.00036 : zoom >= 17 ? 0.00072 : 0.00135;
   const picked = new Map<string, Poi>();
   for (const poi of [...shops].sort((a, b) => (KIND_RANK[a.kind] ?? 99) - (KIND_RANK[b.kind] ?? 99))) {
     const key = `${Math.round(poi.lat / cell)}:${Math.round(poi.lng / cell)}`;
