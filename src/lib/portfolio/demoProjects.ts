@@ -275,6 +275,11 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
   app.shortlistedAt = app.createdAt;   // 사장님 선정 → 대화·계약서 → 확정 (계약서는 demoAgreementsAndChats 가 넣는다)
   const project = wf.selectApplicant(db, { applicationId: app.id, actorId: s.clientId }, ctx);
   const qs = DOMAINS[project.domain as DomainKey].questions;
+  // 예전 전체 질문으로 작성된 데모 기록은 당시 스냅샷을 유지한다.
+  // 화면에서는 coreQuestions가 핵심 8개만 안내하고, 기존 답은 그대로 남긴다.
+  project.questionSnapshot = { ...project.questionSnapshot, version: 2, questions: qs };
+  const member = db.members.find((m) => m.projectId === project.id && m.studentId === DEMO_STUDENT)!;
+  member.questionSnapshot = project.questionSnapshot;
   for (const [qid, a] of Object.entries(s.answers)) {
     const q = qs.find((x) => x.id === qid);
     if (!q) continue;
