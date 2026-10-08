@@ -12,12 +12,7 @@
 .agreement-ai-button { display:block; width:100%; min-height:46px; margin-top:12px; padding:12px 16px; border-radius:12px; background:#315f79; color:#fff; font-size:14px; font-weight:700; }.agreement-ai-button:disabled { opacity:.45; cursor:not-allowed; }.agreement-ai-button:focus-visible { outline:3px solid #7bb8dc; outline-offset:3px; }
 
 /* Native dialog의 top layer 안에서 안내한다. 바깥 오버레이는 대화상자를 덮지 않는다. */
-.agreement-tour-tip { position:sticky; top:0; z-index:2; margin:0 0 22px; padding:14px 16px; border:2px solid #436991; border-radius:14px; background:#eff6ff; color:#243f5e; box-shadow:0 4px 14px #243f5e12; }
+.agreement-tour-tip { position:sticky; top:0; z-index:2; margin:0 0 22px; padding:14px 16px; border:0; border-radius:14px; background:#eff6ff; color:#243f5e; box-shadow:0 4px 14px #243f5e12; }
 .agreement-tour-tip strong { display:block; font-size:13px; }
 .agreement-tour-tip p { margin-top:7px; font-size:12px; line-height:1.65; }
-.agreement-dialog[data-guided-step="0"] .agreement-support,
-.agreement-dialog[data-guided-step="1"] .agreement-calendar,
-.agreement-dialog[data-guided-step="2"] .agreement-fields,
-.agreement-dialog[data-guided-step="3"] .agreement-consent,
-.agreement-dialog[data-guided-step="confirm"] .agreement-consent { outline:2px solid #436991; outline-offset:5px; border-radius:12px; }
-.agreement-dialog[data-guided-step] .agreement-actions { outline:2px solid #436991; outline-offset:5px; border-radius:14px; }
+.agreement-dialog[data-guided-step] .agreement-actions .agreement-primary { outline:2px solid #436991; outline-offset:4px; }

@@ -44,6 +44,7 @@ export default function DemoTour() {
   const [clicked, setClicked] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [completedRole, setCompletedRole] = useState<DemoRole>("student");
   const [tipHeight, setTipHeight] = useState(230);
   const [tipElement, setTipElement] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -69,13 +70,13 @@ export default function DemoTour() {
   const advance = useCallback(() => {
     if (!tour) return;
     const next = tour.step + 1;
-    if (next >= steps[tour.role].length) { finish(); return; }
+    if (next >= steps[tour.role].length) { saveDemoTour(null); setCompletedRole(tour.role); setTour(null); setRect(null); setCompleted(true); return; }
     const updated = { ...tour, step: next };
     saveDemoTour(updated); setTour(updated); setClicked(false); setRect(null);
     const destination = steps[tour.role][next].path;
     const here = window.location.pathname + window.location.search;
     if (destination !== "/posts/detail/" && destination !== "/chats/room/" && here !== destination) window.location.assign(destination);
-  }, [tour, finish]);
+  }, [tour]);
 
   useEffect(() => {
     if (!step || loading || mode !== "mock" || (step.target.includes('"agreement"') && clicked) || !matchesStep(step, path)) return;
@@ -146,7 +147,7 @@ export default function DemoTour() {
   if (completed) return <div role="dialog" aria-modal="true" aria-label="튜토리얼 완료" style={{ position: "fixed", inset: 0, zIndex: 1600, display: "grid", placeItems: "center", padding: 20, background: "rgba(14,19,27,.65)" }}>
     <div style={{ width: "min(340px, 100%)", padding: 24, borderRadius: 20, background: "white", boxShadow: "0 16px 50px #0004" }}>
       <h2 style={{ fontSize: 20, fontWeight: 800 }}>튜토리얼 완료!</h2>
-      <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6 }}>학생 입장에서 공고 지원, 채팅, 계약서, 검증된 포트폴리오와 PC 버전까지 살펴봤어요. 이제 자유롭게 둘러보세요.</p>
+      <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6 }}>{completedRole === "merchant" ? "상인 입장에서 Gemini 공고 작성, 지원자 비교·선정, 채팅과 계약서 확정까지 체험했어요. 이제 자유롭게 둘러보세요." : "학생 입장에서 공고 지원, 채팅, 계약서, 검증된 포트폴리오와 PC 버전까지 살펴봤어요. 이제 자유롭게 둘러보세요."}</p>
       <button type="button" onClick={finish} style={{ width: "100%", marginTop: 20, padding: 12, borderRadius: 12, background: "#202932", color: "white", fontWeight: 700 }}>자유롭게 둘러보기</button>
     </div>
   </div>;
