@@ -111,7 +111,7 @@ a.connection-request-node:active { translate: 0 1px; }
 .connection-experience:hover { color: #252d33; }
 .connection-scene-note { position: absolute; top: 20px; right: 1%; color: #90989f; font-size: 8px; letter-spacing: 1.4px; writing-mode: vertical-rl; }
 .connection-picker-intro > p { font-size: 12px; font-weight: 500; color: #626c73; margin-bottom: 13px; }
-.category-dock { position: sticky; top: 64px; z-index: 850; margin: 0 -20px; padding: 6px 20px 7px; background: #f7f7f8; border-bottom: 1px solid #e7e7eb; box-shadow: 0 5px 12px #27292d05; }
+.category-dock { position: relative; z-index: 850;   /* 홈: 스크롤하면 분야 줄도 같이 올라가 공고가 더 많이 보인다 */ margin: 0 -20px; padding: 6px 20px 7px; background: #f7f7f8; border-bottom: 1px solid #e7e7eb; box-shadow: 0 5px 12px #27292d05; }
 .category-dock-summary { display: flex; align-items: center; justify-content: space-between; min-height: 28px; margin-bottom: 2px; font-size: 11px; color: #72747b; }
 .category-dock-summary strong { color: #303238; font-weight: 650; }
 .category-dock-actions { display: flex; align-items: center; gap: 10px; }
