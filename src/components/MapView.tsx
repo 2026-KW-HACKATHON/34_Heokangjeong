@@ -21,13 +21,11 @@ function postIcon(post: Post, label: string) {
   const name = label.length > 10 ? `${label.slice(0, 10)}…` : label;
   return L.divIcon({
     className: "",
-    html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translateY(-4px)">
-      <div style="display:flex;align-items:center;gap:4px;max-width:150px;padding:4px 8px 4px 4px;border-radius:999px;background:#fff;border:2px solid ${color};box-shadow:0 2px 8px rgba(0,0,0,.18)">
-        <span style="display:flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:${color}1f;font-size:13px">${icon}</span>
-        <span style="font-size:12px;font-weight:700;color:#191f28;white-space:nowrap">${name}</span>
-      </div>
-      <span style="width:2px;height:8px;background:${color}"></span>
-      <span style="width:7px;height:7px;border-radius:50%;background:${color};box-shadow:0 0 0 2px #fff"></span>
+    html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-16px,-34px)">
+      <span style="display:flex;width:32px;height:32px;align-items:center;justify-content:center;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);background:${color};box-shadow:0 2px 6px rgba(0,0,0,.3)">
+        <span style="transform:rotate(45deg);font-size:15px">${icon}</span>
+      </span>
+      <span style="margin-top:3px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800;color:${color};text-shadow:${HALO}">${name}</span>
     </div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
@@ -37,13 +35,27 @@ const meIcon = L.divIcon({ className: "", html: '<div style="width:16px;height:1
 
 interface Poi { id: number; name: string; kind: string; icon: string; lat: number; lng: number }
 
-/** 동네 가게 마커 (public/pois.json). 카카오맵처럼 어떤 가게인지 한눈에 보이게 한다 */
-function shopIcon(poi: Poi) {
+/** 업종별 색. 카카오맵처럼 색으로 업종을 구분하고, 이름도 같은 색으로 적는다 */
+const SHOP_COLOR: Record<string, string> = {
+  "식당": "#f2711c", "분식·패스트푸드": "#f2711c", "주점": "#f2711c", "바": "#f2711c",
+  "카페": "#8d6e4b", "빵집": "#8d6e4b",
+  "편의점": "#2f7ed8", "마트": "#2f7ed8", "정육점": "#2f7ed8",
+  "미용실": "#c2449a", "뷰티": "#c2449a",
+  "서점": "#4c8c3f", "옷가게": "#4c8c3f", "꽃집": "#4c8c3f",
+};
+const HALO = "0 1px 2px #fff,0 -1px 2px #fff,1px 0 2px #fff,-1px 0 2px #fff";
+
+/** 동네 가게 마커: 작은 색 원 + 같은 색 이름. 흰 알약을 없애 지도가 덜 답답하다 */
+function shopIcon(poi: Poi, withLabel: boolean) {
+  const color = SHOP_COLOR[poi.kind] ?? "#6b7280";
+  const label = withLabel
+    ? `<span style="margin-top:2px;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700;color:${color};text-shadow:${HALO}">${poi.name}</span>`
+    : "";
   return L.divIcon({
     className: "",
-    html: `<div style="display:flex;align-items:center;gap:3px;transform:translate(-14px,-14px)">
-      <span style="display:flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:50%;background:#fff;border:1.5px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.14);font-size:14px">${poi.icon}</span>
-      <span style="max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;color:#4b5563;text-shadow:0 1px 3px #fff,0 -1px 3px #fff,1px 0 3px #fff,-1px 0 3px #fff">${poi.name}</span>
+    html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-11px,-11px)">
+      <span style="display:flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:${color};box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:11px;line-height:1">${poi.icon}</span>
+      ${label}
     </div>`,
     iconSize: [0, 0], iconAnchor: [0, 0],
   });
@@ -75,8 +87,9 @@ function ShopLayer() {
   const zoom = useZoom();
   const shops = useShops(zoom >= 16);
   if (zoom < 16) return null;
+  const withLabel = zoom >= 17;      // 많이 확대했을 때만 이름까지 (글자가 뭉치지 않게)
   return <>{shops.map((poi) => (
-    <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={shopIcon(poi)} zIndexOffset={-500}>
+    <Marker key={poi.id} position={[poi.lat, poi.lng]} icon={shopIcon(poi, withLabel)} zIndexOffset={-500}>
       <Popup><div className="text-sm"><b>{poi.name}</b><div className="text-xs text-gray-500">{poi.kind}</div></div></Popup>
     </Marker>
   ))}</>;

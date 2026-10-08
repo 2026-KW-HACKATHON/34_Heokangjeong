@@ -5,6 +5,7 @@ import TopBar from "@/components/TopBar";
 import EmptyState from "@/components/EmptyState";
 import PortfolioPublicationControl from "@/components/PortfolioPublicationControl";
 import WorkFieldSummary from "@/components/WorkFieldSummary";
+import StarRating from "@/components/StarRating";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { DOMAINS } from "@shared/portfolio/domains";
@@ -81,7 +82,7 @@ function SummaryCard({ title, card, post, project, domain, href, action, highlig
         {card?.roleLabel && card.roleLabel !== domain && <><dt className="sub">역할</dt><dd>{card.roleLabel}</dd></>}
         {card && card.tasks.length > 0 && <><dt className="sub">작업</dt><dd><ul className="list-disc pl-4">{card.tasks.map((t) => <li key={t}>{t}</li>)}</ul></dd></>}
         {days !== undefined && <><dt className="sub">기간</dt><dd>{days}일</dd></>}
-        {rating > 0 && <><dt className="sub">평가</dt><dd aria-label={`5점 중 ${rating}점`}>{"★".repeat(rating)}{"☆".repeat(5 - rating)}</dd></>}
+        {rating > 0 && <><dt className="sub">의뢰인 평가</dt><dd><StarRating value={rating} label="의뢰인 평가" size="sm" /></dd></>}
       </dl>
       {action && <p className={`mt-3 text-right text-sm font-semibold ${highlight ? "text-[var(--primary)]" : "sub"}`}>{action} ›</p>}
     </>

@@ -39,7 +39,7 @@ export default function Clubs() {
 
   return (
     <>
-      <TopBar title="단체" />
+      <TopBar title="단체" back={user?.role !== "admin"} />
       <section className="flex flex-col gap-3 px-4">
         {mine.length > 0 && (
           <div className="card flex flex-col gap-2">
