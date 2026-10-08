@@ -40,7 +40,10 @@ function Log() {
   const { user } = useSession();
   const { bundle: b, error, reload } = useBundle(id);
   const question = b && user && q ? questionsForMember(b, user.id).find((x) => x.id === q) : undefined;
-  const stage = (question?.stage ?? (sp.get("stage") as Stage | null) ?? "START") as Stage;
+  // stage=next: 남은 질문이 있는 첫 단계로 (모두 답했으면 마무리 요약 = 중간 기록·증빙). 기록 탭에서 바로 들어올 때 쓴다
+  const rawStage = sp.get("stage");
+  const nextStage: Stage = b && user ? (STAGES.find((s) => pendingQuestions(b, user.id, s.key).length > 0)?.key ?? "FINISH") : "START";
+  const stage = (question?.stage ?? (rawStage === "next" ? nextStage : (rawStage as Stage | null)) ?? "START") as Stage;
   const base = `/projects/log?id=${id}`;
 
   // 질문 없이 들어오면: 이 단계의 남은 질문 1~3개로 묶음을 만들어 첫 질문으로
