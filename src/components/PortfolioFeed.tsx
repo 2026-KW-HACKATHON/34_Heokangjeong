@@ -18,7 +18,7 @@ export default function PortfolioFeed({ student, items, owner = false, onChange 
   return <section className="portfolio-feed" aria-label="공개 포트폴리오 피드">
     <div className="portfolio-feed-heading"><div><p>SELECTED EXPERIENCES</p><h2>경험과 작업</h2></div><span>{items.length}개의 경험</span></div>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-    {items.length ? <div className="portfolio-feed-grid">{items.map((item, i) => <div className="portfolio-feed-item" key={`${item.sourceKind}:${item.sourceId}`}><Link href={feedHref(student.id, item)} className={`portfolio-feed-tile gallery-tone-${i % 4}`} aria-label={`${item.title} 포트폴리오 열기`}>
+    {items.length ? <div className="portfolio-feed-grid">{items.map((item, i) => <div className="portfolio-feed-item" key={`${item.sourceKind}:${item.sourceId}`}><Link href={`/portfolio/experience?s=${encodeURIComponent(student.id)}&kind=${item.sourceKind}&id=${encodeURIComponent(item.sourceId)}`} className={`portfolio-feed-tile gallery-tone-${i % 4}`} aria-label={`${item.title} 포트폴리오 열기`}>
       {item.coverUrl ? <img src={item.coverUrl} alt={item.title} loading="lazy" /> : <span className="portfolio-feed-placeholder" aria-hidden="true">{item.category.slice(0, 2)}</span>}
       <span className="portfolio-feed-tile-caption"><small>{item.category}</small><strong>{item.title}</strong></span>
     </Link>
@@ -31,8 +31,3 @@ export default function PortfolioFeed({ student, items, owner = false, onChange 
     </div>)}</div> : <div className="portfolio-feed-empty"><strong>아직 공개한 작업이 없어요</strong><p>공개할 작업과 대표 사진을 선택해 주세요.</p>{owner && <Link href="/portfolio" className="btn btn-primary">공개할 작업 고르기</Link>}</div>}
   </section>;
 }
-
-/** 프로젝트 작업은 의뢰인 검증이 붙은 포트폴리오 페이지(템플릿)로, 직접 쓴 활동 기록은 기존 게시물 화면으로 연다 */
-export const feedHref = (studentId: string, item: PublishedPortfolio) => item.sourceKind === "project"
-  ? `/portfolio/view?id=${encodeURIComponent(item.sourceId)}&s=${encodeURIComponent(studentId)}`
-  : `/portfolio/experience?s=${encodeURIComponent(studentId)}&kind=${item.sourceKind}&id=${encodeURIComponent(item.sourceId)}`;

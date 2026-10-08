@@ -51,7 +51,7 @@ export default function PortfolioPublicationControl({ studentId, sourceId, sourc
       {preview && <div className="p-6">
         <div className="mb-4 flex items-center justify-between"><h2 className="font-bold">공개할 내용 확인</h2><button autoFocus disabled={busy} onClick={() => dialog.current?.close()} aria-label="공개 미리보기 닫기" className="gallery-close">×</button></div>
         <p className="sub mb-5 text-sm">{sourceKind === "project"
-          ? "갤러리에서 누르면 내 포트폴리오 페이지가 고른 디자인 그대로 열려요. 의뢰인 평가 원문·검증 결과·증빙도 함께 보여요 (편집은 나만 할 수 있어요)."
+          ? "아래 제목과 본문, 대표 사진이 갤러리 게시물로 공개돼요. 게시물에는 '자세한 포트폴리오 보기' 버튼이 붙어, 누르면 내 포트폴리오 페이지(의뢰인 평가 원문·검증 결과·증빙 포함)가 열려요. 편집은 나만 할 수 있어요."
           : "아래 제목과 본문, 직접 선택한 대표 사진만 공개됩니다. 원본 증빙과 의뢰인 평가는 포함하지 않아요."}</p>
         <label className="portfolio-cover-picker">피드 대표 사진 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file = e.target.files?.[0]; if (!file) return; if (file.size > 5_000_000) { setError("5MB 이하 이미지를 선택해 주세요."); return; } if (coverPreview) URL.revokeObjectURL(coverPreview); setCoverFile(file); setCoverPreview(URL.createObjectURL(file)); }} /></label>
         {(coverPreview || currentCover) && <img className="portfolio-cover-preview" src={coverPreview ?? currentCover} alt="선택한 대표 사진 미리보기" />}

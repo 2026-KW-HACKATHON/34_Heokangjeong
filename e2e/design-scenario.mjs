@@ -321,21 +321,41 @@ await expectText("행복분식 메뉴판 정보 구조 개선");
 await expectText("새 초안이 있어요");
 log("23 재생성 후에도 편집본 유지 + 새 초안 안내");
 
-// 21. 갤러리에 공개 → 다른 학생이 피드에서 누르면 같은 디자인의 페이지가 읽기 전용으로 열린다
+// 21. 갤러리에 공개 → 다른 학생이 피드에서 누르면 간단한 게시물 화면, 거기서 '자세한 포트폴리오 보기' → 읽기 전용 HTML 페이지
 await go("/portfolio/");
-await page.getByRole("button", { name: "갤러리에 공개" }).first().click();
-await expectText("의뢰인 평가 원문·검증 결과·증빙도 함께 보여요");
+await page.locator("div").filter({ hasText: "행복분식 메뉴판 정보 구조 개선" }).getByRole("button", { name: "갤러리에 공개" }).last().click();
+await expectText("자세한 포트폴리오 보기' 버튼이 붙어");
 await click("이 내용을 갤러리에 공개");
 await page.waitForTimeout(500);
 await as("s2"); await go("/portfolio/gallery/?s=s1");
 await page.getByRole("link", { name: /행복분식 메뉴판 정보 구조 개선/ }).first().click();
+await page.waitForURL(/portfolio\/experience/);                      // 피드는 지금처럼 간단한 게시물 화면
+await page.getByRole("link", { name: "자세한 포트폴리오 보기" }).click();
 await page.waitForURL(/portfolio\/view/);
 await expectText("손님들이 메뉴를 훨씬 빨리");
 await expectText("38개 메뉴를 4개 구역으로");
 if (await page.getByRole("button", { name: "편집", exact: true }).count()) throw new Error("소유자가 아닌데 편집 버튼이 보임");
 if (await page.locator("textarea, [data-editable]").count()) throw new Error("소유자가 아닌데 입력칸이 있음");
 await shot("16d-public");
-log("24 피드 → 남의 포트폴리오 페이지 (읽기 전용)");
+log("24 피드 → 게시물 화면 → '자세한 포트폴리오 보기' → 남의 포트폴리오 페이지 (읽기 전용)");
+
+// 22. 데모 데이터: 김하늘 피드 5개는 완료 프로젝트, HTML 포트폴리오는 메뉴판 1개만 → 버튼도 그 게시물에만
+await go("/portfolio/gallery/?s=s1");
+await page.getByRole("link", { name: /외국인 손님을 위한 한식당 영문 메뉴판/ }).first().click();
+await page.waitForURL(/portfolio\/experience/);
+await expectText("메뉴를 두 구역으로 줄이고");
+await page.getByRole("link", { name: "자세한 포트폴리오 보기" }).click();
+await page.waitForURL(/portfolio\/view/);
+await expectText("월계 재능나눔 · 의뢰인 검증 포트폴리오");          // 에디토리얼 디자인
+await expectText("이제 외국인 손님이 메뉴판만 보고 바로 주문해요");
+await shot("16f-demo-menu");
+await go("/portfolio/gallery/?s=s1");
+await page.getByRole("link", { name: /미용실 가게 홍보 배너/ }).first().click();
+await page.waitForURL(/portfolio\/experience/);
+await expectText("업종 이름을 가장 크게");
+await page.waitForTimeout(800);
+if (await page.getByRole("link", { name: "자세한 포트폴리오 보기" }).count()) throw new Error("HTML 포트폴리오가 없는 게시물에 버튼이 보임");
+log("25 데모 완료 프로젝트 5개 · 메뉴판만 '자세한 포트폴리오 보기'");
 
 // (예전 21단계 '티어·뱃지 표시'는 main 에서 티어 화면이 분야 표시로 바뀌어(0017) 뺐다)
 
