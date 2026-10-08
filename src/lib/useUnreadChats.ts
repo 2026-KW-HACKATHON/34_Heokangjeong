@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { repo } from "./repo";
 
-export function useUnreadChats(userId?: string) {
-  const [state, setState] = useState<{ userId?: string; count: number }>({ count: 0 });
+export function useUnreadChatCounts(userId?: string) {
+  const [state, setState] = useState<{ userId?: string; counts: Record<string, number> }>({ counts: {} });
   useEffect(() => {
     if (!userId) return;
     let active = true, busy = false, rerun = false;
@@ -15,14 +15,14 @@ export function useUnreadChats(userId?: string) {
       try {
         const rooms = await repo.listChatRooms(userId!);
         if (!active) return;
-        const counts = await Promise.all(rooms.map(async room => {
+        const entries = await Promise.all(rooms.map(async room => {
           const id = room.application.id;
           if (!subscriptions.has(id)) subscriptions.set(id, repo.onMessage(id, () => { void refresh(); }));
           const [messages, readIds] = await Promise.all([repo.listMessages(id), repo.readChatMessageIds(userId!, id)]);
           const seen = new Set(readIds);
-          return messages.filter(m => m.senderId !== userId && !seen.has(m.id)).length;
+          return [id, messages.filter(m => m.senderId !== userId && !seen.has(m.id)).length] as const;
         }));
-        if (active) setState({ userId, count: counts.reduce((a, b) => a + b, 0) });
+        if (active) setState({ userId, counts: Object.fromEntries(entries) });
       } catch { /* Preserve the indicator during temporary connection failures. */ }
       finally { busy = false; if (rerun && active) { rerun = false; void refresh(); } }
     }
@@ -43,5 +43,10 @@ export function useUnreadChats(userId?: string) {
       document.removeEventListener("visibilitychange", update);
     };
   }, [userId]);
-  return state.userId === userId ? state.count : 0;
+  return state.userId === userId ? state.counts : {};
+}
+
+export function useUnreadChats(userId?: string) {
+  const counts = useUnreadChatCounts(userId);
+  return Object.values(counts).reduce((total, count) => total + count, 0);
 }
