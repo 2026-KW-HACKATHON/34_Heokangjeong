@@ -11,7 +11,8 @@ export const DEMO_STUDENT = "s1";
 const AT = "2026-09-";   // 공고 날짜
 
 interface Spec {
-  key: "menu" | "real2sim" | "driving" | "banner" | "cafe" | "class";
+  key: "menu" | "real2sim" | "driving" | "banner" | "cafe" | "class" | "spring-reel" | "side-dish-sticker";
+  studentId?: string;
   title: string; category: Category; clientId: string; address: string; reward: string;
   problem: string; deliverables: string[]; criteria: string;
   answers: Record<string, string | string[]>;          // 질문 id → 글 또는 선택지
@@ -208,6 +209,39 @@ const SPECS: Spec[] = [
       ],
     },
   },
+  {
+    key: "spring-reel", studentId: "s14", feed: { title: "봄날꽃집 숏폼", category: "영상" }, title: "봄 시즌 꽃다발 숏폼 영상 제작", category: "영상", clientId: "r15", address: "광운로 14길 5", reward: "꽃다발 교환권 + 사례비 8만원",
+    problem: "봄 꽃다발을 새로 준비했지만 사진만으로는 만드는 과정과 분위기를 전달하기 어려워요", deliverables: ["세로형 숏폼 영상 2편", "영상 썸네일 2장"], criteria: "매장에서 촬영한 30초 이내 영상 2편과 썸네일을 휴대폰에서 확인할 수 있음",
+    answers: {}, evidence: [],
+    review: { satisfaction: 5, deadline: 5, communication: 5, handoff: 5, deliverableQuality: 5, comment: "" },
+    card: { summary: "꽃다발 제작 과정을 담은 숏폼", intro: "", problem: "", solution: "", result: "", insight: "" },
+    day: 30,
+    inProgress: {
+      notes: ["꽃집 방문 미팅: 봄 꽃다발 3종 가운데 노란 튤립 꽃다발을 메인 영상으로 정함", "촬영 구성안 작성: 포장 전·제작 과정·완성 꽃다발 순서로 30초 구성"],
+      chat: [
+        { from: "client", body: "노란 튤립이 가장 잘 나가는 상품이에요. 제작 과정을 중심으로 부탁드려요." },
+        { from: "student", body: "좋아요. 이번 주 토요일 오후에 세로 영상으로 촬영하겠습니다." },
+        { from: "client", body: "촬영용 꽃과 포장지는 미리 준비해 둘게요." },
+      ],
+    },
+  },
+  {
+    key: "side-dish-sticker", studentId: "s15", feed: { title: "온기반찬 배달 스티커", category: "디자인" }, title: "온기반찬 배달 포장 스티커 디자인", category: "디자인", clientId: "r16", address: "월계로 48길 11", reward: "반찬 정기권 + 사례비 6만원",
+    problem: "배달 용기에 가게 이름과 보관 방법이 없어 손님이 어느 반찬가게에서 주문했는지 기억하기 어려워요", deliverables: ["원형 포장 스티커 인쇄용 PDF", "Illustrator 원본 파일"], criteria: "상호·연락처·냉장 보관 안내가 들어간 70mm 스티커를 인쇄소에 전달할 수 있음",
+    answers: {
+      d_target: ["배달 주문 손님"], d_problem: "현재 포장 용기는 투명 용기뿐이라 상호와 보관 방법이 보이지 않고 재주문 문의가 끊겨요.", d_before: "표시가 없는 투명 반찬 용기와 흰 비닐 포장",
+      d_constraints: ["정해진 크기", "인쇄 예산"], d_goal: "용기만 봐도 온기반찬과 냉장 보관 방법을 바로 알게 하기", d_role: ["기획", "시안 디자인", "최종 디자인"],
+      d_reference: "주변 반찬가게와 도시락 포장 스티커 8종을 비교했어요.", d_decision: "원형 70mm 안에 상호를 크게 두고 아래에 연락처와 냉장 보관 문구를 배치했어요.",
+      d_rationale: "냉장고에서 용기를 위에서 볼 때 상호가 먼저 보이고, 먹기 전에 보관 안내를 읽도록 구성했어요.", d_alternatives: "직사각 띠지도 검토했지만 용기 크기마다 달라져 공통으로 쓸 수 있는 원형 스티커를 선택했어요.",
+      d_process: "현장 포장 크기 측정 → 흑백 정보 구조 → 색상 시안 2종 → 점주 선택 → 시험 출력 → 최종 파일 전달", d_validation: ["시안·시제품 시험 사용"],
+      d_deliverable: "70mm 원형 스티커 인쇄용 PDF와 Illustrator 원본", d_after: "모든 배달 용기에 상호와 냉장 보관 안내가 표시돼요.", d_feedback: "전화번호가 작다는 의견을 반영해 글자 크기와 대비를 높였어요.",
+      d_tools: ["Illustrator", "Figma"], d_usage: ["매장에 실제 게시됨"], d_reflection: "작은 인쇄물일수록 정보를 줄이고 우선순위를 명확히 해야 한다는 점을 배웠어요.",
+    },
+    evidence: [{ type: "DELIVERABLE_FILE", description: "70mm 원형 스티커 인쇄용 PDF", noImage: true }, { type: "USAGE_PROOF", description: "배달 용기 시험 부착 및 의뢰인 확인", noImage: true }],
+    review: { satisfaction: 5, deadline: 4, communication: 5, handoff: 5, deliverableQuality: 4, comment: "포장만 봐도 가게를 기억할 수 있고 보관 안내도 잘 보여요." },
+    card: { summary: "상호와 보관 안내를 한눈에 담은 포장 스티커", intro: "", problem: "", solution: "", result: "", insight: "" },
+    day: 22,
+  },
 ];
 
 const MENU_PORTFOLIO: PortfolioContent = {
@@ -233,7 +267,7 @@ const COVER = (key: Spec["key"]) => `/portfolio-samples/${key}.png`;
 const postId = (key: Spec["key"]) => `demo-post-${key}`;
 
 /** 데모 내용을 바꾸면 올린다 → 이미 넣어 둔 브라우저도 데모 프로젝트만 새로 만든다 */
-const SEED_VERSION = 5;   // 3: 진행 중 데모 추가 · 4: 선정(매칭 대기) 시각 — 계약서 확정 = 선정 확정 규칙 · 5: 메뉴판 작업 전 사진과 그에 맞춘 설명
+const SEED_VERSION = 6;   // 5: 메뉴판 작업 전 사진 · 6: 기록 검증용 신규 학생·상인 프로젝트 2개 추가
 const isDemo = (v: unknown) => typeof v === "string" && v.startsWith("demo-");
 
 /**
@@ -259,6 +293,7 @@ export function seedDemoProjects(db: wf.WorkflowDB): boolean {
 }
 
 function seedOne(db: wf.WorkflowDB, s: Spec) {
+  const studentId = s.studentId ?? DEMO_STUDENT;
   let n = 0, step = 0;
   const day = (d: number) => `${AT}${String(d).padStart(2, "0")}`;
   // 시작일부터 한 단계마다 2시간씩 흐른다 (지원 → … → 승인이 며칠에 걸쳐 보이게)
@@ -271,7 +306,7 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
     problem: s.problem, expectedDeliverables: s.deliverables, completionCriteria: s.criteria,
   };
   db.posts.push(post);
-  const app = wf.apply(db, { postId: post.id, studentId: DEMO_STUDENT, message: "이 작업 꼭 해 보고 싶어요." }, ctx);
+  const app = wf.apply(db, { postId: post.id, studentId, message: "이 작업 꼭 해 보고 싶어요." }, ctx);
   app.shortlistedAt = app.createdAt;   // 사장님 선정 → 대화·계약서 → 확정 (계약서는 demoAgreementsAndChats 가 넣는다)
   const project = wf.selectApplicant(db, { applicationId: app.id, actorId: s.clientId }, ctx);
   const qs = DOMAINS[project.domain as DomainKey].questions;
@@ -282,24 +317,24 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
     const list = Array.isArray(a) ? a : [];
     const choices = list.filter((x) => opts.includes(x));
     const value = Array.isArray(a) ? list.filter((x) => !opts.includes(x)).join(", ") : a;
-    wf.saveAnswer(db, { projectId: project.id, actorId: DEMO_STUDENT, questionId: qid, status: "ANSWERED", value, choices }, ctx);
+    wf.saveAnswer(db, { projectId: project.id, actorId: studentId, questionId: qid, status: "ANSWERED", value, choices }, ctx);
   }
   // 엔진은 http(s)·업로드 파일만 받으므로 설명으로 등록한 뒤, 앱에 들어 있는 샘플 이미지(public/portfolio-samples)를 붙인다 (데모 전용)
   const ev = s.evidence.map((e) => {
-    const added = wf.addEvidence(db, { projectId: project.id, actorId: DEMO_STUDENT, type: e.type, description: e.description }, ctx);
+    const added = wf.addEvidence(db, { projectId: project.id, actorId: studentId, type: e.type, description: e.description }, ctx);
     const file = e.image ?? `${s.key}.png`;
     return e.noImage ? added : Object.assign(added, { url: `/portfolio-samples/${file}`, fileName: file, mimeType: "image/png", source: "STUDENT_UPLOAD" as const });
   });
   const deliverables = ev.filter((e) => e.type !== "BEFORE_IMAGE").map((e) => e.id);
   if (s.inProgress) {
-    for (const note of s.inProgress.notes) wf.addLog(db, { projectId: project.id, actorId: DEMO_STUDENT, stage: "PROGRESS", note }, ctx);
+    for (const note of s.inProgress.notes) wf.addLog(db, { projectId: project.id, actorId: studentId, stage: "PROGRESS", note }, ctx);
     return;
   }
-  const v = wf.submitVersion(db, { projectId: project.id, actorId: DEMO_STUDENT, note: "최종본입니다", evidenceIds: deliverables }, ctx);
+  const v = wf.submitVersion(db, { projectId: project.id, actorId: studentId, note: "최종본입니다", evidenceIds: deliverables }, ctx);
   wf.approveVersion(db, { versionId: v.id, actorId: s.clientId, claims: { workPerformed: true, roleConfirmed: true, deliverableReceived: true, completionCriteriaMet: true, actuallyUsed: true }, review: s.review }, ctx);
   if (!s.portfolio) return;
-  const snap = wf.createSnapshot(db, { projectId: project.id, actorId: DEMO_STUDENT }, ctx);
-  const draftId = wf.addDraft(db, { snapshotId: snap.id, actorId: DEMO_STUDENT, generator: "TEMPLATE", content: s.portfolio }, ctx).draft.id;
+  const snap = wf.createSnapshot(db, { projectId: project.id, actorId: studentId }, ctx);
+  const draftId = wf.addDraft(db, { snapshotId: snap.id, actorId: studentId, generator: "TEMPLATE", content: s.portfolio }, ctx).draft.id;
   const proof = ev.filter((e) => e.type !== "DELIVERABLE_FILE");
   const content: PortfolioContent = {
     ...s.portfolio,
@@ -309,13 +344,12 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
       : x.key === "usage" ? proof.filter((e) => e.type === "USAGE_PROOF").map((e) => e.id)
       : x.key === "deliverable" ? ev.filter((e) => e.type === "DELIVERABLE_FILE").map((e) => e.id) : [] })),
   };
-  wf.saveEdit(db, { draftId, actorId: DEMO_STUDENT, content }, ctx);
+  wf.saveEdit(db, { draftId, actorId: studentId, content }, ctx);
 }
 
 /** 피드 게시물 (간단한 앱 화면용 글). 프로젝트에 연결돼 있어 HTML 포트폴리오가 있으면 버튼으로 이어진다 */
 export function demoProjectPublications(db: wf.WorkflowDB, studentId: string): PublishedPortfolio[] {
-  if (studentId !== DEMO_STUDENT) return [];
-  return SPECS.filter((s) => !s.inProgress).map((s) => {
+  return SPECS.filter((s) => !s.inProgress && (s.studentId ?? DEMO_STUDENT) === studentId && s.card.intro).map((s) => {
     const project = db.projects.find((p) => p.postId === postId(s.key));
     if (!project) return undefined;
     return {
@@ -336,16 +370,17 @@ export function demoProjectPublications(db: wf.WorkflowDB, studentId: string): P
 export function demoInProgressChats(db: wf.WorkflowDB): { agreements: WorkAgreement[]; messages: ChatMessage[] } {
   const agreements: WorkAgreement[] = [], messages: ChatMessage[] = [];
   for (const s of SPECS.filter((x) => x.inProgress)) {
-    const app = db.applications.find((a) => a.postId === postId(s.key) && a.studentId === DEMO_STUDENT);
+    const studentId = s.studentId ?? DEMO_STUDENT;
+    const app = db.applications.find((a) => a.postId === postId(s.key) && a.studentId === studentId);
     if (!app) continue;
     const at = (h: number) => new Date(Date.UTC(2026, 8, s.day + 1, h)).toISOString();
     agreements.push({
       applicationId: app.id, version: 1,
-      terms: { startDate: "2026-09-29", endDate: "2026-10-12", scope: "클래스 안내 카드 기획·디자인", deliverables: s.deliverables.join(", "), acceptance: s.criteria,
-        coupon: s.reward, revisions: 2, exclusions: "인쇄 비용", handoff: "인쇄용 PDF 와 원본 파일 전달" },
+      terms: { startDate: "2026-09-29", endDate: "2026-10-12", scope: s.title, deliverables: s.deliverables.join(", "), acceptance: s.criteria,
+        coupon: s.reward, revisions: 2, exclusions: "추가 촬영·제작 비용", handoff: "최종 결과물과 원본 파일 전달" },
       studentConfirmedAt: at(9), ownerConfirmedAt: at(10), finalizedAt: at(10), updatedAt: at(10),
     });
-    s.inProgress!.chat.forEach((m, i) => messages.push({ id: `demo-${s.key}-msg-${i + 1}`, applicationId: app.id, senderId: m.from === "student" ? DEMO_STUDENT : s.clientId, body: m.body, createdAt: at(11 + i) }));
+    s.inProgress!.chat.forEach((m, i) => messages.push({ id: `demo-${s.key}-msg-${i + 1}`, applicationId: app.id, senderId: m.from === "student" ? studentId : s.clientId, body: m.body, createdAt: at(11 + i) }));
   }
   return { agreements, messages };
 }

@@ -7,7 +7,7 @@ describe("mock demo seed", () => {
     const students = users.filter((user) => user.role === "student");
     const businesses = users.filter((user) => user.role === "resident" && user.kind === "상인");
 
-    expect(students).toHaveLength(13);
+    expect(students).toHaveLength(15);
     expect(businesses.length).toBeGreaterThanOrEqual(13);
     expect(new Set(users.map((user) => user.id)).size).toBe(users.length);
     expect(new Set(students.map((student) => student.department)).size).toBeGreaterThanOrEqual(8);
