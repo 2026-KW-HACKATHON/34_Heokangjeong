@@ -364,6 +364,7 @@ body[data-home-bars="hidden"] .category-dock { transform: translateY(calc(-100% 
 .portfolio-feed-tabs button { font-size: 13px; font-weight: 700; color: #8c8c92; padding: 5px 0; border-bottom: 2px solid transparent; }
 .portfolio-feed-tabs button[aria-selected="true"] { color: #303238; border-bottom-color: #303238; }
 .portfolio-archive-note { color: #777a7d; font-size: 10px; margin: 0 0 14px; }
+.portfolio-feed-divider { border: 0; border-top: 1px solid #dcdce1; margin: 12px 0 20px; }
 .portfolio-feed-grid { gap: 9px; }.portfolio-feed-tile { display: block; aspect-ratio: auto; background: transparent; color: #343333; }.portfolio-feed-tile img { aspect-ratio: 1; height: auto; object-fit: cover; }.portfolio-feed-tile::after { display: none; }.portfolio-feed-tile-caption { position: static; color: inherit; padding: 8px 0; gap: 4px; }.portfolio-feed-tile-caption strong { font-size: 10px; }.portfolio-feed-tile-caption small { font-size: 8px; color: #978773; }.portfolio-feed-placeholder { position: static; aspect-ratio: 1; background: #ece7e0; }
 .portfolio-sample-note { padding: 0 20px 18px; font-size: 9px; color: #938a80; }
 .portfolio-identity.is-editing .portfolio-identity-about { grid-column: 1 / -1; }.portfolio-identity.is-editing .portfolio-identity-avatar { display: none; }
