@@ -12,7 +12,7 @@ import { fileToDataUrl } from "../files";
 import { domainForCategory } from "@shared/portfolio/domains";
 import type { PublishedPortfolio } from "@/types";
 import { demoPortfolio } from "../portfolio/demo";
-import { demoProjectPublications, seedDemoProjects } from "../portfolio/demoProjects";
+import { demoInProgressChats, demoProjectPublications, seedDemoProjects } from "../portfolio/demoProjects";
 import { publicationFromSource } from "../portfolio/publication";
 import { reviseAgreement, confirmAgreement, type WorkAgreement } from "../agreement";
 
@@ -248,7 +248,15 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications, publications, profileExtras, agreements })); }
   catch { throw new Error("브라우저 저장 공간이 가득 찼어요. 나 › 데모 데이터 초기화 후 다시 시도해 주세요"); }
 }
-let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; try { if (seedDemoProjects(db)) save(); } catch { /* 예전 저장소와 충돌하면 데모 프로젝트 없이 진행 */ } } };
+/** 진행 중 데모의 약속서·대화를 채운다 (없는 것만). 바뀌었으면 true */
+function seedDemoChats(): boolean {
+  const extra = demoInProgressChats(db);
+  let changed = false;
+  for (const a of extra.agreements) if (!agreements[a.applicationId]) { agreements[a.applicationId] = a; changed = true; }
+  for (const m of extra.messages) if (!msgs.some((x) => x.id === m.id)) { msgs.push(m); changed = true; }
+  return changed;
+}
+let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; try { const a = seedDemoProjects(db); const b = seedDemoChats(); if (a || b) save(); } catch { /* 예전 저장소와 충돌하면 데모 프로젝트 없이 진행 */ } } };
 const listeners = new Set<(m: ChatMessage) => void>();
 const notificationListeners = new Set<(n: Notification) => void>();
 const pushNotification = (n: Omit<Notification, "id" | "createdAt" | "read">) => {
@@ -779,6 +787,6 @@ export const mockRepo: Repo = {
     review.status = "DISPUTED";
     review.disputeReason = reason.trim().slice(0, 1000);
   }); },
-  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; agreements = {}; loaded = true; save(); },};
+  async resetDemo() { db = fresh(); msgs = structuredClone(messages); demoNotifications = structuredClone(seedNotifications); publications = []; profileExtras = {}; agreements = {}; loaded = true; seedDemoChats(); save(); },};
 
 export { distanceM };
