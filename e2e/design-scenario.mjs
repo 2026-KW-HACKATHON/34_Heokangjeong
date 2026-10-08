@@ -353,7 +353,7 @@ log("24 피드 → 게시물 화면 → '자세한 포트폴리오 보기' → �
 
 // 22. 데모 데이터: 김하늘 피드 5개는 완료 프로젝트, HTML 포트폴리오는 메뉴판 1개만 → 버튼도 그 게시물에만
 await go("/portfolio/gallery/?s=s1");
-await page.getByRole("link", { name: /외국인 손님을 위한 한식당 영문 메뉴판/ }).first().click();
+await page.getByRole("link", { name: /한식당 메뉴판 디자인/ }).first().click();
 await page.waitForURL(/portfolio\/experience/);
 await expectText("메뉴를 두 구역으로 줄이고");
 await page.getByRole("link", { name: "자세한 포트폴리오 보기" }).click();
@@ -362,7 +362,7 @@ await expectText("월계 재능나눔 · 의뢰인 검증 포트폴리오");    
 await expectText("이제 외국인 손님이 메뉴판만 보고 바로 주문해요");
 await shot("16f-demo-menu");
 await go("/portfolio/gallery/?s=s1");
-await page.getByRole("link", { name: /미용실 가게 홍보 배너/ }).first().click();
+await page.getByRole("link", { name: /가게 홍보 배너/ }).first().click();
 await page.waitForURL(/portfolio\/experience/);
 await expectText("업종 이름을 가장 크게");
 await page.waitForTimeout(800);

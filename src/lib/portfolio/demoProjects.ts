@@ -17,13 +17,15 @@ interface Spec {
   evidence: { type: EvidenceType; description: string; noImage?: boolean }[];   // noImage: 맞는 샘플 사진이 없어 설명만 남긴다
   review: { satisfaction: number; deadline: number; communication: number; handoff: number; deliverableQuality: number; comment: string };
   card: { summary: string; intro: string; problem: string; solution: string; result: string; insight: string };
+  /** 피드 게시물 이름·분류: 예전 샘플 카드와 같게 둔다 (팀원 화면 테스트·피드 모습 유지). 공고·포트폴리오 제목은 title */
+  feed: { title: string; category: string };
   portfolio?: PortfolioContent;                          // HTML 포트폴리오 (메뉴판만)
   day: number;                                           // 9월 며칠에 시작했는지 (완료 순서용)
 }
 
 const SPECS: Spec[] = [
   {
-    key: "menu", title: "외국인 손님을 위한 한식당 영문 메뉴판", category: "디자인", clientId: "r2", address: "월계1동 광운로 21", reward: "식사 쿠폰 5장",
+    key: "menu", feed: { title: "한식당 메뉴판 디자인", category: "디자인" }, title: "외국인 손님을 위한 한식당 영문 메뉴판", category: "디자인", clientId: "r2", address: "월계1동 광운로 21", reward: "식사 쿠폰 5장",
     problem: "메뉴판이 한글로만 되어 있어 외국인 손님이 주문할 때마다 번역기로 설명해야 해요", deliverables: ["A4 영문 메뉴판 인쇄용 PDF", "Figma 원본"], criteria: "외국인 손님이 묻지 않고 메뉴를 고를 수 있는 메뉴판",
     answers: {
       d_target: ["매장 방문 손님", "근처 대학 외국인 교환학생"],
@@ -62,7 +64,7 @@ const SPECS: Spec[] = [
     day: 15,
   },
   {
-    key: "real2sim", title: "Real2Sim & Sim2Real 연구 소개 웹페이지", category: "웹/앱", clientId: "r3", address: "석계로 7", reward: "도서 상품권",
+    key: "real2sim", feed: { title: "Real2Sim & Sim2Real", category: "웹/앱" }, title: "Real2Sim & Sim2Real 연구 소개 웹페이지", category: "웹/앱", clientId: "r3", address: "석계로 7", reward: "도서 상품권",
     problem: "책방 과학 강연에서 소개할 시뮬레이션 연구를 한눈에 보여 줄 페이지가 없어요", deliverables: ["연구 소개 웹페이지", "강연용 QR 코드"], criteria: "휴대폰으로 QR 을 찍어 바로 볼 수 있는 페이지",
     answers: {
       v_problem: "강연에 온 주민들이 '시뮬레이션과 실제가 왜 다른지'를 말로만 들어서는 이해하기 어렵다고 책방 사장님이 말씀하셨어요",
@@ -93,7 +95,7 @@ const SPECS: Spec[] = [
     day: 1,
   },
   {
-    key: "driving", title: "Path2ST 주행 시뮬레이터 체험 페이지", category: "웹/앱", clientId: "r4", address: "월계1동 주민센터 인근", reward: "감사 인사",
+    key: "driving", feed: { title: "Path2ST 주행 시뮬레이터", category: "웹/앱" }, title: "Path2ST 주행 시뮬레이터 체험 페이지", category: "웹/앱", clientId: "r4", address: "월계1동 주민센터 인근", reward: "감사 인사",
     problem: "주민센터 어린이 과학교실에서 자율주행을 직접 만져 볼 거리가 필요해요", deliverables: ["주행 시뮬레이터 웹 데모"], criteria: "아이들이 경로를 바꿔 보며 차가 따라가는 모습을 볼 수 있음",
     answers: {
       v_problem: "과학교실 아이들이 자율주행을 영상으로만 봐서 금방 지루해한다고 정순자 님이 말씀하셨어요",
@@ -124,7 +126,7 @@ const SPECS: Spec[] = [
     day: 5,
   },
   {
-    key: "banner", title: "미용실 가게 홍보 배너", category: "디자인", clientId: "r7", address: "월계로 53길 4", reward: "커트 쿠폰 2장",
+    key: "banner", feed: { title: "가게 홍보 배너", category: "디자인" }, title: "미용실 가게 홍보 배너", category: "디자인", clientId: "r7", address: "월계로 53길 4", reward: "커트 쿠폰 2장",
     problem: "가게 앞을 지나가는 사람들이 미용실인지 잘 모르고 지나쳐요", deliverables: ["가로형 배너 인쇄 파일"], criteria: "멀리서도 업종과 가격대가 보이는 배너",
     answers: {
       d_target: ["매장 방문 손님"],
@@ -150,7 +152,7 @@ const SPECS: Spec[] = [
     day: 8,
   },
   {
-    key: "cafe", title: "오늘, 여기서 쉬어가요 — 카페 SNS 콘텐츠", category: "SNS홍보", clientId: "r1", address: "월계로 45길 12", reward: "음료 쿠폰 10장",
+    key: "cafe", feed: { title: "오늘, 여기서 쉬어가요", category: "SNS 콘텐츠" }, title: "오늘, 여기서 쉬어가요 — 카페 SNS 콘텐츠", category: "SNS홍보", clientId: "r1", address: "월계로 45길 12", reward: "음료 쿠폰 10장",
     problem: "오후 시간대에 손님이 적어 쉬어 가기 좋은 공간이라는 걸 알리고 싶어요", deliverables: ["세로형 홍보 이미지 3장"], criteria: "인스타그램 스토리에 바로 올릴 수 있는 이미지",
     answers: {
       m_problem: "사장님 말씀으로는 오전엔 바쁜데 오후 2~4시에는 자리가 비어 있대요",
@@ -283,7 +285,7 @@ export function demoProjectPublications(db: wf.WorkflowDB, studentId: string): P
     const project = db.projects.find((p) => p.postId === postId(s.key));
     if (!project) return undefined;
     return {
-      studentId, sourceId: project.id, sourceKind: "project" as const, title: s.title, category: s.category, summary: s.card.summary,
+      studentId, sourceId: project.id, sourceKind: "project" as const, title: s.feed.title, category: s.feed.category, summary: s.card.summary,
       coverUrl: COVER(s.key), publishedAt: project.completedAt ?? project.createdAt, visible: true,
       sections: [
         { title: "경험 소개", body: s.card.intro }, { title: "문제 정의", body: s.card.problem }, { title: "해결 방법", body: s.card.solution },
