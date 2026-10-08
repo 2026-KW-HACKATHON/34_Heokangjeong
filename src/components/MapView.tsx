@@ -184,6 +184,36 @@ function ShopLayer({ postByShop }: { postByShop: [string, Post][] }) {
  * 벡터 지도(OpenFreeMap Positron). 지도를 그림이 아니라 데이터로 받아서,
  * 기본으로 그려지는 가게 아이콘·이름을 끄고 우리 마커만 보이게 한다. API 키는 필요 없다.
  */
+/**
+ * 플러그인 버그 막기: 줌 애니메이션이 끝나면 다음 프레임에 지도 상태를 읽도록 예약하는데,
+ * 그 사이 지도 화면을 떠나 레이어가 지워지면 null 을 읽어 "reading 'getZoom'" 에러가 난다.
+ * 원래 동작은 같게 두고, 예약된 일이 실행될 때 지도가 남아 있는지만 확인한다.
+ */
+type GlLayer = {
+  _map: L.Map | null;
+  _glMap: { _actualCanvas: HTMLElement; once: (e: string, f: () => void) => void; jumpTo: (o: unknown) => void } | null;
+  _transitionEnd: () => void;
+  _zoomEnd: () => void;
+  _resizeContainer: () => void;
+};
+function guardLateCallbacks(layer: unknown) {
+  const l = layer as GlLayer;
+  const zoomEnd = l._zoomEnd;
+  l._zoomEnd = function (this: GlLayer) { if (this._map && this._glMap) zoomEnd.call(this); };
+  l._transitionEnd = function (this: GlLayer) {
+    L.Util.requestAnimFrame(() => {
+      const m = this._map, gl = this._glMap;
+      if (!m || !gl) return;   // 이미 지도를 떠났다
+      const zoom = m.getZoom(), center = m.getCenter();
+      const offset = m.latLngToContainerPoint(m.getBounds().getNorthWest());
+      this._resizeContainer();
+      L.DomUtil.setTransform(gl._actualCanvas, offset, 1);
+      gl.once("moveend", () => this._zoomEnd());
+      gl.jumpTo({ center, zoom: zoom - 1 });
+    });
+  };
+}
+
 function VectorBasemap({ onReady, onFail }: { onReady: () => void; onFail: () => void }) {
   const map = useMap();
   useEffect(() => {
@@ -200,6 +230,7 @@ function VectorBasemap({ onReady, onFail }: { onReady: () => void; onFail: () =>
           style: "https://tiles.openfreemap.org/styles/positron",
           attribution: '&copy; OpenStreetMap, OpenFreeMap',
         });
+        guardLateCallbacks(layer);
         layer!.addTo(map);
         const gl = layer!.getMaplibreMap?.();
         const hidePois = () => {
