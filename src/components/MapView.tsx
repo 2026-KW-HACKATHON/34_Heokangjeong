@@ -28,7 +28,14 @@ export default function MapView({ posts, me, center, recenterRequest = 0 }: { po
     <div className="relative h-full w-full">
       <MapContainer center={[center.lat, center.lng]} zoom={15} className="h-full w-full" scrollWheelZoom>
         <Recenter center={center} request={recenterRequest} />
-        <TileLayer attribution='&copy; OpenStreetMap' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }} />
+        {/* CARTO Voyager: OpenStreetMap 자료를 쓰되 색이 차분해 앱 화면과 잘 어울린다. 무료(출처 표기 필요) */}
+        <TileLayer
+          attribution='&copy; OpenStreetMap, &copy; CARTO'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={20}
+          eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }}
+        />
         {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
         {posts.map((p) => (
           <CircleMarker key={p.id} center={[p.location.lat, p.location.lng]} radius={11} pathOptions={{ color: "white", weight: 2, fillColor: COLOR[p.status], fillOpacity: 0.95 }}>
