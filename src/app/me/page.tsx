@@ -39,7 +39,7 @@ export default function Me() {
   }
 
   return <>
-    <TopBar title="나의 작업실" />
+    <TopBar title="나의 작업실" monochrome compact />
     <main className="portfolio-me">
       {user?.role === "student" ? <>
         <div className="portfolio-sheet">
