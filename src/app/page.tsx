@@ -13,8 +13,6 @@ import TalentConnection, { categoryMatches, type HomeCategory } from "@/componen
 import { HOME_CATEGORIES } from "@/components/home/categories";
 import { useUrlFlag, useUrlState } from "@/lib/useUrlState";
 import ConnectionWorld from "@/components/home/ConnectionWorld";
-import Link from "next/link";
-import { searchStudents } from "@/lib/nickname";
 
 /** 홈: ① 맞춤 공고 추천 피드. 학생이면 적합도 순, 주민이면 내 공고 위주. */
 // 분야·'모집 중만'·탭은 주소에 둔다 → 공고를 보고 뒤로 와도 고른 그대로
@@ -29,7 +27,6 @@ function Home() {
   const [error, setError] = useState("");
   const [exploring, setExploring] = useState(false);
   const feedTitle = useRef<HTMLHeadingElement>(null);
-  const people = useMemo(() => searchStudents(users, query).filter((s) => s.id !== user?.id), [users, query, user?.id]);
   useEffect(() => {
     if (!exploring) return;
     const timeout = window.setTimeout(() => setExploring(false), 1000);
@@ -83,16 +80,7 @@ function Home() {
           </div>
         )}
         <div className="mb-4 flex items-center justify-between gap-3"><h2 ref={feedTitle} tabIndex={-1} className="home-feed-title text-xl font-bold tracking-tight">{user?.role === "resident" ? (mineOnly ? "내가 올린 공고" : "동네 다른 가게 공고") : user?.role === "student" && !mineOnly ? "내가 지원한 공고" : "이웃이 기다리는 도움"}</h2><span className="sub text-xs" role="status">{loading ? "불러오는 중" : `${rows.length}개의 공고`}</span></div>
-        <label className="home-search mb-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-[var(--sub)]"><Icon name="search" width={20} height={20} /><input aria-label="공고·학생 검색" type="search" placeholder="공고 제목·동네, 학생 이름·닉네임으로 찾아보세요" value={query} onChange={(e) => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none" /></label>
-        {/* 학생 찾기: 이름·닉네임(@)·학과. 동명이인은 닉네임으로 구분 */}
-        {people.length > 0 && <div className="card mb-4 text-sm" aria-label="학생 검색 결과">
-          <p className="sub mb-2 text-xs font-semibold">학생 {people.length}명</p>
-          <ul className="flex flex-col gap-1">{people.slice(0, 8).map((s) => <li key={s.id}>
-            <Link href={`/profiles/view?id=${s.id}`} className="flex items-center justify-between gap-2 rounded-lg px-1 py-1.5">
-              <span><b>{s.name}</b>{s.nickname && <span className="sub"> @{s.nickname}</span>}</span>
-              <span className="sub shrink-0 text-xs">{s.role === "student" ? s.department : ""} ›</span>
-            </Link></li>)}</ul>
-        </div>}
+        <label className="home-search mb-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-[var(--sub)]"><Icon name="search" width={20} height={20} /><input aria-label="공고 검색" type="search" placeholder="제목, 내용, 동네로 찾아보세요" value={query} onChange={(e) => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none" /></label>
         <label className="sub mb-3 flex items-center gap-2 text-xs"><input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} /> 완료된 공고 숨기기</label>
         <div className="flex flex-col gap-3">
           {loading && <p role="status" className="card sub text-sm">이웃의 요청을 불러오고 있어요.</p>}
