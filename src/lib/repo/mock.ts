@@ -11,7 +11,6 @@ import { summarizeTrust } from "../trust";
 import { fileToDataUrl } from "../files";
 import { domainForCategory } from "@shared/portfolio/domains";
 import type { PublishedPortfolio } from "@/types";
-import { demoPortfolio } from "../portfolio/demo";
 import { demoInProgressChats, demoProjectPublications, seedDemoProjects } from "../portfolio/demoProjects";
 import { publicationFromSource } from "../portfolio/publication";
 import { reviseAgreement, confirmAgreement, type WorkAgreement, proposeAgreementChange, respondAgreementChange } from "../agreement";
@@ -217,6 +216,8 @@ const fresh = (): wf.WorkflowDB => {
   return d;
 };
 let db: wf.WorkflowDB = fresh();
+/** 예전에 모든 학생 계정에 붙던 화면 확인용 샘플 카드 (김하늘은 같은 5개가 실제 데모 프로젝트라 sourceKind 가 다르다) */
+const SAMPLE_CARD = /^demo-(real2sim|driving|menu|banner|cafe)$/;
 let msgs: ChatMessage[] = structuredClone(messages);
 let demoNotifications: Notification[] = structuredClone(seedNotifications);
 let publications: PublishedPortfolio[] = [];
@@ -227,7 +228,7 @@ function load() {
   if (typeof window === "undefined") return;
   try {
     const s = localStorage.getItem(KEY);
-    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; publications = d.publications ?? []; profileExtras = d.profileExtras ?? {}; agreements = d.agreements ?? {}; db.posts = db.posts.map(post => {
+    if (s) { const d = JSON.parse(s); db = { ...fresh(), ...d.db, users: structuredClone(users) }; msgs = d.messages ?? msgs; demoNotifications = d.notifications ?? demoNotifications; publications = (d.publications ?? []).filter((p: PublishedPortfolio) => !SAMPLE_CARD.test(p.sourceId)); profileExtras = d.profileExtras ?? {}; agreements = d.agreements ?? {}; db.posts = db.posts.map(post => {
       const updatedSeed = posts.find(seed => seed.id === post.id);
       return updatedSeed && /사례비/.test(post.reward ?? "") ? { ...post, reward: updatedSeed.reward, compensationType: "NON_MONETARY", compensationDescription: updatedSeed.reward, paidAmount: undefined } : post;
     }); }
@@ -524,7 +525,7 @@ export const mockRepo: Repo = {
     ensure();
     if (actorId !== item.studentId || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 게시물만 수정할 수 있어요.");
     const existing = publications.find(p => p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind);
-    if (!existing && !["demo-real2sim", "demo-driving", "demo-menu", "demo-banner", "demo-cafe"].includes(item.sourceId) && !demoProjectPublications(db, actorId).some(p => p.sourceId === item.sourceId && p.sourceKind === item.sourceKind)) throw new Error("공개된 게시물을 찾을 수 없어요.");
+    if (!existing && !demoProjectPublications(db, actorId).some(p => p.sourceId === item.sourceId && p.sourceKind === item.sourceKind)) throw new Error("공개된 게시물을 찾을 수 없어요.");
     if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
     const previous = publications;
     publications = [structuredClone(item), ...publications.filter(p => !(p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind))];
@@ -534,7 +535,7 @@ export const mockRepo: Repo = {
     ensure();
     const own = typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") === studentId;
     const saved = publications.filter(p => p.studentId === studentId);
-    const samples = [...demoProjectPublications(db, studentId), ...demoPortfolio(studentId)].filter(p => !saved.some(s => s.sourceId === p.sourceId && s.sourceKind === p.sourceKind));
+    const samples = demoProjectPublications(db, studentId).filter(p => !saved.some(s => s.sourceId === p.sourceId && s.sourceKind === p.sourceKind));
     return wait([...saved, ...samples].filter(p => p.visible !== false || (includeHidden && own)));
   },
   async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {

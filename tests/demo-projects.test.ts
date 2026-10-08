@@ -4,7 +4,6 @@ import * as wf from "@/lib/workflow/engine";
 import { users } from "@/lib/repo/mock";
 import { DEMO_STUDENT, demoInProgressChats, demoProjectPublications, seedDemoProjects } from "@/lib/portfolio/demoProjects";
 import { matchStage } from "@/lib/matchStage";
-import { demoPortfolio } from "@/lib/portfolio/demo";
 
 const fresh = () => ({ ...wf.emptyDB(), users: structuredClone(users) });
 
@@ -52,11 +51,9 @@ describe("데모 완료 프로젝트", () => {
     expect(pubs).toHaveLength(5);
     expect(pubs.every((p) => p.sourceKind === "project" && db.projects.some((x) => x.id === p.sourceId))).toBe(true);
     expect(pubs.every((p) => p.coverUrl?.startsWith("/portfolio-samples/"))).toBe(true);
-    expect(demoPortfolio(DEMO_STUDENT)).toEqual([]);
-    expect(demoProjectPublications(db, "s2")).toEqual([]);
-    expect(demoPortfolio("s2")).toHaveLength(5);                     // 다른 학생은 예전 샘플 그대로
+    expect(demoProjectPublications(db, "s2")).toEqual([]);           // 김하늘 외 계정은 피드 없음
   });
-  it("진행 중 데모 1개: 약속서 확정 뒤 대화가 있어 '진행 중', 피드에는 안 올라간다", () => {
+  it("진행 중 데모 1개: 계약서 확정 뒤 대화가 있어 '진행 중', 피드에는 안 올라간다", () => {
     const db = fresh();
     seedDemoProjects(db);
     const p = db.projects.find((x) => x.status === "IN_PROGRESS")!;
