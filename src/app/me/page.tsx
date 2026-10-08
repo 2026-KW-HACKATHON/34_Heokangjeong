@@ -72,7 +72,9 @@ export default function Me() {
       <ul className="card flex flex-col divide-y divide-[var(--line)] p-0 text-[15px]">
         {(user?.role === "admin"
           ? [["/admin", "관리자 화면"], ["/clubs", "단체 (동아리·학회)"]]
-          : [["/clubs", "단체 (동아리·학회)"], ["/projects", "내 진행 프로젝트"]]
+          : user?.role === "student"
+            ? [["/clubs", "단체 (동아리·학회)"]]   // 학생의 프로젝트 목록은 '기록' 탭(진행 중·완료)으로 합쳤다
+            : [["/clubs", "단체 (동아리·학회)"], ["/projects", "내 진행 프로젝트"]]
         ).map(([href, label]) => (
           <li key={href}><Link href={href} className="flex min-h-14 items-center justify-between px-4 py-3.5">{label}<span className="sub">›</span></Link></li>
         ))}
