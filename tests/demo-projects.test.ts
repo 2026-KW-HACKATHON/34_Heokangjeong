@@ -31,7 +31,7 @@ describe("데모 완료 프로젝트", () => {
     const db = fresh();
     seedDemoProjects(db);
     expect(seedDemoProjects(db)).toBe(false);
-    expect(db.projects).toHaveLength(6);
+    expect(db.projects).toHaveLength(8);
   });
   it("데모 버전이 바뀌면 데모 것만 다시 만들고 사용자 데이터는 남긴다", () => {
     const db = fresh();
@@ -40,7 +40,7 @@ describe("데모 완료 프로젝트", () => {
     (db as { demoSeedVersion?: number }).demoSeedVersion = 1;            // 예전 브라우저 저장소
     db.evidence.find((e) => e.type === "BEFORE_IMAGE")!.url = "/portfolio-samples/menu.png";
     expect(seedDemoProjects(db)).toBe(true);
-    expect(db.projects).toHaveLength(6);
+    expect(db.projects).toHaveLength(8);
     expect(db.posts.some((p) => p.id === "user-post")).toBe(true);
     expect(db.evidence.find((e) => e.type === "BEFORE_IMAGE")?.url).toBe("/portfolio-samples/menu-before.png");   // 작업 전 증빙은 완성본이 아닌 작업 전 사진
   });
@@ -74,5 +74,18 @@ describe("데모 완료 프로젝트", () => {
     const last = messages.filter((m) => m.applicationId === app.id).at(-1)!;
     expect(matchStage({ applicationStatus: app.status, projectStatus: p.status, agreementFinalizedAt: ag.finalizedAt, lastMessageAt: last.createdAt })).toBe("IN_PROGRESS");
     expect(demoProjectPublications(db, DEMO_STUDENT).some((x) => x.sourceId === p.id)).toBe(false);
+  });
+  it("새 기록 검증 시드: 이지민은 진행 중, 문서현은 포트폴리오 전 완료 상태", () => {
+    const db = fresh();
+    seedDemoProjects(db);
+    const ongoing = db.projects.find((p) => p.postId === "demo-post-spring-reel")!;
+    const completed = db.projects.find((p) => p.postId === "demo-post-side-dish-sticker")!;
+    expect(ongoing.status).toBe("IN_PROGRESS");
+    expect(db.members.some((m) => m.projectId === ongoing.id && m.studentId === "s14")).toBe(true);
+    expect(db.logs.filter((l) => l.projectId === ongoing.id)).toHaveLength(2);
+    expect(completed.status).toBe("COMPLETED");
+    expect(db.members.some((m) => m.projectId === completed.id && m.studentId === "s15")).toBe(true);
+    expect(db.verifications.some((v) => v.projectId === completed.id)).toBe(true);
+    expect(db.edits.some((e) => e.projectId === completed.id)).toBe(false);
   });
 });

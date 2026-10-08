@@ -5,7 +5,7 @@ import type { DocBlock } from "@shared/portfolio/document";
 import { EditableText, EvidenceFigures, Locked, ToolsEditor, assertNever, setSection } from "./parts";
 import type { TemplateProps } from "./types";
 
-export default function BasicTemplate({ page, content, blocks, editing, onChange }: TemplateProps) {
+export default function BasicTemplate({ page, content, blocks, editing, onChange, onReplaceImage, imageBusy }: TemplateProps) {
   const block = (b: DocBlock, i: number) => {
     switch (b.kind) {
       case "info":
@@ -22,7 +22,7 @@ export default function BasicTemplate({ page, content, blocks, editing, onChange
             <EditableText label={b.section.title} editing={editing} value={b.section.body} onChange={(v) => onChange(setSection(content, b.section.key, v))} className="text-[15px] leading-relaxed" />
             {b.evidence.length > 0 && (
               <Locked editing={editing} origin="client" className="mt-3">
-                <EvidenceFigures evidence={b.evidence} />
+                <EvidenceFigures evidence={b.evidence} overrides={content.imageOverrides} editing={editing} onReplaceImage={onReplaceImage} imageBusy={imageBusy} />
               </Locked>
             )}
           </section>

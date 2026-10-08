@@ -6,7 +6,7 @@ import type {
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
   ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember, ProjectCancellation,
 } from "@/types";
-import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
+import { DOMAINS, QUESTION_SET_VERSION, coreQuestions } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
 import { sourceHash } from "@shared/portfolio/snapshot";
 import { POINTS } from "@shared/portfolio/policy";
@@ -141,7 +141,7 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   if (!project) {
     project = {
       id: ctx.id(), postId: post.id, ownerId: post.authorId, domain: listing.domain, mode: listing.projectMode, status: "RECRUITING",
-      questionSnapshot: { domain: listing.domain, version: QUESTION_SET_VERSION, questions: DOMAINS[listing.domain].questions, takenAt: now },
+      questionSnapshot: { domain: listing.domain, version: QUESTION_SET_VERSION, questions: coreQuestions(listing.domain), takenAt: now },
       createdAt: now,
     };
     db.projects.push(project);
@@ -155,7 +155,7 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
     projectId: project.id, studentId: app.studentId, roleId: role?.id,
     roleLabel: role?.label ?? role?.category ?? DOMAINS[project.domain].label,
     domain: memberDomain,
-    questionSnapshot: { domain: memberDomain, version: QUESTION_SET_VERSION, questions: DOMAINS[memberDomain].questions, takenAt: now },
+    questionSnapshot: { domain: memberDomain, version: QUESTION_SET_VERSION, questions: coreQuestions(memberDomain), takenAt: now },
     isLead: false, applicationId: app.id, joinedAt: now,
   });
   if (role) { role.filled.push(app.studentId); role.filledCount = role.filled.length; }
@@ -416,12 +416,30 @@ export function saveEdit(db: WorkflowDB, a: { draftId: string; actorId: string; 
 /** 학생이 편집할 수 있는 것은 본문뿐. 검증·평가·증빙 원본은 본문에 들어올 수 없다 */
 export function sanitizeContent(c: PortfolioContent): PortfolioContent {
   const s = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+  const design = c.webDesign;
+  const fontFamily = ["sans", "serif", "modern"].includes(design?.fontFamily ?? "") ? design!.fontFamily : "sans";
+  const spacing = ["compact", "balanced", "airy"].includes(design?.spacing ?? "") ? design!.spacing : "balanced";
+  const imageLayout = ["split", "stack"].includes(design?.imageLayout ?? "") ? design!.imageLayout : "split";
+  const accent = ["coral", "blue", "green", "charcoal"].includes(design?.accent ?? "") ? design!.accent : "coral";
   return {
     title: s(c.title, 120),
     summary: s(c.summary, 300),
     sections: (c.sections ?? []).slice(0, 20).map((x) => ({ key: s(x.key, 40), title: s(x.title, 60), body: s(x.body, 4000), evidenceIds: (x.evidenceIds ?? []).filter((i) => typeof i === "string").slice(0, 20) })).filter((x) => x.key),
+    portfolioImages: (c.portfolioImages ?? []).slice(0, 12).map((x) => ({ id: s(x.id, 80), url: s(x.url, 2_000_000), caption: s(x.caption, 180) })).filter((x) => x.id && /^(https:\/\/|data:image\/(?:png|jpeg|webp);base64,)/i.test(x.url)),
+    imageOverrides: Object.fromEntries(Object.entries(c.imageOverrides ?? {}).slice(0, 20).filter(([key, value]) => /^[\w-]{1,80}$/.test(key) && /^(https:\/\/|data:image\/(?:png|jpeg|webp);base64,)/i.test(value.url)).map(([key, value]) => [key, { url: s(value.url, 2_000_000), caption: s(value.caption, 180) }])),
     skills: (c.skills ?? []).map((x) => s(x, 30)).filter(Boolean).slice(0, 12),
     tools: (c.tools ?? []).map((t) => ({ name: s(t.name, 40), why: s(t.why, 300) })).filter((t) => t.name).slice(0, 12),
     templateId: templateIdOf(c.templateId),   // 디자인 선택. 글이 아니라서 내용 검사 대상이 아니다
+    webDesign: {
+      fontFamily,
+      fontScale: Math.max(0.85, Math.min(1.25, Number(design?.fontScale) || 1)),
+      spacing,
+      imageLayout,
+      accent,
+      heroEvidenceId: s(design?.heroEvidenceId, 80) || undefined,
+      imageWidths: Object.fromEntries(Object.entries(design?.imageWidths ?? {}).slice(0, 20).filter(([key]) => /^[\w-]{1,80}$/.test(key)).map(([key, width]) => [key, Math.max(50, Math.min(100, Number(width) || 100))])),
+      imageAligns: Object.fromEntries(Object.entries(design?.imageAligns ?? {}).slice(0, 20).filter(([key, align]) => /^[\w-]{1,80}$/.test(key) && ["left", "center", "right"].includes(align))),
+      sectionOrder: (design?.sectionOrder ?? []).map((key) => s(key, 40)).filter(Boolean).slice(0, 20),
+    },
   };
 }

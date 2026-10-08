@@ -41,7 +41,9 @@ describe("지원·선정", () => {
     const { db, project } = started();
     expect(project.status).toBe("IN_PROGRESS");
     expect(project.startedAt).toBeTruthy();
-    expect(project.questionSnapshot.questions.length).toBeGreaterThan(5);
+    expect(project.questionSnapshot.questions.map((q) => q.stage)).toEqual([
+      "START", "START", "START", "PROGRESS", "PROGRESS", "PROGRESS", "FINISH", "FINISH",
+    ]);
     expect(db.posts[0].status).toBe("in_progress");
     expect(db.members).toHaveLength(1);
   });
@@ -187,11 +189,11 @@ describe("제출·검토", () => {
 describe("답변·성과", () => {
   it("건너뛰기·해당 없음은 값을 비우고 상태를 구분한다", () => {
     const { db, c, project } = started();
-    const a = wf.saveAnswer(db, { projectId: project.id, actorId: "stu", questionId: "d_constraints", status: "SKIPPED", value: "무시될 값" }, c);
+    const a = wf.saveAnswer(db, { projectId: project.id, actorId: "stu", questionId: "d_target", status: "SKIPPED", value: "무시될 값" }, c);
     expect(a.status).toBe("SKIPPED"); expect(a.value).toBe("");
-    const b = wf.saveAnswer(db, { projectId: project.id, actorId: "stu", questionId: "d_before", status: "NOT_APPLICABLE" }, c);
+    const b = wf.saveAnswer(db, { projectId: project.id, actorId: "stu", questionId: "d_after", status: "NOT_APPLICABLE" }, c);
     expect(b.status).toBe("NOT_APPLICABLE");
-    const e = wf.saveAnswer(db, { projectId: project.id, actorId: "stu", questionId: "d_goal", status: "ANSWERED", value: "  " }, c);
+    const e = wf.saveAnswer(db, { projectId: project.id, actorId: "stu", questionId: "d_problem", status: "ANSWERED", value: "  " }, c);
     expect(e.status).toBe("UNANSWERED");
   });
   it("미측정과 0 을 구분한다", () => {
@@ -210,7 +212,7 @@ describe("포트폴리오 스냅샷·초안·편집", () => {
   function completed() {
     const s = submitted();
     wf.saveAnswer(s.db, { projectId: s.project.id, actorId: "stu", questionId: "d_problem", status: "ANSWERED", value: "메뉴가 너무 복잡함" }, s.c);
-    wf.saveAnswer(s.db, { projectId: s.project.id, actorId: "stu", questionId: "d_constraints", status: "SKIPPED" }, s.c);
+    wf.saveAnswer(s.db, { projectId: s.project.id, actorId: "stu", questionId: "d_target", status: "SKIPPED" }, s.c);
     wf.approveVersion(s.db, { versionId: s.v1.id, actorId: "owner", claims, review }, s.c);
     return s;
   }
@@ -229,8 +231,8 @@ describe("포트폴리오 스냅샷·초안·편집", () => {
     expect(d2.reused).toBe(true); expect(d2.draft.id).toBe(d1.draft.id);
     const d3 = wf.addDraft(db, { snapshotId: s1.id, actorId: "stu", generator: "TEMPLATE", content, regenerate: true }, c);
     expect(d3.draft.id).not.toBe(d1.draft.id);
-    expect(s1.data.omitted.find((o) => o.field === "constraints")?.status).toBe("SKIPPED");
-    expect(s1.data.fields.find((f) => f.field === "constraints")).toBeUndefined();
+    expect(s1.data.omitted.find((o) => o.field === "targetUser")?.status).toBe("SKIPPED");
+    expect(s1.data.fields.find((f) => f.field === "targetUser")).toBeUndefined();
   });
   it("재생성해도 학생 편집본은 그대로 남는다", () => {
     const { db, c, project } = completed();

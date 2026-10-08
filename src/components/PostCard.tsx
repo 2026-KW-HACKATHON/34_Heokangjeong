@@ -24,7 +24,7 @@ export default function PostCard({ post, authorName, distance }: { post: Post; a
       </div>
       <div className="mt-4 flex items-center justify-between gap-4">
         <div className="sub flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-          <span>{post.durationDays}일 활동</span>
+          <span>{post.durationDays > 0 ? `${post.durationDays}일 활동` : "기간은 계약 시 협의"}</span>
           {post.reward && <><span aria-hidden="true">·</span><span className="break-words">{post.compensationType === "PAID" ? "기존 보상" : "가게 쿠폰"} · {post.reward}</span></>}
         </div>
         <span aria-hidden="true" className="post-card-arrow"><Icon name="arrow" width={17} height={17} /></span>

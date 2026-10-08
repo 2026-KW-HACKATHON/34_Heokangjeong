@@ -88,9 +88,10 @@ function PostDetail() {
           <p className="sub mt-1 text-sm">{author?.name} · {post.address}{user && <> · 📍 {formatDistance(distanceM(user.location, post.location))}</>}</p>
           <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed">{post.description}</p>
           <dl className="mt-4 grid grid-cols-2 gap-2 text-center text-sm">
-            <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">기간</dt><dd className="font-semibold">{post.durationDays}일</dd></div>
-            <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">{listing.compensationType === "PAID" ? "기존 보상" : "가게 쿠폰"}</dt><dd className="truncate font-semibold">{listing.compensationType === "PAID" && listing.paidAmount ? `${listing.paidAmount.toLocaleString()}원` : listing.compensationDescription || "미기재"}</dd></div>
+            <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">기간</dt><dd className="font-semibold">{post.durationDays > 0 ? `${post.durationDays}일` : "계약 시 협의"}</dd></div>
+            <div className="rounded-xl bg-[var(--line)] p-2"><dt className="sub text-xs">{listing.compensationType === "PAID" ? post.urgent ? "긴급 추가수당" : "기존 보상" : "가게 쿠폰"}</dt><dd className="truncate font-semibold">{listing.compensationType === "PAID" && listing.paidAmount ? `${listing.paidAmount.toLocaleString()}원` : listing.compensationDescription || "미기재"}</dd></div>
           </dl>
+          {post.urgent && <p className="mt-2 text-sm">가게 쿠폰: {listing.compensationDescription || post.reward || "미기재"}</p>}
         </div>
 
         <div className="card text-sm">
@@ -133,10 +134,8 @@ function PostDetail() {
             <h3 className="mb-2 font-bold">{mine ? "지원 완료" : "지원하기"}</h3>
             {mine ? (
               <>
-                <p className="sub text-sm">&ldquo;{mine.message}&rdquo; · {mine.status === "accepted" ? "선정 확정 🎉" : mine.status === "rejected" ? "이번에는 함께하지 못해요" : mine.shortlistedAt ? "선정됐어요 · 대화하며 계약서를 확정하면 시작해요" : mine.shortlistCancelledAt ? "선정이 취소됐어요 · 다시 선정되면 대화할 수 있어요" : "확인 대기 중"}</p>
-                {mine.status === "accepted" || mine.shortlistedAt
-                  ? <Link href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">💬 {author?.name ?? "가게"}와 대화하기</Link>
-                  : mine.status === "pending" && <p className="sub mt-3 rounded-xl bg-[var(--line)] px-3 py-2 text-xs">사장님이 선정하면 대화하며 계약서를 쓸 수 있어요.</p>}
+                <p className="sub text-sm">&ldquo;{mine.message}&rdquo; · {mine.status === "accepted" ? "선정 확정 🎉" : mine.status === "rejected" ? "이번에는 함께하지 못해요" : mine.shortlistedAt ? "선정됐어요 · 대화하며 계약서를 확정하면 시작해요" : mine.shortlistCancelledAt ? "선정이 취소됐어요 · 채팅은 계속할 수 있어요" : "확인 대기 중"}</p>
+                {(mine.status === "accepted" || mine.status === "pending") && <Link href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">채팅창으로 가기</Link>}
               </>
             ) : (
               <>
@@ -202,6 +201,7 @@ function PostDetail() {
                     <Link href={`/chats/room?id=${a.id}`} className="btn btn-primary px-2 py-2">💬 대화 · 계약서</Link>
                     <button onClick={() => cancelSelect(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">선정 취소</button>
                   </div> : a.status === "pending" && !individualDecisionComplete ? <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                    <Link href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">채팅창으로 가기</Link>
                     <button onClick={() => select(a)} disabled={act.busy || (!post.isTeam && shortlisting)} title={!post.isTeam && shortlisting ? "선정 중인 지원자가 있어요" : undefined} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
                     <button onClick={() => reject(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
                   </div> : <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
@@ -211,7 +211,7 @@ function PostDetail() {
                 </li>); })}
               {apps.length === 0 && <li className="sub">아직 지원자가 없어요</li>}
             </ul>
-            <p className="sub mt-2 text-xs">선정하면 그 학생과 대화하며 계약서를 써요. 계약서를 양쪽이 확정하면 선정이 확정되고 프로젝트가 시작돼요. 대화하다 맞지 않으면 선정을 취소하고 다른 지원자를 선정할 수 있어요{!post.isTeam && " (한 번에 한 명)"}.{individualDecisionComplete && " 다시 시험하려면 ‘나 → 데모 데이터 초기화’를 이용하세요."}</p>
+            <p className="sub mt-2 text-xs">지원 직후부터 학생과 대화할 수 있어요. 선정하면 계약서를 써요. 계약서를 양쪽이 확정하면 선정이 확정되고 프로젝트가 시작돼요. 대화하다 맞지 않으면 선정을 취소하고 다른 지원자를 선정할 수 있어요{!post.isTeam && " (한 번에 한 명)"}.{individualDecisionComplete && " 다시 시험하려면 ‘나 → 데모 데이터 초기화’를 이용하세요."}</p>
             <ErrorText text={act.error} />
           </div>
         )}

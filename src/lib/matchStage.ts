@@ -26,8 +26,8 @@ export function matchStage(i: StageInput): MatchStage {
   if (i.projectStatus === "COMPLETED") return "COMPLETED";
   if (i.projectStatus === "CANCELLED") return "CANCELLED";
   if (i.applicationStatus === "rejected") return "REJECTED";
-  // 제출·보완 단계면 계약서와 상관없이 이미 작업이 진행 중이다 (예전 프로젝트 포함)
-  if (i.projectStatus === "REVIEW_PENDING" || i.projectStatus === "REVISION_REQUESTED") return "IN_PROGRESS";
+  // 프로젝트가 시작되면 추가 채팅 여부와 무관하게 진행 중이다.
+  if (i.projectStatus === "IN_PROGRESS" || i.projectStatus === "REVIEW_PENDING" || i.projectStatus === "REVISION_REQUESTED") return "IN_PROGRESS";
   if (!i.agreementFinalizedAt) return i.shortlisted ? "WAITING" : i.applicationStatus === "accepted" ? "WAITING" : i.shortlistCancelled ? "SHORTLIST_CANCELLED" : "APPLIED";
-  return i.lastMessageAt && i.lastMessageAt > i.agreementFinalizedAt ? "IN_PROGRESS" : "MATCHED";
+  return "IN_PROGRESS";
 }

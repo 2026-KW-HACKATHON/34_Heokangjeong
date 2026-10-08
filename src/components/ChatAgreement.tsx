@@ -8,7 +8,7 @@ import "./agreement.css";
 
 const initialTerms = (post: Post): AgreementTerms => ({ startDate: "", endDate: "", scope: "", deliverables: post.expectedDeliverables?.join("\n") ?? "", acceptance: post.completionCriteria ?? "", coupon: post.compensationDescription || post.reward || "", revisions: post.revisionLimit ?? 2, exclusions: "", handoff: "원본 파일과 사용 안내를 채팅으로 전달" });
 /** 확정 전: 양쪽이 고치고 확인 → 확정 = 선정 확정. 확정 뒤: 수정 제안 → 상대 수락(다시 확정) / 거절·철회(기존 유지) */
-export default function ChatAgreement({ application, post, actorId, studentName, ownerName, onChange, autoOpen, canPropose }: { application: Application; post: Post; actorId: string; studentName: string; ownerName: string; onChange?: () => void; autoOpen?: boolean; canPropose?: boolean }) {
+export default function ChatAgreement({ application, post, actorId, studentName, ownerName, onChange, autoOpen, canPropose, openRequest }: { application: Application; post: Post; actorId: string; studentName: string; ownerName: string; onChange?: () => void; autoOpen?: boolean; openRequest?: number; canPropose?: boolean }) {
   const [agreement,setAgreement] = useState<WorkAgreement | null>(null);
   const [loaded,setLoaded] = useState(false);
   const [loadError,setLoadError] = useState("");
@@ -40,7 +40,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   }
   // 프로젝트 화면의 '계약서 수정 제안' 에서 왔으면 바로 연다
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (autoOpen) open(); }, [autoOpen]);
+  useEffect(() => { if (autoOpen || openRequest) open(); }, [autoOpen, openRequest]);
   const change = <K extends keyof AgreementTerms>(key:K,value:AgreementTerms[K]) => setTerms(t=>({...t,[key]:value}));
   function next() {
     setError("");

@@ -83,7 +83,7 @@ function SkillsInput({ content, onChange }: { content: PortfolioContent; onChang
  * 증빙을 웹 포트폴리오처럼 보여 준다: 이미지는 크게(원본 비율) + 아래 작은 캡션, 파일·링크는 깔끔한 링크 줄.
  * 원본 그대로이고 고칠 수 없다 (잠금은 바깥 Locked 가 표시).
  */
-export function EvidenceFigures({ evidence, columns = 1 }: { evidence: Evidence[]; columns?: 1 | 2 }) {
+export function EvidenceFigures({ evidence, columns = 1, overrides, editing = false, onReplaceImage, imageBusy = false }: { evidence: Evidence[]; columns?: 1 | 2; overrides?: PortfolioContent["imageOverrides"]; editing?: boolean; onReplaceImage?: (evidenceId: string, file: File) => Promise<void>; imageBusy?: boolean }) {
   const images = evidence.filter((e) => e.url && isImage(e));
   const others = evidence.filter((e) => !(e.url && isImage(e)));
   return (
@@ -92,11 +92,12 @@ export function EvidenceFigures({ evidence, columns = 1 }: { evidence: Evidence[
         <div className={`pf-fig-grid ${columns === 2 && images.length > 1 ? "pf-fig-grid-2" : ""}`}>
           {images.map((e) => (
             <figure key={e.id} className="pf-fig">
-              <a href={e.url} target="_blank" rel="noreferrer" aria-label={`${EVIDENCE_LABEL[e.type]} 원본 크게 보기`}>
+              <a href={overrides?.[e.id]?.url ?? e.url} target="_blank" rel="noreferrer" aria-label={`${EVIDENCE_LABEL[e.type]} 사진 크게 보기`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={e.url} alt={e.description || EVIDENCE_LABEL[e.type]} loading="lazy" className="pf-fig-img" />
+                <img src={overrides?.[e.id]?.url ?? e.url} alt={overrides?.[e.id]?.caption || e.description || EVIDENCE_LABEL[e.type]} loading="lazy" className="pf-fig-img" />
               </a>
-              <EvidenceCaption e={e} />
+              {overrides?.[e.id] ? <figcaption className="pf-fig-cap"><span className="pf-fig-kind">학생이 바꾼 포트폴리오 사진</span><span>{overrides[e.id].caption}</span><a href={e.url} target="_blank" rel="noreferrer">검증 원본 보기</a></figcaption> : <EvidenceCaption e={e} />}
+              {editing && onReplaceImage && <label className="pf-image-replace">이 사진 교체<input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy} onChange={event => { const file = event.target.files?.[0]; if (file) void onReplaceImage(e.id, file); event.target.value = ""; }} /></label>}
             </figure>
           ))}
         </div>
