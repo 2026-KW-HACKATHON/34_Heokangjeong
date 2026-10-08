@@ -39,6 +39,7 @@ try {
  await page.getByRole('button',{name:'완료',exact:true}).click();
  await page.getByRole('dialog',{name:'튜토리얼 완료',exact:true}).waitFor();
  await page.getByText(/상인 입장에서 Gemini 공고 작성/).waitFor();
+ await page.waitForURL(base+'/');
  assert.equal(await page.evaluate(()=>sessionStorage.getItem('wolgye-demo-tour')),null);
  await page.getByRole('button',{name:'자유롭게 둘러보기',exact:true}).click();
  await page.getByRole('dialog',{name:'튜토리얼 완료',exact:true}).waitFor({state:'hidden'});

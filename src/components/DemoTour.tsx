@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getDemoTour, saveDemoTour, type DemoRole, type DemoTourState } from "@/lib/demoTour";
 import { useSession } from "@/lib/session";
 
@@ -39,6 +39,7 @@ function matchesStep(step: Step, path: string | null) {
 export default function DemoTour() {
   const { mode, loading } = useSession();
   const path = usePathname();
+  const router = useRouter();
   const [tour, setTour] = useState<DemoTourState | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [clicked, setClicked] = useState(false);
@@ -54,6 +55,7 @@ export default function DemoTour() {
     return () => observer.disconnect();
   }, [tipElement]);
   useEffect(() => { setTour(getDemoTour()); }, []);
+  useEffect(() => { if (completed && path !== "/") router.replace("/"); }, [completed, path, router]);
   useEffect(() => { document.body.classList.toggle("guided-demo", !!tour || completed); return () => document.body.classList.remove("guided-demo"); }, [tour, completed]);
   const finish = useCallback(() => { saveDemoTour(null); setTour(null); setRect(null); setCompleted(false); }, []);
   const baseStep = tour && steps[tour.role][tour.step];
