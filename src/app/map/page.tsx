@@ -15,7 +15,7 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, load
 export default function MapPage() {
   const { user, users } = useSession();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [hideDone, setHideDone] = useState(true);   // 끝난 공고까지 보이면 지도가 지저분하다
+  const [onlyOpen, setOnlyOpen] = useState(true);   // 지도는 '지금 지원할 수 있는 공고'를 찾는 곳이다
   const [currentLocation, setCurrentLocation] = useState<GeoPoint | null>(null);
   const [locationMessage, setLocationMessage] = useState("");
   const [locating, setLocating] = useState(false);
@@ -57,11 +57,11 @@ export default function MapPage() {
   }, []);
   useEffect(() => { findCurrentLocation(); }, [findCurrentLocation]);
 
-  const shown = hideDone ? posts.filter((p) => p.status !== "done") : posts;
+  const shown = onlyOpen ? posts.filter((p) => p.status === "open") : posts;
   const mapLocation = currentLocation ?? user?.location;
   return (
     <>
-      <TopBar title="주변 프로젝트" right={<label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} />완료 숨김</label>} />
+      <TopBar title="주변 프로젝트" right={<label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} />모집 중만</label>} />
       <div className="sub flex gap-3 px-4 pb-2 text-xs"><span>🔴 모집 중</span><span>🟡 진행 중</span><span>🟢 해결 완료</span><span className="ml-auto">🔵 현재 위치</span></div>
       <p role="status" className="sub min-h-6 px-4 pb-2 text-xs">{locationMessage}</p>
       {loadError && <p role="alert" className="mx-4 mb-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
