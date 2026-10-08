@@ -12,7 +12,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 body { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23000' opacity='.035' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E"); }
 .bottom-tab-bar { width: calc(100% - 24px); max-width: 456px; bottom: max(12px, env(safe-area-inset-bottom)); border: 1px solid var(--line); border-radius: 24px; padding: 2px 4px; }
 /* 하단 메뉴 높이. 채팅 입력창처럼 메뉴 위에 붙는 요소가 이 값을 쓴다 */
-:root { --bottom-tab-h: calc(84px + env(safe-area-inset-bottom)); }
+:root { --bottom-tab-h: calc(56px + env(safe-area-inset-bottom)); }
 .glass-nav.bottom-tab-bar { box-shadow: 0 6px 24px #20212412, inset 0 1px 0 #ffffffcc; }
 .glass-nav { background: rgba(255,255,255,.78); backdrop-filter: blur(20px) saturate(.7); box-shadow: 0 -1px 0 rgba(255,255,255,.9), 0 -8px 30px rgba(0,0,0,.025); }
 .silver-badge { display: inline-flex; border: 1px solid #d5d6d9; border-radius: 999px; padding: 5px 10px; color: #45474d; background: linear-gradient(115deg,#e4e5e7 0%,#fafafa 42%,#e7e8ea 75%,#f4f4f5 100%); box-shadow: inset 0 1px 0 white; }
@@ -314,7 +314,7 @@ body[data-home-bars="hidden"] .category-dock { transform: translateY(calc(-100% 
 .portfolio-sheet { background: #fff; box-shadow: 0 12px 40px #25252509; }
 .portfolio-identity { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0; overflow: visible; border: 0; border-radius: 0; box-shadow: none; background: #eee8e1; }
 .portfolio-identity-main { display: contents; }
-.portfolio-identity-text { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 15px 22px; background: white; }
+.portfolio-identity-text { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 22px; background: white; }
 .portfolio-identity-text h1 { font-size: 23px; letter-spacing: .02em; }
 .portfolio-identity-dept { margin: 0; font-size: 10px; text-align: right; }
 .portfolio-identity-avatar { grid-column: 2; grid-row: 2; align-self: start; width: auto; height: auto; aspect-ratio: 4 / 4.6; margin: 14px 20px 16px 4px; border-radius: 0; background: #c7b79a; color: #fff; font-size: 48px; }
@@ -325,11 +325,13 @@ body[data-home-bars="hidden"] .category-dock { transform: translateY(calc(-100% 
 .portfolio-identity-about > p { font-size: 11px; line-height: 1.85; }
 .profile-specialties { margin-top: 17px; }.profile-specialties h3 { font-size: 11px; font-weight: 700; }.profile-specialties p { margin-top: 8px; font-size: 10px; line-height: 1.8; }.profile-specialties span { display: block; margin-top: 8px; color: #8c8277; font-size: 9px; line-height: 1.7; }
 .portfolio-sheet > .card { margin: 0; padding: 20px 22px; border: 0; border-radius: 0; box-shadow: none; }.portfolio-sheet > .card h2 { font-size: 12px; }.portfolio-sheet > .card dl { margin-top: 10px; }.portfolio-sheet > .card dl > div { border-radius: 0; padding: 0; background: transparent; }.portfolio-sheet > .card dt { font-size: 10px; }.portfolio-sheet > .card dd { font-size: 14px; }.portfolio-sheet > .card > p { font-size: 9px; }
-.portfolio-sheet > .work-field-summary { padding-top: 12px; padding-bottom: 10px; }
-.portfolio-sheet > .work-field-summary dl { grid-template-columns: minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1.4fr); gap: 8px; margin-top: 8px; }
+.portfolio-sheet > .work-field-summary { padding-top: 6px; padding-bottom: 6px; }
+.portfolio-sheet > .work-field-summary h2 { line-height: 16px; }
+.portfolio-sheet > .work-field-summary dl { grid-template-columns: minmax(0, .8fr) minmax(0, .8fr) minmax(0, 1.4fr); gap: 8px; margin-top: 4px; }
 .portfolio-sheet > .work-field-summary dl > div:last-child { grid-column: auto; }
-.portfolio-sheet > .work-field-summary dd { margin-top: 2px; overflow-wrap: anywhere; }
-.portfolio-sheet > .work-field-summary > p { margin-top: 6px; }
+.portfolio-sheet > .work-field-summary dt { line-height: 12px; }
+.portfolio-sheet > .work-field-summary dd { margin-top: 2px; line-height: 18px; overflow-wrap: anywhere; }
+.portfolio-sheet > .work-field-summary > p { margin-top: 3px; line-height: 12px; }
 .portfolio-sheet .portfolio-feed { padding: 4px 20px 20px; }.portfolio-feed-heading h2 { font-size: 14px; }.portfolio-feed-heading p { font-size: 8px; }.portfolio-feed-heading > span { font-size: 9px; }
 .portfolio-feed-grid { gap: 9px; }.portfolio-feed-tile { display: block; aspect-ratio: auto; background: transparent; color: #343333; }.portfolio-feed-tile img { aspect-ratio: 1; height: auto; object-fit: cover; }.portfolio-feed-tile::after { display: none; }.portfolio-feed-tile-caption { position: static; color: inherit; padding: 8px 0; gap: 4px; }.portfolio-feed-tile-caption strong { font-size: 10px; }.portfolio-feed-tile-caption small { font-size: 8px; color: #978773; }.portfolio-feed-placeholder { position: static; aspect-ratio: 1; background: #ece7e0; }
 .portfolio-sample-note { padding: 0 20px 18px; font-size: 9px; color: #938a80; }
