@@ -2,7 +2,7 @@
 // 프로젝트·증빙·검증·포트폴리오 타입은 서버 함수와 함께 쓰려고 supabase/functions/_shared/portfolio/types.ts 에 있고 여기서 다시 내보낸다.
 import type {
   ActivityLog, Badge, ClientReview, ClientVerification, CompensationType, DomainKey, Evidence, MemberVerification, Outcome, PortfolioDraft,
-  PortfolioEditedVersion, PortfolioSourceSnapshot, Project, ProjectAnswer, ProjectMember, ProjectMode, SubmissionVersion, TierScoreEvent,
+  PortfolioEditedVersion, PortfolioSourceSnapshot, Project, ProjectAnswer, ProjectMember, ProjectMode, ProjectStatus, SubmissionVersion, TierScoreEvent,
 } from "@shared/portfolio/types";
 export type * from "@shared/portfolio/types";
 export type Role = "student" | "resident" | "admin";
@@ -160,7 +160,11 @@ export interface ChatMessage {           // 채팅 메시지. 채팅방 = 지원
   createdAt: string;
 }
 
-export interface ChatRoom { application: Application; post: Post; other: User | undefined; last?: ChatMessage }
+export interface ChatRoom {
+  application: Application; post: Post; other: User | undefined; last?: ChatMessage;
+  /** 단계 표시용 (src/lib/matchStage.ts): 약속서 확정 시각, 이 학생이 들어간 프로젝트 */
+  agreementFinalizedAt?: string | null; projectId?: string; projectStatus?: ProjectStatus;
+}
 
 // ── 검증형 포트폴리오 파이프라인 ─────────────────────────────────────────────
 export interface Listing {

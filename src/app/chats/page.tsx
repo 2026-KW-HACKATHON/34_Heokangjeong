@@ -7,8 +7,8 @@ import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { useUnreadChatCounts } from "@/lib/useUnreadChats";
 import type { ChatRoom } from "@/types";
+import { MATCH_STAGE_LABEL, matchStage } from "@/lib/matchStage";
 
-const STATUS = { accepted: "매칭됨", rejected: "거절됨" } as const;
 
 /** 채팅 목록: 내가 지원했거나, 내 공고에 들어온 지원서마다 채팅방 하나 */
 export default function Chats() {
@@ -27,13 +27,18 @@ export default function Chats() {
           <Link key={r.application.id} href={`/chats/room?id=${r.application.id}`} className="card flex flex-col gap-1 active:opacity-80">
             <div className="flex items-center justify-between">
               <b>{r.other?.name ?? "알 수 없음"}</b>
-              {(unreadCounts[r.application.id] ?? 0) > 0 ? (
-                <span className="min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-4 text-white" aria-label={`읽지 않은 메시지 ${unreadCounts[r.application.id]}개`}>
-                  {unreadCounts[r.application.id] > 99 ? "99+" : unreadCounts[r.application.id]}
-                </span>
-              ) : r.application.status !== "pending" ? (
-                <span className={`chip ${r.application.status === "accepted" ? "chip-on" : ""}`}>{STATUS[r.application.status]}</span>
-              ) : null}
+              {/* 단계(매칭 대기 → 매칭됨 → 진행 중 → 완료 · 거절됨 · 취소됨)와 읽지 않은 수를 함께 */}
+              <span className="flex items-center gap-1.5">
+                {(() => {
+                  const stage = matchStage({ applicationStatus: r.application.status, projectStatus: r.projectStatus, agreementFinalizedAt: r.agreementFinalizedAt, lastMessageAt: r.last?.createdAt });
+                  return <span className={`chip ${stage === "MATCHED" || stage === "IN_PROGRESS" ? "chip-on" : ""}`}>{MATCH_STAGE_LABEL[stage]}</span>;
+                })()}
+                {(unreadCounts[r.application.id] ?? 0) > 0 && (
+                  <span className="min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-4 text-white" aria-label={`읽지 않은 메시지 ${unreadCounts[r.application.id]}개`}>
+                    {unreadCounts[r.application.id] > 99 ? "99+" : unreadCounts[r.application.id]}
+                  </span>
+                )}
+              </span>
             </div>
             <p className="sub truncate text-xs">{r.post.title}</p>
             <p className="truncate text-sm">{r.last?.body ?? r.application.message}</p>

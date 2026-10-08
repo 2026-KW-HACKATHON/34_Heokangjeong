@@ -253,6 +253,20 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         const other = r.student_id === userId ? await repo.getUser(post.authorId) : toUser(r.student);
         rooms.push({ application: toApp(r), post, other, last: r.messages?.[0] ? toMsg(r.messages[0]) : undefined });
       }
+      // 단계 표시용: 약속서 확정 시각, 이 학생이 들어간 프로젝트 (읽기 실패해도 목록은 보여 준다)
+      try {
+        const appIds = rooms.map((r) => r.application.id), postIds = [...new Set(rooms.map((r) => r.post.id))];
+        const [agreementRows, projectRows] = await Promise.all([
+          appIds.length ? db.from("chat_agreements").select("application_id, finalized_at").in("application_id", appIds).then(ok) : [],
+          postIds.length ? db.from("projects").select("id, post_id, status, members:project_members(student_id)").in("post_id", postIds).then(ok) : [],
+        ]);
+        const finalized = new Map((agreementRows as Row[]).map((r) => [r.application_id, r.finalized_at as string | null]));
+        for (const room of rooms) {
+          room.agreementFinalizedAt = finalized.get(room.application.id) ?? null;
+          const project = (projectRows as Row[]).find((p) => p.post_id === room.post.id && (p.members ?? []).some((m: Row) => m.student_id === room.application.studentId));
+          if (project) { room.projectId = project.id; room.projectStatus = project.status; }
+        }
+      } catch { /* 단계 정보 없이 '매칭 대기'로 보인다 */ }
       const at = (x: ChatRoom) => x.last?.createdAt ?? x.application.createdAt;
       return rooms.sort((a, b) => at(b).localeCompare(at(a)));
     },

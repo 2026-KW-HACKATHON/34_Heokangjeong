@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import TopBar from "@/components/TopBar";
 import PostCard from "@/components/PostCard";
 import EmptyState from "@/components/EmptyState";
@@ -10,14 +10,18 @@ import { recommendScore } from "@/lib/recommend";
 import type { Post } from "@/types";
 import Icon from "@/components/Icon";
 import TalentConnection, { categoryMatches, type HomeCategory } from "@/components/home/TalentConnection";
+import { HOME_CATEGORIES } from "@/components/home/categories";
+import { useUrlFlag, useUrlState } from "@/lib/useUrlState";
 import ConnectionWorld from "@/components/home/ConnectionWorld";
 
 /** 홈: ① 맞춤 공고 추천 피드. 학생이면 적합도 순, 주민이면 내 공고 위주. */
-export default function Home() {
+// 분야·'모집 중만'·탭은 주소에 둔다 → 공고를 보고 뒤로 와도 고른 그대로
+export default function HomePage() { return <Suspense fallback={null}><Home /></Suspense>; }
+function Home() {
   const { user, users } = useSession();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [cat, setCat] = useState<HomeCategory>("전체");
-  const [onlyOpen, setOnlyOpen] = useState(true);
+  const [cat, setCat] = useUrlState<HomeCategory>("cat", "전체", ["전체", ...HOME_CATEGORIES.map((c) => c.value)]);
+  const [onlyOpen, setOnlyOpen] = useUrlFlag("open", true);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,7 +35,7 @@ export default function Home() {
   useEffect(() => { repo.listPosts().then(setPosts).catch(() => setError("공고를 불러오지 못했어요. 잠시 후 새로고침해 주세요.")).finally(() => setLoading(false)); }, []);
   const name = (id: string) => users.find((u) => u.id === id)?.name;
   // 사장님: 내 공고 / 동네 공고, 학생: 추천 공고 / 내가 지원한 공고
-  const [mineOnly, setMineOnly] = useState(true);
+  const [mineOnly, setMineOnly] = useUrlFlag("mine", true);
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (user?.role !== "student") return;
