@@ -27,6 +27,9 @@ body { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xm
 .category-scroll { scrollbar-width: none; }
 .category-scroll::-webkit-scrollbar { display: none; }
 .leaflet-container { font: inherit; }
+/* 벡터 지도(OpenFreeMap Positron)가 이미 연한 색이라 보정은 하지 않는다.
+   벡터가 실패해 OSM 기본 타일로 돌아갔을 때만 채도를 낮춰 톤을 맞춘다. */
+.leaflet-tile-pane img { filter: saturate(.45) brightness(1.06) contrast(.92); }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 :is(button, a, input, select, textarea):focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
 .btn { min-height: 48px; gap: 8px; border-radius: 999px; }

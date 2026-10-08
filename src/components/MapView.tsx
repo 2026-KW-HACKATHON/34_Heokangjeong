@@ -10,6 +10,34 @@ import { formatDistance, distanceM } from "@/lib/geo";
 const COLOR: Record<Post["status"], string> = { open: "#f04452", in_progress: "#ffb331", done: "#2ac769" };
 const meIcon = L.divIcon({ className: "", html: '<div style="width:16px;height:16px;border-radius:50%;background:#3182f6;border:3px solid white;box-shadow:0 0 0 2px #3182f6"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
 
+/**
+ * OpenFreeMap(Positron) 벡터 지도. API 키가 필요 없고 OpenStreetMap 자료라 한국 지명·골목이 다 나온다.
+ * 실패하면 바깥의 기본 타일(OSM)이 그대로 보이도록 겹쳐서 올린다.
+ */
+function VectorBasemap({ onFail }: { onFail: () => void }) {
+  const map = useMap();
+  useEffect(() => {
+    let layer: L.Layer | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const maplibre = await import("maplibre-gl");
+        await import("@maplibre/maplibre-gl-leaflet");
+        if (cancelled) return;
+        // 플러그인이 L.maplibreGL 을 더해 준다
+        layer = (L as unknown as { maplibreGL: (o: unknown) => L.Layer }).maplibreGL({
+          style: "https://tiles.openfreemap.org/styles/positron",
+          maplibreOptions: { maplibre },
+          attribution: '&copy; OpenStreetMap, OpenFreeMap',
+        });
+        layer!.addTo(map);
+      } catch { if (!cancelled) onFail(); }
+    })();
+    return () => { cancelled = true; if (layer) map.removeLayer(layer); };
+  }, [map, onFail]);
+  return null;
+}
+
 function Recenter({ center, request }: { center: GeoPoint; request: number }) {
   const map = useMap();
   useEffect(() => { map.setView([center.lat, center.lng], map.getZoom()); }, [center.lat, center.lng, request, map]);
@@ -24,18 +52,21 @@ function Recenter({ center, request }: { center: GeoPoint; request: number }) {
 /** OpenStreetMap + Leaflet. API 키 없음. 카카오/네이버 지도로 바꾸려면 이 컴포넌트만 교체. */
 export default function MapView({ posts, me, center, recenterRequest = 0 }: { posts: Post[]; me?: GeoPoint; center: GeoPoint; recenterRequest?: number }) {
   const [tilesFailed, setTilesFailed] = useState(false);
+  const [vectorFailed, setVectorFailed] = useState(false);   // 벡터 지도가 안 되면 기본 타일로 돌아간다
   return (
     <div className="relative h-full w-full">
       <MapContainer center={[center.lat, center.lng]} zoom={15} className="h-full w-full" scrollWheelZoom>
         <Recenter center={center} request={recenterRequest} />
-        {/* 한국 지명·골목이 가장 촘촘한 OpenStreetMap 기본 타일. 키가 필요 없다.
-            (CARTO·Esri 는 각각 API 키 요구·한국 데이터 없음으로 쓸 수 없었다) */}
-        <TileLayer
-          attribution='&copy; OpenStreetMap'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
-          eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }}
-        />
+        {/* 밑그림: OpenFreeMap 벡터(연한 Positron). 실패하면 아래 OSM 기본 타일이 그대로 보인다 */}
+        <VectorBasemap onFail={() => setVectorFailed(true)} />
+        {vectorFailed && (
+          <TileLayer
+            attribution='&copy; OpenStreetMap'
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+            eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }}
+          />
+        )}
         {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
         {posts.map((p) => (
           <CircleMarker key={p.id} center={[p.location.lat, p.location.lng]} radius={11} pathOptions={{ color: "white", weight: 2, fillColor: COLOR[p.status], fillOpacity: 0.95 }}>
