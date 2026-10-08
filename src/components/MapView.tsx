@@ -156,7 +156,16 @@ function spread(posts: Post[]) {
 
 const normalize = (name: string) => name.replace(/\s|\(.*?\)/g, "").toLowerCase();
 
-function ShopLayer({ postByShop }: { postByShop: Map<string, Post> }) {
+/** 가게 이름 맞추기: "맥도날드"(지도) 와 "맥도날드 광운대역점"(가게 계정)처럼 한쪽이 다른 쪽을 품으면 같은 가게로 본다 */
+function findPost(poiName: string, index: [string, Post][]) {
+  const key = normalize(poiName);
+  if (key.length < 2) return undefined;
+  const exact = index.find(([name]) => name === key);
+  if (exact) return exact[1];
+  return index.find(([name]) => (name.includes(key) || key.includes(name)) && Math.min(name.length, key.length) >= 3)?.[1];
+}
+
+function ShopLayer({ postByShop }: { postByShop: [string, Post][] }) {
   const { zoom, bounds } = useViewport();
   const all = useShops(zoom >= 16);
   // 보이는 범위 안에서만 추려 그린다 (1,300곳을 모두 그리면 지도가 버벅인다)
@@ -167,7 +176,7 @@ function ShopLayer({ postByShop }: { postByShop: Map<string, Post> }) {
   if (zoom < 16) return null;
   const withLabel = zoom >= 17;      // 많이 확대했을 때만 이름까지 (글자가 뭉치지 않게)
   return <>{shops.map((poi) => (
-    <ShopMarker key={poi.id} poi={poi} withLabel={withLabel} post={postByShop.get(normalize(poi.name))} />
+    <ShopMarker key={poi.id} poi={poi} withLabel={withLabel} post={findPost(poi.name, postByShop)} />
   ))}</>;
 }
 
@@ -251,12 +260,12 @@ export default function MapView({ posts, me, center, recenterRequest = 0, author
   { posts: Post[]; me?: GeoPoint; center: GeoPoint; recenterRequest?: number; authorName?: (id: string) => string | undefined }) {
   // 가게 이름으로 공고를 연결한다 (모집 중인 공고를 먼저)
   const postByShop = useMemo(() => {
-    const map = new Map<string, Post>();
+    const pairs: [string, Post][] = [];
     for (const p of [...posts].sort((a, b) => (a.status === "open" ? -1 : 1) - (b.status === "open" ? -1 : 1))) {
       const shop = authorName?.(p.authorId);
-      if (shop) map.set(normalize(shop), p);
+      if (shop) pairs.push([normalize(shop), p]);
     }
-    return map;
+    return pairs;
   }, [posts, authorName]);
   const [tilesFailed, setTilesFailed] = useState(false);
   const [vector, setVector] = useState<"loading" | "ok" | "fail">("loading");   // 벡터가 실패하면 기본 지도 그림으로 돌아간다
