@@ -45,5 +45,6 @@ begin
   );
 end $$;
 
-revoke all on function public.get_public_portfolio(uuid, uuid) from public;
+-- 피드처럼 로그인한 사용자만 (Supabase 는 새 함수를 anon 에도 기본 허용하므로 따로 뺀다)
+revoke all on function public.get_public_portfolio(uuid, uuid) from public, anon;
 grant execute on function public.get_public_portfolio(uuid, uuid) to authenticated;
