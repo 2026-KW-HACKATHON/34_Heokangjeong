@@ -548,3 +548,20 @@ body:has(.pf-web-breakout.is-fullscreen) .pf-pill { display: none; }
 .pf-web-photo-row{display:grid;grid-template-columns:54px minmax(0,1fr) auto auto;align-items:center;gap:7px;margin-bottom:8px}.pf-web-photo-row img{width:54px;height:54px;object-fit:cover;border-radius:6px}.pf-web-photo-row input{min-width:0}.pf-web-photo-row label,.pf-web-photo-row button{font-size:11px}.pf-web-photo-add{margin-bottom:14px;font-size:12px;font-weight:700}
 .pf-image-replace{display:inline-block;margin-top:9px;padding:8px 11px;border-radius:7px;background:#eaf2ee;color:#275b45;font-size:12px;font-weight:700;cursor:pointer}.pf-image-replace input{display:none}
 .pf-web-evidence-edit{display:grid;grid-template-columns:86px minmax(0,1fr);gap:12px;align-items:start;padding:12px;margin:0 0 10px;border:1px solid #dce2df;border-radius:10px;background:#fff}.pf-web-evidence-edit img{width:86px;height:86px;object-fit:contain;background:#f3f4f3;border-radius:6px}.pf-web-evidence-edit strong{display:block;margin-bottom:8px;font-size:12px;line-height:1.4}.pf-web-evidence-edit label,.pf-web-evidence-edit button{display:inline-block;margin:0 6px 6px 0;padding:7px 9px;border-radius:6px;background:#e9eeeb;font-size:11px;font-weight:700;cursor:pointer}.pf-web-evidence-edit label input{display:none}
+
+/* 데스크톱 안내는 휴대폰 비율로 보여 주고, 긴 내용은 프레임 안에서 스크롤한다. */
+@media (min-width: 700px) {
+  body.guided-demo .bottom-tab-spacer { display: none; }
+  body.guided-demo .app-shell {
+    width: 390px; max-width: 390px; height: min(844px, calc(100dvh - 48px)); min-height: 0;
+    margin: max(24px, calc((100dvh - 844px) / 2)) auto; overflow-y: auto; overscroll-behavior: contain;
+    border: 5px solid #25282e; border-radius: 36px; background: var(--bg); box-shadow: 0 18px 48px #1c202635;
+  }
+  body.guided-demo .bottom-tab-bar { width: 360px; bottom: max(38px, calc((100dvh - 844px) / 2 + 16px)); }
+  body.guided-demo:has(.pf-web-breakout.is-fullscreen) .app-shell {
+    width: 100%; max-width: none; height: auto; min-height: 100dvh; margin: 0;
+    overflow: visible; border: 0; border-radius: 0; box-shadow: none;
+  }
+}
+body.guided-demo:has(.pf-web-breakout.is-fullscreen) .bottom-tab-bar { display: block; z-index: 1400; }
+body.guided-demo:has(.pf-web-breakout.is-fullscreen) .pf-web-breakout.is-fullscreen { bottom: 62px; height: calc(100dvh - 118px - env(safe-area-inset-top)); }

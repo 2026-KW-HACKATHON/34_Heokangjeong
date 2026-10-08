@@ -46,6 +46,7 @@ DB 구조나 권한을 바꾸면 새 파일(`0006_무엇.sql`)로 남기고, 팀
      ```
 3. 포트폴리오 AI(후속 질문·Case Study 초안) 함수도 배포: `npx supabase functions deploy portfolio-ai --project-ref <프로젝트ref>` (같은 `GEMINI_API_KEY` 사용).
    함수가 없거나 AI 가 실패하면 앱은 **템플릿 초안 · AI 미사용** 로 표시된 템플릿 초안을 만든다 (AI 인 척하지 않는다).
+   계약서 자유 입력을 Gemini로 정리하려면 `npx supabase functions deploy agreement-ai --project-ref <프로젝트ref>`도 배포한다. 데모와 실제 계정에서 같은 서버 함수를 사용하며, AI가 만든 항목은 저장 전에 수정할 수 있다.
 4. Notion 저장 함수: [NOTION.md](NOTION.md)
 
 모델은 무료 Flash 모델을 차례로 시도한다 (붐비면 다음 모델). 순서를 바꾸려면 secret `GEMINI_MODELS=모델1,모델2`.

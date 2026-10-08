@@ -95,7 +95,7 @@ function Home() {
           {!loading && !error && rows.length === 0 && <EmptyState text={user?.role === "resident" && mineOnly ? "아직 올린 공고가 없어요. 위 ＋ 로 공고를 올려 보세요."
             : user?.role === "student" && !mineOnly ? "아직 지원한 공고가 없어요. 추천 공고에서 찾아보세요."
             : "조건에 맞는 공고가 없어요. 다른 분야를 살펴보세요."} />}
-          {rows.map(({ p, d }, index) => <div key={`${cat}-${p.id}`} className="home-post-enter" style={{ animationDelay: `${Math.min(index, 5) * 45}ms` }}><PostCard post={p} authorName={name(p.authorId)} distance={d} /></div>)}
+          {rows.map(({ p, d }, index) => <div data-demo-tour={p.id === "p9" ? "student-post" : undefined} key={`${cat}-${p.id}`} className="home-post-enter" style={{ animationDelay: `${Math.min(index, 5) * 45}ms` }}><PostCard post={p} authorName={name(p.authorId)} distance={d} /></div>)}
         </div>
         </div>
       </section>

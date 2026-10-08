@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { User } from "@/types";
 import { repo } from "./repo";
 import { supabase } from "./supabase";
+import { endDemoSession, getDemoUserId, isDemoEnabled, setDemoUserId, startDemoSession } from "./demoIdentity";
 
 /**
  * 현재 사용자.
@@ -43,16 +44,22 @@ async function providerEnabled(name: string) {
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
-  const [id, setId] = useState<string | null>(supabase ? null : "s1");
+  const [id, setId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [demo, setDemo] = useState(!supabase);
 
   const refresh = useCallback(async () => { try { setUsers(await repo.listUsers()); } finally { setLoading(false); } }, []);
 
   useEffect(() => {
-    if (!supabase) {
-      try { const s = localStorage.getItem("wolgye-user"); if (s) setId(s); } catch {}
+    if (!supabase || isDemoEnabled()) {
+      setDemo(true);
+      const s = getDemoUserId(); if (s) setId(s);
       refresh();
-      return;
+      const sync = (event: StorageEvent) => {
+        if (event.key === "wolgye-mock-v5") window.location.reload();
+      };
+      window.addEventListener("storage", sync);
+      return () => window.removeEventListener("storage", sync);
     }
     supabase.auth.getSession().then(({ data }) => { setId(data.session?.user.id ?? null); refresh(); });
     const { data } = supabase.auth.onAuthStateChange((_e, s) => { setId(s?.user.id ?? null); refresh(); });
@@ -60,13 +67,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const value: Session = {
-    mode: supabase ? "supabase" : "mock",
+    mode: demo ? "mock" : "supabase",
     loading,
     authId: id,
     user: users.find((u) => u.id === id) ?? null,
     users,
     refreshUsers: refresh,
-    setUserId: (v) => { setId(v); try { localStorage.setItem("wolgye-user", v); } catch {} },
+    setUserId: (v) => { setId(v); if (supabase) startDemoSession(v); else setDemoUserId(v); setDemo(true); refresh(); },
     async signIn(email, password) {
       const { error } = await supabase!.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message === "Invalid login credentials" ? "이메일 또는 비밀번호가 맞지 않아요" : error.message);
@@ -84,7 +91,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({ provider: "kakao", options: { redirectTo: window.location.origin } });
       if (error) throw new Error(/provider/i.test(error.message) ? "카카오 로그인은 준비 중이에요. 이메일로 로그인해 주세요." : error.message);
     },
-    async signOut() { await supabase?.auth.signOut(); },
+    async signOut() { if (demo) { endDemoSession(); window.location.assign("/login/"); } else await supabase?.auth.signOut(); },
     async saveProfile(p) {
       const base: Record<string, unknown> = {
         id, role: p.role, name: p.name, nickname: p.nickname ?? null, lat: p.location.lat, lng: p.location.lng,

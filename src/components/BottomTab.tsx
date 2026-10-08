@@ -34,14 +34,14 @@ export default function BottomTab() {
   return (
     <>
     {/* 메뉴가 보일 때만 그만큼 자리를 비워 둔다 (채팅방처럼 메뉴를 숨기는 화면에는 빈 공간이 생기지 않게) */}
-    <div aria-hidden="true" className="h-[var(--bottom-tab-h)]" />
+    <div aria-hidden="true" className="bottom-tab-spacer h-[var(--bottom-tab-h)]" />
     <nav aria-label="주 메뉴" className="glass-nav min-h-[var(--bottom-tab-h)] bottom-tab-bar fixed left-1/2 z-[1000] -translate-x-1/2">
       <ul className="flex">
         {list.map((t) => {
           const on = t.href === "/" ? path === "/" : path.startsWith(t.href);
           return (
             <li key={`${t.href}${t.label}`} className="flex-1">
-              <Link href={t.href} aria-label={t.label} title={t.label} aria-current={on ? "page" : undefined} className={`flex min-h-[44px] items-center justify-center py-1 ${on ? "text-[var(--primary)] font-semibold" : "text-[var(--sub)]"}`}>
+              <Link href={t.href} data-demo-tour={t.href === "/me" ? "student-me" : undefined} aria-label={t.label} title={t.label} aria-current={on ? "page" : undefined} className={`flex min-h-[44px] items-center justify-center py-1 ${on ? "text-[var(--primary)] font-semibold" : "text-[var(--sub)]"}`}>
                 <span className={`relative rounded-lg px-3 py-1 ${on ? "bg-[var(--primary-weak)]" : ""}`}><Icon name={t.icon as IconName} width={21} height={21} />{t.href === "/chats" && unread > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-4 text-white"><span aria-hidden="true">{unread > 99 ? "99+" : unread}</span><span className="sr-only">읽지 않은 메시지 {unread}개</span></span>}</span>
               </Link>
             </li>
