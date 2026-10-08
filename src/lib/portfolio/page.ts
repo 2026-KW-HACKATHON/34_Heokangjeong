@@ -7,6 +7,7 @@ import type { ClientReview, ClientVerification, DomainKey, Evidence, Outcome, Po
 export interface PortfolioPage {
   projectId: string;
   studentId: string;
+  studentName?: string;
   edit: PortfolioEditedVersion;          // 학생 편집본 (글 + 고른 템플릿)
   domain: DomainKey;
   info: DocInput["info"];                // 기간·역할·의뢰인 (프로젝트 기록, 잠김)
@@ -27,7 +28,7 @@ export function pageFromBundle(b: ProjectBundle, edit: PortfolioEditedVersion, s
   const approved = b.versions.find((v) => v.id === b.project.approvedVersionId);
   const role = b.answers.find((a) => a.authorId === studentId && a.field === "role" && a.origin === "SCHEMA" && a.status === "ANSWERED");
   return {
-    projectId: b.project.id, studentId, edit, domain: b.project.domain,   // 초안을 만든 분야와 같아야 섹션 순서가 맞는다
+    projectId: b.project.id, studentId, studentName: users.find(u => u.id === studentId)?.name, edit, domain: b.project.domain,   // 초안을 만든 분야와 같아야 섹션 순서가 맞는다
     info: {
       period: periodText(b.project.startedAt ?? b.project.createdAt, b.project.completedAt),
       roleLabel: roleText(role) || member?.roleLabel || "",

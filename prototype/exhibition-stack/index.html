@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전시형 포트폴리오 — 스택 전환 프로토타입</title>
+<meta name="description" content="단계별 대표 자료가 좁은 띠 목록으로 쌓여 있고, 하나를 고르면 같은 띠가 오른쪽에서 펼쳐지며 읽기 상태로 이어지는 WOLINK 포트폴리오 템플릿 프로토타입.">
+<link rel="icon" href="data:,">
+<!--
+  레퍼런스: Codrops "Stack to Content Layout Transition" (2022, MIT) — https://github.com/codrops/ContentLayoutTransition
+  원리: 같은 DOM 띠를 목록(중앙 38vw, 8vh 띠) ↔ 읽기(오른쪽 열, 현재 항목 50vh) 사이에서 GSAP Flip 으로 연결, 줄 마스크(.oh > .oh__inner) 글 전환, expo 이징.
+  오프라인: GSAP 3.15 core + Flip 로컬(vendor/), 이미지는 ../../public/portfolio-samples 상대 경로. 글꼴: 시스템에 설치된 Noto Serif KR / Noto Sans KR (OFL) → 없으면 바탕/맑은 고딕.
+-->
+<link rel="stylesheet" href="stack.css">
+</head>
+<body data-view="list" data-motion="on">
+<a class="skip-link" href="#stack">단계 목록으로 건너뛰기</a>
+
+<header class="frame">
+  <div class="frame-author"><p class="frame-name" id="author-name"></p><p class="frame-field" id="author-field"></p></div>
+</header>
+
+<main class="scene" id="scene">
+  <!-- 상태 A: 대형 프로젝트 제목 (오른쪽 아래) -->
+  <div class="title" id="title" aria-hidden="false">
+    <h1 class="title-main" id="title-main"></h1>
+    <p class="title-sub oh"><span class="oh__inner" id="title-sub"></span></p>
+  </div>
+
+  <!-- 상태 B: 왼쪽 설명 -->
+  <section class="content" id="content" aria-label="선택한 단계" hidden>
+    <button type="button" class="back" id="btn-back">← 전체 단계</button>
+    <p class="content-no oh"><span class="oh__inner" id="c-no"></span></p>
+    <h2 class="content-title" id="c-title"></h2>
+    <p class="content-meta oh"><span class="oh__inner" id="c-meta"></span></p>
+    <div class="content-text oh"><div class="oh__inner" id="c-text"></div></div>
+    <div class="content-actions oh"><div class="oh__inner" id="c-actions"></div></div>
+  </section>
+
+  <!-- 이미지 열: 목록에서는 중앙 띠, 읽기에서는 오른쪽 열. 같은 요소가 이동한다 -->
+  <div class="slides" id="slides">
+    <div class="stack" id="stack" role="list" aria-label="단계 목록"></div>
+    <nav class="slide-nav" id="slide-nav" aria-label="이전·다음 단계" hidden>
+      <button type="button" class="arrow arrow-prev" id="arrow-prev" aria-label="이전 단계"><svg viewBox="0 0 100 267" aria-hidden="true"><path d="M50 267V0M50 0C50 30 30 48 14 54M50 0c0 30 20 48 36 54"/></svg></button>
+      <button type="button" class="arrow arrow-next" id="arrow-next" aria-label="다음 단계"><svg viewBox="0 0 100 267" aria-hidden="true"><path d="M50 0v267M50 267c0-30-20-48-36-54M50 267c0-30 20-48 36-54"/></svg></button>
+    </nav>
+  </div>
+</main>
+
+<aside class="reader" id="reader" aria-label="상세 읽기" hidden>
+  <div class="reader-head"><p class="eyebrow" id="reader-eyebrow"></p><button type="button" class="tb-btn" id="reader-close">닫기 ✕</button></div>
+  <div class="reader-body" id="reader-body"></div>
+</aside>
+
+<section class="document" id="document" aria-label="전체 내용" hidden></section>
+
+<div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
+  <div class="detail-backdrop" id="detail-backdrop"></div>
+  <div class="detail-box">
+    <div class="detail-head"><p class="detail-kind" id="detail-kind"></p><div class="detail-tools"><span id="detail-count"></span><button type="button" class="detail-btn" id="detail-prev" aria-label="이전 자료">‹</button><button type="button" class="detail-btn" id="detail-next" aria-label="다음 자료">›</button><button type="button" class="detail-btn" id="detail-close">닫기 ✕</button></div></div>
+    <figure class="detail-figure"><div class="detail-media" id="detail-media"></div><figcaption><h2 class="detail-title" id="detail-title"></h2><p id="detail-meaning"></p><p class="detail-source" id="detail-source"></p></figcaption></figure>
+  </div>
+</div>
+
+<noscript><p class="noscript">이 템플릿은 JavaScript 가 필요합니다. 앱에서는 문서형 보기를 기본 HTML 로 함께 내보냅니다.</p></noscript>
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/Flip.min.js"></script>
+<script src="data/samples.js"></script>
+<script src="stack.js"></script>
+</body>
+</html>

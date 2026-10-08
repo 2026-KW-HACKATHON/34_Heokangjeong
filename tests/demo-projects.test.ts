@@ -24,7 +24,7 @@ describe("데모 완료 프로젝트", () => {
     expect(withPage).toHaveLength(1);
     const edit = db.edits.find((e) => e.projectId === withPage[0].id)!;
     expect(edit.content.title).toContain("메뉴판");
-    expect(edit.content.templateId).toBe("editorial");
+    expect(edit.content.templateId).toBe("exhibition");
     expect(edit.content.sections.some((s) => s.evidenceIds.length > 0)).toBe(true);   // 증빙이 섹션에 붙어 있다
   });
   it("두 번 실행해도 한 번만 들어간다 (기존 브라우저 저장소에 추가해도 안전)", () => {

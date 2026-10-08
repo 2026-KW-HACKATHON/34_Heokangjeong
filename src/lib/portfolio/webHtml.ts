@@ -1,3 +1,4 @@
+import { exhibitionPortfolioHtml } from "./exhibitionHtml";
 import { CLAIM_KEYS, CLAIM_LABEL, EVIDENCE_LABEL, type DocBlock } from "@shared/portfolio/document";
 import type { PortfolioContent } from "@/types";
 import type { PortfolioPage } from "./page";
@@ -17,6 +18,7 @@ function evidenceHtml(page: PortfolioPage, ids: string[]) {
 }
 
 export function webPortfolioHtml(page: PortfolioPage, content: PortfolioContent, blocks: DocBlock[]) {
+  if (content.templateId === "exhibition") return exhibitionPortfolioHtml(page, content, blocks);
   if (page.projectId === "demo-menu-2") return menuEditorialHtml(page, content);
   const info = blocks.find((b): b is Extract<DocBlock, { kind: "info" }> => b.kind === "info");
   const order = content.webDesign?.sectionOrder ?? [];
@@ -64,7 +66,27 @@ body{background:#eef0f1;color:#3d4449}.page{max-width:1180px;border:0;border-rad
 
 export async function createWebPortfolioFile(page: PortfolioPage, content: PortfolioContent, blocks: DocBlock[]) {
   let html = webPortfolioHtml(page, content, blocks);
-  if (page.projectId === "demo-menu-2") {
+  if (content.templateId === "exhibition") {
+    const base = window.location.origin;
+    const coverNames = ["eSMxl4dPnFs-hannam-alley", "jQteagM9KEo-hannam-street", "LsD49KuenuM-street-shops", "N_vcns6YVO4-narrow-pathway", "TMoq1a7OKVY-sunset-alley"];
+    const imageUrls = [...new Set([
+      ...page.evidence.filter(e => e.mimeType?.startsWith("image/")).map(e => content.imageOverrides?.[e.id]?.url || e.url),
+      ...coverNames.map(name => `${base}/portfolio-exhibition/photos/unsplash-${name}.jpg`),
+    ])].filter((u): u is string => !!u && !u.startsWith("data:"));
+    const embedded: Record<string, string> = {};
+    await Promise.all(imageUrls.map(async url => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("전시 이미지를 HTML에 포함하지 못했어요.");
+      const blob = await response.blob();
+      const data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader(); reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("전시 이미지를 읽지 못했어요.")); reader.readAsDataURL(blob);
+      });
+      embedded[url.startsWith("/") ? `${base}${url}` : url] = data;
+    }));
+    const data = JSON.stringify(embedded).replace(/</g, "\\u003c");
+    html = html.replace("window.WOLINK_ASSET_BASE=", `window.WOLINK_EMBEDDED_IMAGES=${data};window.WOLINK_ASSET_BASE=`);
+  } else if (page.projectId === "demo-menu-2") {
     const embedded: Record<string, string> = {};
     for (const evidence of page.evidence.filter(e => e.url?.startsWith("/portfolio-samples/") && e.mimeType?.startsWith("image/"))) {
       const response = await fetch(evidence.url!);
