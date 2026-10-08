@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { repo } from "@/lib/repo";
 import { workFieldSummary } from "@/lib/workFields";
+import { PROFILE_SHOWCASE_STATS } from "@/lib/portfolio/showcaseStats";
 import StarRating from "@/components/StarRating";
 import type { PortfolioCard, Post, TrustSummary } from "@/types";
 
@@ -24,16 +25,18 @@ export default function WorkFieldSummary({ studentId, detailed = false }: { stud
   const verifiedCount = data?.trust.verifiedCount ?? 0;
   const reputationScore = data?.trust.reputationScore ?? 0;
   const reputationRating = reputationScore / 20;
+  const showcase = detailed ? undefined : PROFILE_SHOWCASE_STATS[studentId];
+  const displayedFields = showcase?.fields ?? summary?.mostFrequent ?? [];
   return <section className="card work-field-summary" aria-label="분야별 작업 기록">
-    <h2 className="text-base font-bold">분야별 작업 기록</h2>
+    <h2 className="text-base font-bold">분야별 작업 기록{showcase && <span className="ml-2 text-[9px] font-normal text-sky-700">시연 예시</span>}</h2>
     {!summary ? <p role="status" className="sub mt-3 text-sm">{error ? "작업 기록을 불러오지 못했어요." : "작업 기록을 불러오는 중…"}</p> : <>
       <dl className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">검증 프로젝트</dt><dd className="mt-1 font-bold">{verifiedCount}건</dd></div>
-        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">평판 별점</dt><dd className="mt-1">{reviewCount > 0 ? <StarRating value={reputationRating} size="sm" /> : <b>평가 전</b>}</dd></div>
-        <div className="col-span-2 rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">제일 많이 한 분야</dt><dd className="mt-1 font-bold">{summary.mostFrequent.length ? summary.mostFrequent.join(" · ") : "아직 없음"}</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">검증 프로젝트</dt><dd className="mt-1 font-bold">{showcase?.verifiedCount ?? verifiedCount}건</dd></div>
+        <div className="rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">평판 별점</dt><dd className="mt-1">{showcase ? <b aria-label="시연 예시 평판 별점 4.6점">★ {showcase.rating.toFixed(1)}</b> : reviewCount > 0 ? <StarRating value={reputationRating} size="sm" /> : <b>평가 전</b>}</dd></div>
+        <div className="col-span-2 rounded-xl bg-[var(--line)] p-3"><dt className="sub text-xs">제일 많이 한 분야</dt><dd className="mt-1 font-bold">{displayedFields.length ? displayedFields.join(" · ") : "아직 없음"}</dd></div>
       </dl>
-      <p className="sub mt-3 text-xs">의뢰인이 완료를 인증한 작업 {summary.total}건 기준</p>
-      {reviewCount > 0 && <p className="sub mt-1 text-xs">평판 별점은 의뢰인 평가 {reviewCount}건에 완료율·기한·인수인계·소통과 Bayesian 보정·평가자 신뢰도·증빙 일치도를 함께 반영해요{anomalyCount ? ` · 통계 이상치 ${anomalyCount}건 완화` : ""}.</p>}
+      <p className="sub mt-3 text-xs">{showcase ? "시연용 표시값 · 실제 완료 인증·평가 기록과 별도" : `의뢰인이 완료를 인증한 작업 ${summary.total}건 기준`}</p>
+      {!showcase && reviewCount > 0 && <p className="sub mt-1 text-xs">평판 별점은 의뢰인 평가 {reviewCount}건에 완료율·기한·인수인계·소통과 Bayesian 보정·평가자 신뢰도·증빙 일치도를 함께 반영해요{anomalyCount ? ` · 통계 이상치 ${anomalyCount}건 완화` : ""}.</p>}
       {heldReviewCount > 0 && <p className="mt-1 text-xs text-[#9a3412]">검토 중인 평가 {heldReviewCount}건은 현재 평판 별점에서 제외했어요.</p>}
       {detailed && (summary.byField.length ? <ul className="mt-4 divide-y divide-[var(--line)]">
         {summary.byField.map(field => <li key={field.category} className="py-3">
