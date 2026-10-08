@@ -6,7 +6,6 @@ import ExperienceEditor, { experienceSections } from "@/components/ExperienceEdi
 import TopBar from "@/components/TopBar";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { demoPortfolio } from "@/lib/portfolio/demo";
 import type { PublishedPortfolio } from "@/types";
 
 export default function ExperiencePage() { return <Suspense fallback={<p className="p-6">경험을 불러오는 중…</p>}><Experience /></Suspense>; }
@@ -22,11 +21,11 @@ function Experience() {
   const sample = mode === "mock" && id.startsWith("demo-");
   useEffect(() => {
     let active = true; setItem(undefined); setError(""); setEditing(false); setSaved(false);
-    Promise.all([repo.getUser(studentId), repo.listPublishedPortfolio(studentId)]).then(([profile, rows]) => {
-      if (active) { setName(profile?.name ?? ""); setItem([...rows, ...(sample ? demoPortfolio(studentId) : [])].find(row => row.sourceId === id && row.sourceKind === kind) ?? null); }
+    Promise.all([repo.getUser(studentId), repo.listPublishedPortfolio(studentId, user?.id === studentId)]).then(([profile, rows]) => {
+      if (active) { setName(profile?.name ?? ""); setItem(rows.find(row => row.sourceId === id && row.sourceKind === kind) ?? null); }
     }).catch(() => { if (active) setError("경험을 불러오지 못했어요. 다시 시도해 주세요."); });
     return () => { active = false; };
-  }, [studentId, id, kind, sample]);
+  }, [studentId, id, kind, sample, user?.id]);
   return <><TopBar title="경험 포트폴리오" back /><main className="experience-page">
     {error ? <p role="alert">{error}</p> : item === undefined ? <p role="status">경험을 불러오는 중…</p> : !item ? <div><h1>공개된 경험을 찾을 수 없어요</h1><p>비공개로 전환되었거나 삭제된 게시물입니다.</p></div> : <article>
       {user?.id === studentId && !editing && <button className="btn experience-edit-button" onClick={() => { setEditing(true); setSaved(false); }}>게시물 수정</button>}

@@ -23,7 +23,7 @@ export interface AdminOverview {
 export interface Repo {
   listUsers(): Promise<User[]>;
   getUser(id: string): Promise<User | undefined>;
-  updatePortfolioProfile(studentId: string, data: { about: string; avatarUrl?: string }): Promise<void>;
+  updatePortfolioProfile(studentId: string, data: { about: string; avatarUrl?: string; department?: string }): Promise<void>;
   uploadPortfolioImage(studentId: string, file: File): Promise<string>;
   listPosts(): Promise<Post[]>;
   getPost(id: string): Promise<Post | undefined>;
@@ -47,7 +47,7 @@ export interface Repo {
   listReviews(studentId?: string): Promise<Review[]>;
   listPortfolio(studentId: string): Promise<PortfolioCard[]>;
   updatePublishedPortfolio(actorId: string, item: PublishedPortfolio): Promise<void>;
-  listPublishedPortfolio(studentId: string): Promise<PublishedPortfolio[]>;
+  listPublishedPortfolio(studentId: string, includeHidden?: boolean): Promise<PublishedPortfolio[]>;
   publishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"], coverUrl?: string): Promise<void>;
   unpublishPortfolio(studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"]): Promise<void>;
   listNotifications(userId: string): Promise<Notification[]>;

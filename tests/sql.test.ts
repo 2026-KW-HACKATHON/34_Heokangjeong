@@ -82,7 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -355,12 +355,21 @@ describe("SQL: Notion 저장 잠금과 사용자 격리", () => {
 });
 
 describe("SQL: 새 DB 에 번호 순서대로", () => {
-  it("applies every migration through 0030 in order", async () => {
+  it("applies every migration through 0031 in order", async () => {
     const fresh = new PGlite();
     await fresh.exec(STUBS);
-    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_urgent_posts.sql", "0014_portfolio_publications.sql", "0015_urgent_rules.sql", "0015_personal_rankings.sql", "0016_urgent_apply.sql", "0016_post_minimum_tier.sql", "0017_urgent_min_reward.sql", "0017_work_fields_instead_of_rank.sql", "0018_maintenance.sql", "0018_portfolio_profile_feed.sql", "0019_handover_doc_write.sql", "0020_handover_post.sql", "0021_handover_apply.sql", "0022_clubs.sql", "0023_club_approval.sql", "0024_applicant_scope.sql", "0025_post_delete.sql", "0026_drop_paid_gate.sql", "0027_urgent_min_flat.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql"]) await fresh.exec(sql(f));
+    for (const f of ["0001_init.sql", "0002_permissions.sql", "0003_dev_open.sql", "0004_strict.sql", "0005_verified_portfolio.sql", "0006_notion_safe_exports.sql", "0007_team_projects.sql", "0008_team_member_work.sql", "0009_team_record_privacy.sql", "0010_profile_details.sql", "0011_team_peer_reviews.sql", "0012_project_started_at.sql", "0013_notification_automation.sql", "0014_urgent_posts.sql", "0014_portfolio_publications.sql", "0015_urgent_rules.sql", "0015_personal_rankings.sql", "0016_urgent_apply.sql", "0016_post_minimum_tier.sql", "0017_urgent_min_reward.sql", "0017_work_fields_instead_of_rank.sql", "0018_maintenance.sql", "0018_portfolio_profile_feed.sql", "0019_handover_doc_write.sql", "0020_handover_post.sql", "0021_handover_apply.sql", "0022_clubs.sql", "0023_club_approval.sql", "0024_applicant_scope.sql", "0025_post_delete.sql", "0026_drop_paid_gate.sql", "0027_urgent_min_flat.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql"]) await fresh.exec(sql(f));
     const t = await fresh.query<{ n: number }>("select count(*)::int n from information_schema.tables where table_schema = 'public'");
     expect(t.rows[0].n).toBe(38);
     await fresh.close();
   });
+});
+
+it("hidden portfolio stays readable only to its owner and can be shown again", async () => {
+  await as(U.stu, "insert into portfolio_publications(student_id,source_kind,source_id,title,is_visible) values($1,'card','visibility-test','Private work',false)", [U.stu]);
+  expect(await as(U.stu2, "select * from portfolio_publications where source_id='visibility-test'")).toHaveLength(0);
+  expect(await as(U.stu, "select * from portfolio_publications where source_id='visibility-test'")).toHaveLength(1);
+  expect(await as(U.stu2, "update portfolio_publications set is_visible=true where source_id='visibility-test' returning *")).toHaveLength(0);
+  await as(U.stu, "update portfolio_publications set is_visible=true where source_id='visibility-test'");
+  expect(await as(U.stu2, "select * from portfolio_publications where source_id='visibility-test'")).toHaveLength(1);
 });

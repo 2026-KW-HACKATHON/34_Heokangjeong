@@ -19,7 +19,7 @@ export default function Me() {
   useEffect(() => {
     if (user?.role !== "student") { setItems([]); return; }
     let active = true;
-    const refresh = () => repo.listPublishedPortfolio(user.id)
+    const refresh = () => repo.listPublishedPortfolio(user.id, true)
       .then(rows => { if (active) { setItems(rows); setFeedError(""); } })
       .catch(() => { if (active) setFeedError("공개 피드를 불러오지 못했어요."); });
     refresh();
@@ -47,7 +47,7 @@ export default function Me() {
         <PortfolioProfileHeader key={user.id} student={user} publishedCount={items.length} editable />
         <WorkFieldSummary key={user.id} studentId={user.id} />
         {feedError && <p role="alert" className="card text-sm">{feedError}</p>}
-        <PortfolioFeed student={user} items={[...items, ...samples.filter(sample => !items.some(item => item.sourceId === sample.sourceId && item.sourceKind === sample.sourceKind))]} owner />
+        <PortfolioFeed key={user.id} student={user} items={[...items, ...samples.filter(sample => !items.some(item => item.sourceId === sample.sourceId && item.sourceKind === sample.sourceKind))]} owner onChange={updated => setItems(current => current.map(item => item.sourceId === updated.sourceId && item.sourceKind === updated.sourceKind ? updated : item))} />
         {samples.length > 0 && <p className="portfolio-sample-note">첨부한 이미지 5장은 화면 확인용 샘플 경험입니다.</p>}
         </div>
         <Link href="/portfolio" className="btn w-full">작업 관리 · 공개 범위 설정</Link>

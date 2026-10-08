@@ -180,7 +180,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     async updatePortfolioProfile(studentId, data) {
       const { data: auth } = await db.auth.getUser();
       if (auth.user?.id !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
-      done(await db.from("profiles").update({ about: data.about, ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
+      done(await db.from("profiles").update({ about: data.about, ...(data.department !== undefined ? { department: data.department } : {}), ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
     },
     async uploadPortfolioImage(studentId, file) {
       const { data: auth } = await db.auth.getUser();
@@ -270,12 +270,14 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const { data, error } = await db.auth.getUser();
       if (error || data.user?.id !== actorId || actorId !== item.studentId) throw new Error("본인의 게시물만 수정할 수 있어요.");
       if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
-      const result = await db.from("portfolio_publications").update({ title: item.title, summary: item.summary, sections: item.sections, cover_url: item.coverUrl ?? null }).eq("student_id", actorId).eq("source_id", item.sourceId).eq("source_kind", item.sourceKind).select("source_id");
+      const result = await db.from("portfolio_publications").update({ title: item.title, summary: item.summary, sections: item.sections, cover_url: item.coverUrl ?? null, is_visible: item.visible !== false }).eq("student_id", actorId).eq("source_id", item.sourceId).eq("source_kind", item.sourceKind).select("source_id");
       if (!ok(result).length) throw new Error("공개된 게시물을 찾을 수 없어요.");
     },
-    async listPublishedPortfolio(studentId) {
-      return ok(await db.from("portfolio_publications").select("*").eq("student_id", studentId).order("published_at", { ascending: false })).map((r: Row) => ({
-        studentId: r.student_id, sourceId: r.source_id, sourceKind: r.source_kind, title: r.title, summary: r.summary, category: r.category, sections: r.sections, publishedAt: r.published_at, coverUrl: u(r.cover_url),
+    async listPublishedPortfolio(studentId, includeHidden = false) {
+      let query = db.from("portfolio_publications").select("*").eq("student_id", studentId);
+      if (!includeHidden) query = query.eq("is_visible", true);
+      return ok(await query.order("published_at", { ascending: false })).map((r: Row) => ({
+        studentId: r.student_id, sourceId: r.source_id, sourceKind: r.source_kind, title: r.title, summary: r.summary, category: r.category, sections: r.sections, publishedAt: r.published_at, coverUrl: u(r.cover_url), visible: r.is_visible,
       }));
     },
     async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {
@@ -283,12 +285,12 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       if (error || data.user?.id !== studentId) throw new Error("본인의 포트폴리오만 공개할 수 있어요.");
       const p = await publicationFromSource(repo, studentId, sourceId, sourceKind);
       const existing = maybe(await db.from("portfolio_publications").select("cover_url").eq("student_id", studentId).eq("source_kind", sourceKind).eq("source_id", sourceId).maybeSingle());
-      done(await db.from("portfolio_publications").upsert({ student_id: studentId, source_id: sourceId, source_kind: sourceKind, title: p.title, summary: p.summary, category: p.category, sections: p.sections, published_at: p.publishedAt, cover_url: coverUrl ?? existing?.cover_url ?? null }, { onConflict: "student_id,source_kind,source_id" }));
+      done(await db.from("portfolio_publications").upsert({ student_id: studentId, source_id: sourceId, source_kind: sourceKind, title: p.title, summary: p.summary, category: p.category, sections: p.sections, published_at: p.publishedAt, is_visible: true, cover_url: coverUrl ?? existing?.cover_url ?? null }, { onConflict: "student_id,source_kind,source_id" }));
     },
     async unpublishPortfolio(studentId, sourceId, sourceKind) {
       const { data, error } = await db.auth.getUser();
       if (error || data.user?.id !== studentId) throw new Error("본인의 공개 설정만 변경할 수 있어요.");
-      done(await db.from("portfolio_publications").delete().eq("student_id", studentId).eq("source_id", sourceId).eq("source_kind", sourceKind));
+      done(await db.from("portfolio_publications").update({ is_visible: false }).eq("student_id", studentId).eq("source_id", sourceId).eq("source_kind", sourceKind));
     },
     async listNotifications(userId) {
       return ok(await db.from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false })).map(toNotification);

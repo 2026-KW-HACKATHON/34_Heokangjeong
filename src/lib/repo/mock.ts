@@ -10,6 +10,7 @@ import { summarizeTrust } from "../trust";
 import { fileToDataUrl } from "../files";
 import { domainForCategory } from "@shared/portfolio/domains";
 import type { PublishedPortfolio } from "@/types";
+import { demoPortfolio } from "../portfolio/demo";
 import { publicationFromSource } from "../portfolio/publication";
 import { reviseAgreement, confirmAgreement, type WorkAgreement } from "../agreement";
 
@@ -188,7 +189,7 @@ let msgs: ChatMessage[] = structuredClone(messages);
 let demoNotifications: Notification[] = structuredClone(seedNotifications);
 let publications: PublishedPortfolio[] = [];
 let agreements: Record<string, WorkAgreement> = {};
-let profileExtras: Record<string, { about: string; avatarUrl?: string }> = {};
+let profileExtras: Record<string, { about: string; avatarUrl?: string; department?: string }> = {};
 const withPortfolioProfile = (user: User): User => user.role === "student" ? { ...user, ...profileExtras[user.id] } : user;
 function load() {
   if (typeof window === "undefined") return;
@@ -276,7 +277,8 @@ export const mockRepo: Repo = {
   async updatePortfolioProfile(studentId, data) {
     ensure();
     if (!users.some(user => user.id === studentId && user.role === "student")) throw new Error("학생 프로필을 찾을 수 없어요.");
-    profileExtras[studentId] = { ...profileExtras[studentId], ...data };
+    if (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
+    profileExtras[studentId] = { ...profileExtras[studentId], ...data, avatarUrl: data.avatarUrl ?? profileExtras[studentId]?.avatarUrl };
     save();
   },
   async uploadPortfolioImage(_studentId, file) { return fileToDataUrl(file, 450_000); },
@@ -346,7 +348,13 @@ export const mockRepo: Repo = {
     publications = [structuredClone(item), ...publications.filter(p => !(p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind))];
     try { save(); } catch(e) { publications = previous; throw e; }
   },
-  async listPublishedPortfolio(studentId) { ensure(); return wait(publications.filter(p => p.studentId === studentId)); },
+  async listPublishedPortfolio(studentId, includeHidden = false) {
+    ensure();
+    const own = typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") === studentId;
+    const saved = publications.filter(p => p.studentId === studentId);
+    const samples = demoPortfolio(studentId).filter(p => !saved.some(s => s.sourceId === p.sourceId && s.sourceKind === p.sourceKind));
+    return wait([...saved, ...samples].filter(p => p.visible !== false || (includeHidden && own)));
+  },
   async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {
     ensure();
     const item = await publicationFromSource(mockRepo, studentId, sourceId, sourceKind);
@@ -358,7 +366,7 @@ export const mockRepo: Repo = {
   },
   async unpublishPortfolio(studentId, sourceId, sourceKind) {
     ensure(); const previous = publications;
-    publications = publications.filter(p => !(p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind));
+    publications = publications.map(p => p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind ? { ...p, visible: false } : p);
     try { save(); } catch (e) { publications = previous; throw e; }
   },
   async listNotifications(userId) { ensure(); return wait(demoNotifications.filter((n) => n.userId === userId)); },
