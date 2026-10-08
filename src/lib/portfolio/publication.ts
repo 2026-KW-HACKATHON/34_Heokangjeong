@@ -10,6 +10,7 @@ export async function publicationFromSource(repo: Repo, studentId: string, sourc
     const { title, summary, sections } = doc.edit.content;
     return { ...base, title, summary, category: doc.post.category, sections: sections.map(({ title, body }) => ({ title, body })) };
   }
+  if (sourceKind === "manual") throw new Error("직접 작성한 피드는 글쓰기 화면에서 올려 주세요.");
   const card = (await repo.listPortfolio(studentId)).find(c => c.id === sourceId);
   if (!card) throw new Error("내 활동 기록만 공개할 수 있어요.");
   return { ...base, title: card.title, summary: card.roleLabel, category: "활동 기록", sections: [{ title: "담당한 작업", body: card.tasks.join("\n") }, { title: "활동 기간", body: `${card.durationDays}일` }] };

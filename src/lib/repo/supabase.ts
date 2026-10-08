@@ -266,18 +266,24 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         id: r.id, studentId: r.student_id, postId: r.post_id, title: r.title, roleLabel: r.role_label, tasks: r.tasks, durationDays: r.duration_days, rating: r.rating, verified: r.verified,
       }));
     },
+    async createPortfolioFeed(actorId, item) {
+      const { data, error } = await db.auth.getUser();
+      if (error || data.user?.id !== actorId || item.studentId !== actorId || item.sourceKind !== "manual") throw new Error("본인의 피드만 올릴 수 있어요.");
+      if (!item.title.trim() || !item.coverUrl || !item.imageUrls?.includes(item.coverUrl) || !item.sections.some(section => section.body.trim())) throw new Error("제목, 대표사진, 내용을 확인해 주세요.");
+      done(await db.from("portfolio_publications").insert({ student_id: actorId, source_kind: "manual", source_id: item.sourceId, title: item.title, summary: item.summary, category: item.category, sections: item.sections, published_at: item.publishedAt, cover_url: item.coverUrl, image_urls: item.imageUrls, is_visible: true }));
+    },
     async updatePublishedPortfolio(actorId, item) {
       const { data, error } = await db.auth.getUser();
       if (error || data.user?.id !== actorId || actorId !== item.studentId) throw new Error("본인의 게시물만 수정할 수 있어요.");
       if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
-      const result = await db.from("portfolio_publications").update({ title: item.title, summary: item.summary, sections: item.sections, cover_url: item.coverUrl ?? null, is_visible: item.visible !== false }).eq("student_id", actorId).eq("source_id", item.sourceId).eq("source_kind", item.sourceKind).select("source_id");
+      const result = await db.from("portfolio_publications").update({ title: item.title, summary: item.summary, sections: item.sections, cover_url: item.coverUrl ?? null, image_urls: item.imageUrls ?? [], is_visible: item.visible !== false }).eq("student_id", actorId).eq("source_id", item.sourceId).eq("source_kind", item.sourceKind).select("source_id");
       if (!ok(result).length) throw new Error("공개된 게시물을 찾을 수 없어요.");
     },
     async listPublishedPortfolio(studentId, includeHidden = false) {
       let query = db.from("portfolio_publications").select("*").eq("student_id", studentId);
       if (!includeHidden) query = query.eq("is_visible", true);
       return ok(await query.order("published_at", { ascending: false })).map((r: Row) => ({
-        studentId: r.student_id, sourceId: r.source_id, sourceKind: r.source_kind, title: r.title, summary: r.summary, category: r.category, sections: r.sections, publishedAt: r.published_at, coverUrl: u(r.cover_url), visible: r.is_visible,
+        studentId: r.student_id, sourceId: r.source_id, sourceKind: r.source_kind, title: r.title, summary: r.summary, category: r.category, sections: r.sections, publishedAt: r.published_at, coverUrl: u(r.cover_url), imageUrls: r.image_urls ?? [], visible: r.is_visible,
       }));
     },
     async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {

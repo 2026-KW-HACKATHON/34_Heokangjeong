@@ -16,7 +16,7 @@ export default function PortfolioFeed({ student, items, owner = false, onChange 
     catch(e) { setError((e as Error).message); } finally { setBusy(null); }
   }
   return <section className="portfolio-feed" aria-label="공개 포트폴리오 피드">
-    <div className="portfolio-feed-heading"><div><p>SELECTED EXPERIENCES</p><h2>경험과 작업</h2></div><span>{items.length}개의 경험</span></div>
+    <div className="portfolio-feed-heading"><div><p>SELECTED EXPERIENCES</p><h2>경험과 작업</h2></div><div className="portfolio-feed-heading-actions"><span>{items.length}개의 경험</span>{owner && <Link href="/portfolio/create" className="portfolio-feed-create" aria-label="새 포트폴리오 피드 작성">+<span>피드 작성</span></Link>}</div></div>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {items.length ? <div className="portfolio-feed-grid">{items.map((item, i) => <div className="portfolio-feed-item" key={`${item.sourceKind}:${item.sourceId}`}><Link href={`/portfolio/experience?s=${encodeURIComponent(student.id)}&kind=${item.sourceKind}&id=${encodeURIComponent(item.sourceId)}`} className={`portfolio-feed-tile gallery-tone-${i % 4}`} aria-label={`${item.title} 포트폴리오 열기`}>
       {item.coverUrl ? <img src={item.coverUrl} alt={item.title} loading="lazy" /> : <span className="portfolio-feed-placeholder" aria-hidden="true">{item.category.slice(0, 2)}</span>}
