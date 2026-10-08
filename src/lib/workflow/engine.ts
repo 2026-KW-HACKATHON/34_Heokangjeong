@@ -6,7 +6,7 @@ import type {
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
   ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember, ProjectCancellation,
 } from "@/types";
-import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
+import { DOMAINS, QUESTION_SET_VERSION, coreQuestions } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
 import { sourceHash } from "@shared/portfolio/snapshot";
 import { POINTS } from "@shared/portfolio/policy";
@@ -141,7 +141,7 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
   if (!project) {
     project = {
       id: ctx.id(), postId: post.id, ownerId: post.authorId, domain: listing.domain, mode: listing.projectMode, status: "RECRUITING",
-      questionSnapshot: { domain: listing.domain, version: QUESTION_SET_VERSION, questions: DOMAINS[listing.domain].questions, takenAt: now },
+      questionSnapshot: { domain: listing.domain, version: QUESTION_SET_VERSION, questions: coreQuestions(listing.domain), takenAt: now },
       createdAt: now,
     };
     db.projects.push(project);
@@ -155,7 +155,7 @@ export function selectApplicant(db: WorkflowDB, a: { applicationId: string; acto
     projectId: project.id, studentId: app.studentId, roleId: role?.id,
     roleLabel: role?.label ?? role?.category ?? DOMAINS[project.domain].label,
     domain: memberDomain,
-    questionSnapshot: { domain: memberDomain, version: QUESTION_SET_VERSION, questions: DOMAINS[memberDomain].questions, takenAt: now },
+    questionSnapshot: { domain: memberDomain, version: QUESTION_SET_VERSION, questions: coreQuestions(memberDomain), takenAt: now },
     isLead: false, applicationId: app.id, joinedAt: now,
   });
   if (role) { role.filled.push(app.studentId); role.filledCount = role.filled.length; }
