@@ -1,3 +1,4 @@
+import { pageFromBundle, type PortfolioPage } from "../portfolio/page";
 import type {
   Application, ChatMessage, ClientReview, Club, HandoverDoc, MaintenanceTicket, Notification, Post, PortfolioCard, PortfolioDoc, Review, TierScoreEvent, User,
 } from "@/types";
@@ -11,6 +12,7 @@ import { fileToDataUrl } from "../files";
 import { domainForCategory } from "@shared/portfolio/domains";
 import type { PublishedPortfolio } from "@/types";
 import { demoPortfolio } from "../portfolio/demo";
+import { demoProjectPublications, seedDemoProjects } from "../portfolio/demoProjects";
 import { publicationFromSource } from "../portfolio/publication";
 import { reviseAgreement, confirmAgreement, type WorkAgreement } from "../agreement";
 
@@ -205,11 +207,15 @@ export const seedNotifications: Notification[] = [
 // ── 저장: 브라우저 localStorage (서버 연결 전 데모용). 새 구조라 키를 v2 로 올렸다 ──
 // 확장된 사용자·공고·상호작용 시드가 기존 브라우저에도 보이도록 키를 올린다. 이전 데이터는 삭제하지 않는다.
 const KEY = "wolgye-mock-v5";
-const fresh = (): wf.WorkflowDB => ({
-  ...wf.emptyDB(),
-  users: structuredClone(users), posts: structuredClone(posts), applications: structuredClone(applications),
-  legacyReviews: structuredClone(reviews), legacyCards: structuredClone(portfolio),
-});
+const fresh = (): wf.WorkflowDB => {
+  const d: wf.WorkflowDB = {
+    ...wf.emptyDB(),
+    users: structuredClone(users), posts: structuredClone(posts), applications: structuredClone(applications),
+    legacyReviews: structuredClone(reviews), legacyCards: structuredClone(portfolio),
+  };
+  seedDemoProjects(d);   // 김하늘의 완료된 데모 프로젝트 5개 (HTML 포트폴리오는 메뉴판 1개)
+  return d;
+};
 let db: wf.WorkflowDB = fresh();
 let msgs: ChatMessage[] = structuredClone(messages);
 let demoNotifications: Notification[] = structuredClone(seedNotifications);
@@ -242,7 +248,7 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify({ db, messages: msgs, notifications: demoNotifications, publications, profileExtras, agreements })); }
   catch { throw new Error("브라우저 저장 공간이 가득 찼어요. 나 › 데모 데이터 초기화 후 다시 시도해 주세요"); }
 }
-let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; } };
+let loaded = false; const ensure = () => { if (!loaded) { load(); loaded = true; try { if (seedDemoProjects(db)) save(); } catch { /* 예전 저장소와 충돌하면 데모 프로젝트 없이 진행 */ } } };
 const listeners = new Set<(m: ChatMessage) => void>();
 const notificationListeners = new Set<(n: Notification) => void>();
 const pushNotification = (n: Omit<Notification, "id" | "createdAt" | "read">) => {
@@ -422,7 +428,7 @@ export const mockRepo: Repo = {
     ensure();
     if (actorId !== item.studentId || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 게시물만 수정할 수 있어요.");
     const existing = publications.find(p => p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind);
-    if (!existing && !["demo-real2sim", "demo-driving", "demo-menu", "demo-banner", "demo-cafe"].includes(item.sourceId)) throw new Error("공개된 게시물을 찾을 수 없어요.");
+    if (!existing && !["demo-real2sim", "demo-driving", "demo-menu", "demo-banner", "demo-cafe"].includes(item.sourceId) && !demoProjectPublications(db, actorId).some(p => p.sourceId === item.sourceId && p.sourceKind === item.sourceKind)) throw new Error("공개된 게시물을 찾을 수 없어요.");
     if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
     const previous = publications;
     publications = [structuredClone(item), ...publications.filter(p => !(p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind))];
@@ -432,7 +438,7 @@ export const mockRepo: Repo = {
     ensure();
     const own = typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") === studentId;
     const saved = publications.filter(p => p.studentId === studentId);
-    const samples = demoPortfolio(studentId).filter(p => !saved.some(s => s.sourceId === p.sourceId && s.sourceKind === p.sourceKind));
+    const samples = [...demoProjectPublications(db, studentId), ...demoPortfolio(studentId)].filter(p => !saved.some(s => s.sourceId === p.sourceId && s.sourceKind === p.sourceKind));
     return wait([...saved, ...samples].filter(p => p.visible !== false || (includeHidden && own)));
   },
   async publishPortfolio(studentId, sourceId, sourceKind, coverUrl) {
@@ -505,6 +511,19 @@ export const mockRepo: Repo = {
     const latest = new Map<string, (typeof db.edits)[number]>();
     for (const e of db.edits.filter((x) => x.studentId === studentId)) if ((latest.get(e.projectId)?.version ?? 0) < e.version) latest.set(e.projectId, e);
     return wait([...latest.values()].map((edit) => { const project = wf.getProject(db, edit.projectId); return { edit, project, post: db.posts.find((p) => p.id === project.postId)! }; }));
+  },
+  async getPublicPortfolio(projectId, studentId) {
+    ensure();
+    // DB 의 get_public_portfolio 와 같은 규칙: 피드에 공개 중인 작업만 (본인은 숨김이어도)
+    const me = typeof localStorage !== "undefined" ? localStorage.getItem("wolgye-user") || "s1" : "";
+    const pub = [...publications, ...demoProjectPublications(db, studentId)].find((p) => p.studentId === studentId && p.sourceKind === "project" && p.sourceId === projectId);
+    if (!pub || (pub.visible === false && me !== studentId)) return wait<PortfolioPage | undefined>(undefined);
+    const edit = db.edits.filter((e) => e.projectId === projectId && e.studentId === studentId).sort((a, b) => b.version - a.version)[0];
+    if (!edit) return wait<PortfolioPage | undefined>(undefined);
+    const b = wf.getBundle(db, projectId);
+    const approved = b.versions.find((v) => v.id === b.project.approvedVersionId);
+    const page = pageFromBundle({ ...b, drafts: [], evidence: b.evidence.filter((e) => e.authorId === studentId || e.source === "CLIENT" || approved?.evidenceIds.includes(e.id)), outcomes: b.outcomes.filter((o) => o.authorId === studentId) }, edit, studentId, users);
+    return wait<PortfolioPage | undefined>({ ...page, latestDraft: undefined });
   },
   async getPortfolioDoc(projectId, studentId) {
     ensure();

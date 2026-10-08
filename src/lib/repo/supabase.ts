@@ -1,3 +1,4 @@
+import { periodText } from "@shared/portfolio/document";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chatReads } from "./chatReads";
 import { FunctionsHttpError } from "@supabase/supabase-js";
@@ -444,6 +445,25 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       const seen = new Set<string>();
       return rows.filter((r: Row) => r.project && !seen.has(r.project_id) && seen.add(r.project_id))
         .map((r: Row) => ({ edit: toEdit(r), project: toProject(r.project), post: toPost(r.project.post) }));
+    },
+    async getPublicPortfolio(projectId, studentId) {
+      const r = ok(await db.rpc("get_public_portfolio", { p_project: projectId, p_student: studentId })) as Row | null;
+      if (!r?.edit) return undefined;
+      const role = r.role_answer as { value: string; choices: string[] } | null;
+      const client = r.client as { name: string; role: string; kind: string | null } | null;
+      return {
+        projectId, studentId, edit: toEdit(r.edit), domain: r.project.domain,
+        info: {
+          period: periodText(r.project.started_at ?? r.project.created_at, r.project.completed_at),
+          roleLabel: (role ? [...(role.choices ?? []), role.value].filter(Boolean).join(", ") : "") || r.member?.role_label || "",
+          clientName: client?.name ?? "의뢰인", clientType: client?.role === "resident" && client.kind ? client.kind : "주민",
+          approvedVersion: r.approved_version ?? null,
+        },
+        verification: r.verification ? toVerification(r.verification) : null,
+        review: r.review ? toReview(r.review) : null,
+        evidence: (r.evidence as Row[]).map(toEvidence),
+        outcomes: (r.outcomes as Row[]).map(toOutcome),
+      };
     },
     async getPortfolioDoc(projectId, studentId) {
       const r = maybe(await db.from("portfolio_edits").select("*").eq("project_id", projectId).eq("student_id", studentId).order("version", { ascending: false }).limit(1).maybeSingle());

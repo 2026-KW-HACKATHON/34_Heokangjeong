@@ -1,7 +1,10 @@
 import type { PublishedPortfolio } from "@/types";
+import { DEMO_STUDENT } from "./demoProjects";
 
 // User-supplied examples for the local demo; never published as verified work.
+// 김하늘(s1)은 같은 5개가 실제로 완료된 데모 프로젝트로 들어 있어(demoProjects.ts) 이 샘플 카드를 쓰지 않는다.
 export function demoPortfolio(studentId: string): PublishedPortfolio[] {
+  if (studentId === DEMO_STUDENT) return [];
   return [
     ["real2sim", "Real2Sim & Sim2Real", "웹/앱", "물리 시뮬레이션 연구 화면", "서로 다른 물리 시스템의 동작을 비교하는 프로젝트 화면입니다."],
     ["driving", "Path2ST 주행 시뮬레이터", "웹/앱", "인터랙티브 주행 화면", "경로를 따라 움직이는 차량과 주행 조건을 조작하는 웹 데모 화면입니다."],

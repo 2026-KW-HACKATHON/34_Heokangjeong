@@ -16,11 +16,12 @@ describe("포트폴리오 자료 준비도", () => {
     expect(r.missingRequired).toHaveLength(0);
   });
   it("SKIPPED 는 미완료, NOT_APPLICABLE 은 분모에서 제외", () => {
-    const base = [A("existingProblem", "ANSWERED"), A("role", "ANSWERED"), A("deliverable", "ANSWERED"), A("designDecision", "ANSWERED"), A("targetUser", "ANSWERED")];
+    const base = [A("existingProblem", "ANSWERED"), A("role", "ANSWERED"), A("deliverable", "ANSWERED"), A("designDecision", "ANSWERED"), A("targetUser", "ANSWERED"),
+      A("alternatives", "ANSWERED"), A("validation", "ANSWERED")];
     const skipped = computeReadiness({ domain: "DESIGN", answers: [...base, A("constraints", "SKIPPED")], evidenceTypes: ["BEFORE_IMAGE", "AFTER_IMAGE"], outcomeCount: 0 });
     const na = computeReadiness({ domain: "DESIGN", answers: [...base, A("constraints", "NOT_APPLICABLE")], evidenceTypes: ["BEFORE_IMAGE", "AFTER_IMAGE"], outcomeCount: 0 });
     expect(skipped.items.find((i) => i.key === "constraints")?.state).toBe("SKIPPED");
-    expect(skipped.percent).toBe(89);                                                     // 70 + 25×3/4 = 88.75 → 89
+    expect(skipped.percent).toBe(91);                                                     // 권장 6개 중 5개: 70 + 25×5/6 = 90.8 → 91
     expect(na.percent).toBe(95);                                                          // 70 + 25
   });
   it("결정적이다 (같은 입력 → 같은 값)", () => {

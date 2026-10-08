@@ -196,3 +196,12 @@ MIT
 - HTML 글 프롬프트 선택 영역은 추후 제공을 위해 비워 두었습니다. 직접 쓴 피드는 개인 작업으로 표시하며 검증된 프로젝트 기록으로 집계하지 않습니다.
 - Supabase 사용 시 `0033_manual_portfolio_feeds.sql`을 적용해야 합니다. 직접 작성한 게시물과 사진 목록을 저장하며 소유자만 작성할 수 있습니다. 원격 DB에는 자동 적용하지 않습니다.
 - 검증: `npx vitest run tests/sql.test.ts`, 개발 서버에서 `node e2e/manual-portfolio-feed.mjs`.
+
+### HTML 포트폴리오 페이지 (템플릿)
+
+- 포트폴리오의 기본 형태는 앱 안의 HTML 페이지(`/portfolio/view`)입니다. 디자인은 코드로 만든 템플릿(`src/templates/portfolio`)이, 글은 AI 초안 + 학생 편집이 맡습니다. 고른 템플릿은 편집본 `content.templateId` 에 저장돼 버전으로 쌓입니다.
+- `/portfolio/templates` 에서 옆으로 넘겨 보며 디자인을 고르고 언제든 바꿉니다. 소유자는 페이지에서 '편집'을 눌러 그 자리에서 글을 고칩니다. 의뢰인 평가 원문·검증·증빙·성과·프로젝트 정보는 잠겨 있습니다.
+- Notion 내보내기는 페이지의 '⋯' 메뉴 안 선택 기능입니다 (연동 방식은 그대로).
+- 피드에서 공개한 프로젝트 작업을 누르면 간단한 게시물 화면이 열리고, HTML 포트폴리오가 있으면 "자세한 포트폴리오 보기" 버튼으로 그 사람의 포트폴리오 페이지가 읽기 전용으로 열립니다. Supabase에는 `0036_public_portfolio_page.sql`(공개 중인 작업 한 건만 돌려주는 `get_public_portfolio` 함수)을 적용해야 하며, 원격 DB에는 자동 적용하지 않습니다.
+- 템플릿을 추가하면 `tests/portfolio-templates.test.ts` 가 모든 내용을 담는지 자동으로 검사합니다.
+- 데모 모드: 김하늘(s1)의 피드 5개는 의뢰인 승인·검증까지 끝난 완료 프로젝트입니다(`src/lib/portfolio/demoProjects.ts`). HTML 포트폴리오는 "외국인 손님을 위한 한식당 영문 메뉴판" 1개만 있어 그 게시물에만 버튼이 보입니다. 다른 학생은 예전 샘플 카드 그대로입니다.

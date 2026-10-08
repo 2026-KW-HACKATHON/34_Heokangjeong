@@ -1,3 +1,4 @@
+import type { PortfolioPage } from "../portfolio/page";
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
   Club, ClubInput, ClubMember, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TicketKind, ProjectCancellation, TrustSummary, User, VerificationClaims,
@@ -85,6 +86,8 @@ export interface Repo {
   /** 학생의 프로젝트별 최신 편집본 */
   listPortfolioDocs(studentId: string): Promise<{ edit: PortfolioEditedVersion; post: Post; project: Project }[]>;
   getPortfolioDoc(projectId: string, studentId: string): Promise<PortfolioDoc | undefined>;
+  /** 다른 사람의 공개 포트폴리오 한 건 (피드에 공개 중일 때만, 읽기 전용). 공개되지 않았으면 undefined */
+  getPublicPortfolio(projectId: string, studentId: string): Promise<PortfolioPage | undefined>;
   trustSummary(studentId: string): Promise<TrustSummary>;
 
   // ── 유지보수·인수인계 (계속 운영되는 결과물) ──────────────────────────────

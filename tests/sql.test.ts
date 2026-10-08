@@ -82,7 +82,7 @@ beforeAll(async () => {
   await db.exec(sql("0011_team_peer_reviews.sql"));
   await db.exec(sql("0012_project_started_at.sql"));
   await db.exec(sql("0013_notification_automation.sql"));
-  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql"]) await db.exec(sql(file));
+  for (const file of ["0014_portfolio_publications.sql", "0015_personal_rankings.sql", "0016_post_minimum_tier.sql", "0017_work_fields_instead_of_rank.sql", "0018_portfolio_profile_feed.sql", "0028_chat_agreements.sql", "0029_individual_applicant_decision.sql", "0030_evidence_based_reputation.sql", "0031_portfolio_visibility.sql", "0033_manual_portfolio_feeds.sql", "0035_disable_peer_reviews.sql", "0036_public_portfolio_page.sql"]) await db.exec(sql(file));
   await db.exec("grant all on public.post_roles to authenticated");
   for (const [k, id] of Object.entries(U)) {
     await db.query("insert into auth.users (id) values ($1)", [id]);
@@ -381,4 +381,44 @@ it("direct photo feed belongs to its author and keeps the selected cover", async
   const [row] = await as<{ cover_url: string; image_urls: string[] }>(U.stu2, "select cover_url,image_urls from portfolio_publications where source_id='manual-sql-test'");
   expect(row.cover_url).toBe(images[1]);
   expect(row.image_urls).toEqual(images);
+});
+
+describe("SQL: 공개 포트폴리오 페이지 (0036)", () => {
+  it("피드에 공개 중인 작업만, 화면에 필요한 칸만 돌려준다", async () => {
+    const { projectId } = await startProject("공개 포트폴리오");
+    const ev = await addEvidence(projectId);
+    const v1 = await submit(projectId, ev);
+    await rpc(U.owner, "approve_version", [v1, claims, review, ""]);
+    const [s] = await as<{ id: string }>(U.stu, "insert into portfolio_snapshots (project_id, student_id, hash, data) values ($1, $2, 'pub', '{}') returning id", [projectId, U.stu]);
+    const [d] = await as<{ id: string }>(U.stu, "insert into portfolio_drafts (snapshot_id, project_id, student_id, generator, content) values ($1, $2, $3, 'TEMPLATE', '{}') returning id", [s.id, projectId, U.stu]);
+    await rpc(U.stu, "save_portfolio_edit", [d.id, JSON.stringify({ title: "공개 v1", templateId: "editorial" })]);
+    await rpc(U.stu, "save_portfolio_edit", [d.id, JSON.stringify({ title: "공개 v2", templateId: "editorial" })]);
+    const get = async (viewer: string, student = U.stu) => (await rpc<{ get_public_portfolio: Record<string, any> | null }>(viewer, "get_public_portfolio", [projectId, student]))[0].get_public_portfolio;
+
+    // 편집본 테이블은 여전히 본인만 읽는다 (권한은 그대로)
+    expect(await as(U.stu2, "select * from portfolio_edits where project_id = $1", [projectId])).toHaveLength(0);
+    // 공개 전: 남은 못 본다
+    expect(await get(U.stu2)).toBeNull();
+
+    await as(U.stu, "insert into portfolio_publications (student_id, source_kind, source_id, title) values ($1, 'project', $2, '공개 v2')", [U.stu, projectId]);
+    const p = await get(U.stu2);
+    expect(p!.edit.content.title).toBe("공개 v2");                 // 최신 편집본
+    expect(p!.edit.content.templateId).toBe("editorial");           // 고른 템플릿 그대로
+    expect(p!.edit.version).toBe(2);
+    expect(p!.review.comment).toBe("손님들이 좋아해요");
+    expect(p!.verification.actually_used).toBe(true);
+    expect(p!.evidence.map((e: { id: string }) => e.id)).toEqual([ev]);
+    expect(p!.client).toEqual({ name: "owner", role: "resident", kind: "상인" });
+    expect(p!.approved_version).toBe(1);
+    // 평판 계산용 내부 값·의뢰인 id 는 나가지 않는다
+    expect(Object.keys(p!.review)).not.toContain("reviewer_id");
+    expect(Object.keys(p!.review)).not.toContain("reviewer_reliability");
+
+    // 다른 학생 이름으로는 안 열린다 (그 학생은 이 작업을 공개하지 않음)
+    expect(await get(U.stu2, U.stu2)).toBeNull();
+    // 숨기면 남은 못 보고, 본인은 본다
+    await as(U.stu, "update portfolio_publications set is_visible = false where source_id = $1", [projectId]);
+    expect(await get(U.stu2)).toBeNull();
+    expect((await get(U.stu))!.edit.content.title).toBe("공개 v2");
+  });
 });
