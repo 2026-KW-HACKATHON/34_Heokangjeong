@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync, readdirSync } from "node:fs";
+import { selectWithAgreement } from "./agreementSelect";
 import path from "node:path";
 
 const root = path.resolve(__dirname, "..");
@@ -166,7 +167,7 @@ describe("인수인계와 이어받기", () => {
     const [{ open_handover: postId }] = await as<{ open_handover: string }>(U.stu, "select open_handover($1)", [projectId]);
 
     const [app] = await as<{ id: string }>(U.stu2, "insert into applications (post_id, student_id, message) values ($1,$2,'이어받고 싶어요') returning id", [postId, U.stu2]);
-    await as(U.owner, "select select_applicant($1, $2::jsonb)", [app.id, JSON.stringify({ domain: "DEVELOPMENT", version: 1, questions: [], takenAt: "2026-10-07T00:00:00Z" })]);
+    await selectWithAgreement(as, U.owner, U.stu2, app.id, JSON.stringify({ domain: "DEVELOPMENT", version: 1, questions: [], takenAt: "2026-10-07T00:00:00Z" }));   // 0037: 약속서 확정 = 선정
 
     const o = await ops(projectId);
     expect(o.status).toBe("OPERATING");

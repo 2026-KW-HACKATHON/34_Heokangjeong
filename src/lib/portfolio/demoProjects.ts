@@ -4,13 +4,14 @@
 // 실제 수행 기록이 아닌 화면 확인용 예시다 (실제 DB 모드에서는 쓰지 않는다).
 import * as wf from "../workflow/engine";
 import { DOMAINS } from "@shared/portfolio/domains";
-import type { Category, DomainKey, EvidenceType, PortfolioContent, Post, PublishedPortfolio } from "@/types";
+import type { Category, ChatMessage, DomainKey, EvidenceType, PortfolioContent, Post, PublishedPortfolio } from "@/types";
+import type { WorkAgreement } from "../agreement";
 
 export const DEMO_STUDENT = "s1";
 const AT = "2026-09-";   // 공고 날짜
 
 interface Spec {
-  key: "menu" | "real2sim" | "driving" | "banner" | "cafe";
+  key: "menu" | "real2sim" | "driving" | "banner" | "cafe" | "class";
   title: string; category: Category; clientId: string; address: string; reward: string;
   problem: string; deliverables: string[]; criteria: string;
   answers: Record<string, string | string[]>;          // 질문 id → 글 또는 선택지
@@ -21,6 +22,8 @@ interface Spec {
   feed: { title: string; category: string };
   portfolio?: PortfolioContent;                          // HTML 포트폴리오 (메뉴판만)
   day: number;                                           // 9월 며칠에 시작했는지 (완료 순서용)
+  /** 진행 중 데모: 제출·승인 없이 멈춘다. 계약서 확정 + 그 뒤 대화가 있어 '진행 중' 단계로 보인다 */
+  inProgress?: { notes: string[]; chat: { from: "student" | "client"; body: string }[] };
 }
 
 const SPECS: Spec[] = [
@@ -180,6 +183,31 @@ const SPECS: Spec[] = [
     },
     day: 10,
   },
+  {
+    key: "class", feed: { title: "공방 클래스 안내 카드", category: "디자인" }, title: "꽃길 공방 원데이 클래스 안내 카드", category: "디자인", clientId: "r6", address: "광운로 12길 8", reward: "원데이 클래스 1회",
+    problem: "클래스 종류와 준비물을 손님마다 말로 설명하느라 예약 상담이 길어져요", deliverables: ["A5 안내 카드 인쇄 파일", "인스타그램용 이미지 1장"], criteria: "손님이 카드만 보고 클래스를 골라 예약할 수 있음",
+    answers: {
+      d_target: ["매장 방문 손님", "온라인으로 보는 고객"],
+      d_problem: "사장님 말씀으로는 손님 대부분이 '무슨 클래스가 있어요?', '뭘 가져가요?'를 전화로 물어봐서 상담이 한 번에 10분씩 걸린대요",
+      d_before: "손글씨 메모 한 장에 클래스 4개와 가격만 적혀 있음",
+      d_constraints: ["정해진 크기", "기존 브랜드 색 유지"],
+      d_goal: "손님이 카드만 보고 클래스와 준비물을 알고 예약하게 하기",
+      d_role: ["기획", "시안 디자인", "최종 디자인"],
+      d_reference: "근처 공방 3곳의 클래스 안내 카드를 사진으로 모아 정보 순서를 비교했어요",
+    },
+    evidence: [{ type: "BEFORE_IMAGE", description: "작업 전: 손글씨 메모 한 장에 클래스 4개와 가격만 적힌 안내", noImage: true }],
+    review: { satisfaction: 5, deadline: 5, communication: 5, handoff: 5, deliverableQuality: 5, comment: "" },
+    card: { summary: "", intro: "", problem: "", solution: "", result: "", insight: "" },
+    day: 28,
+    inProgress: {
+      notes: ["사장님과 통화: 클래스 4개 중 '꽃바구니'와 '리스' 문의가 가장 많다고 하심 → 카드 맨 위에 두기로"],
+      chat: [
+        { from: "client", body: "계약서 확인했어요. 시안은 언제쯤 볼 수 있을까요?" },
+        { from: "student", body: "이번 주 금요일까지 두 가지 버전으로 보내 드릴게요!" },
+        { from: "client", body: "좋아요. 리스 클래스 사진은 오늘 보내 드릴게요." },
+      ],
+    },
+  },
 ];
 
 const MENU_PORTFOLIO: PortfolioContent = {
@@ -205,7 +233,7 @@ const COVER = (key: Spec["key"]) => `/portfolio-samples/${key}.png`;
 const postId = (key: Spec["key"]) => `demo-post-${key}`;
 
 /** 데모 내용을 바꾸면 올린다 → 이미 넣어 둔 브라우저도 데모 프로젝트만 새로 만든다 */
-const SEED_VERSION = 4;   // 3: 메뉴판 작업 전 사진 추가 · 4: 설명을 그 사진에 맞춤
+const SEED_VERSION = 5;   // 3: 진행 중 데모 추가 · 4: 선정(매칭 대기) 시각 — 계약서 확정 = 선정 확정 규칙 · 5: 메뉴판 작업 전 사진과 그에 맞춘 설명
 const isDemo = (v: unknown) => typeof v === "string" && v.startsWith("demo-");
 
 /**
@@ -244,6 +272,7 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
   };
   db.posts.push(post);
   const app = wf.apply(db, { postId: post.id, studentId: DEMO_STUDENT, message: "이 작업 꼭 해 보고 싶어요." }, ctx);
+  app.shortlistedAt = app.createdAt;   // 사장님 선정 → 대화·계약서 → 확정 (계약서는 demoAgreementsAndChats 가 넣는다)
   const project = wf.selectApplicant(db, { applicationId: app.id, actorId: s.clientId }, ctx);
   const qs = DOMAINS[project.domain as DomainKey].questions;
   for (const [qid, a] of Object.entries(s.answers)) {
@@ -262,6 +291,10 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
     return e.noImage ? added : Object.assign(added, { url: `/portfolio-samples/${file}`, fileName: file, mimeType: "image/png", source: "STUDENT_UPLOAD" as const });
   });
   const deliverables = ev.filter((e) => e.type !== "BEFORE_IMAGE").map((e) => e.id);
+  if (s.inProgress) {
+    for (const note of s.inProgress.notes) wf.addLog(db, { projectId: project.id, actorId: DEMO_STUDENT, stage: "PROGRESS", note }, ctx);
+    return;
+  }
   const v = wf.submitVersion(db, { projectId: project.id, actorId: DEMO_STUDENT, note: "최종본입니다", evidenceIds: deliverables }, ctx);
   wf.approveVersion(db, { versionId: v.id, actorId: s.clientId, claims: { workPerformed: true, roleConfirmed: true, deliverableReceived: true, completionCriteriaMet: true, actuallyUsed: true }, review: s.review }, ctx);
   if (!s.portfolio) return;
@@ -282,7 +315,7 @@ function seedOne(db: wf.WorkflowDB, s: Spec) {
 /** 피드 게시물 (간단한 앱 화면용 글). 프로젝트에 연결돼 있어 HTML 포트폴리오가 있으면 버튼으로 이어진다 */
 export function demoProjectPublications(db: wf.WorkflowDB, studentId: string): PublishedPortfolio[] {
   if (studentId !== DEMO_STUDENT) return [];
-  return SPECS.map((s) => {
+  return SPECS.filter((s) => !s.inProgress).map((s) => {
     const project = db.projects.find((p) => p.postId === postId(s.key));
     if (!project) return undefined;
     return {
@@ -294,4 +327,25 @@ export function demoProjectPublications(db: wf.WorkflowDB, studentId: string): P
       ],
     };
   }).filter((x): x is NonNullable<typeof x> => !!x);
+}
+
+/**
+ * 진행 중 데모의 계약서·대화 (채팅 저장소가 프로젝트 DB 와 따로라 mock 이 넣는다).
+ * 계약서는 양쪽 확인으로 확정, 대화는 확정 뒤 → 채팅·기록 탭에서 '진행 중'으로 보인다.
+ */
+export function demoInProgressChats(db: wf.WorkflowDB): { agreements: WorkAgreement[]; messages: ChatMessage[] } {
+  const agreements: WorkAgreement[] = [], messages: ChatMessage[] = [];
+  for (const s of SPECS.filter((x) => x.inProgress)) {
+    const app = db.applications.find((a) => a.postId === postId(s.key) && a.studentId === DEMO_STUDENT);
+    if (!app) continue;
+    const at = (h: number) => new Date(Date.UTC(2026, 8, s.day + 1, h)).toISOString();
+    agreements.push({
+      applicationId: app.id, version: 1,
+      terms: { startDate: "2026-09-29", endDate: "2026-10-12", scope: "클래스 안내 카드 기획·디자인", deliverables: s.deliverables.join(", "), acceptance: s.criteria,
+        coupon: s.reward, revisions: 2, exclusions: "인쇄 비용", handoff: "인쇄용 PDF 와 원본 파일 전달" },
+      studentConfirmedAt: at(9), ownerConfirmedAt: at(10), finalizedAt: at(10), updatedAt: at(10),
+    });
+    s.inProgress!.chat.forEach((m, i) => messages.push({ id: `demo-${s.key}-msg-${i + 1}`, applicationId: app.id, senderId: m.from === "student" ? DEMO_STUDENT : s.clientId, body: m.body, createdAt: at(11 + i) }));
+  }
+  return { agreements, messages };
 }

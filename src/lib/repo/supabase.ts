@@ -22,14 +22,16 @@ import { validateAgreement, type WorkAgreement } from "../agreement";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
 const u = <T,>(v: T | null | undefined) => v ?? undefined;
-const toAgreement = (r: Row): WorkAgreement => ({ applicationId: r.application_id, version: r.version, terms: r.terms, studentConfirmedAt: r.student_confirmed_at, ownerConfirmedAt: r.owner_confirmed_at, finalizedAt: r.finalized_at, updatedAt: r.updated_at });
+const toAgreement = (r: Row): WorkAgreement => ({ applicationId: r.application_id, version: r.version, terms: r.terms, studentConfirmedAt: r.student_confirmed_at, ownerConfirmedAt: r.owner_confirmed_at, finalizedAt: r.finalized_at, updatedAt: r.updated_at , proposedTerms: r.proposed_terms ?? null, amendedAt: r.amended_at ?? null, proposedAt: r.proposed_at ?? null,
+  // 제안자는 id 로 저장된다 → 학생/의뢰인으로 바꾸는 건 listChatRooms·getAgreement 에서 지원서를 알 때 (proposerSide)
+  proposedBy: null, proposedById: r.proposed_by ?? null } as WorkAgreement & { proposedById?: string | null });
 let realtimeChannelSequence = 0;
 
 export const toUser = (r: Row): User => r.role === "admin"
   ? { id: r.id, role: "admin", name: r.name, location: { lat: r.lat, lng: r.lng } }
   : r.role === "student"
-  ? { id: r.id, role: "student", name: r.name, department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
-  : { id: r.id, role: "resident", name: r.name, kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
+  ? { id: r.id, role: "student", name: r.name, nickname: u(r.nickname), department: r.department ?? "", school: u(r.school), college: u(r.college), age: u(r.age), phone: u(r.phone), about: r.about ?? "", avatarUrl: u(r.avatar_url), skills: r.skills ?? [], interests: r.interests ?? [], availableHours: r.available_hours ?? "", maxDistanceM: r.max_distance_m, location: { lat: r.lat, lng: r.lng } }
+  : { id: r.id, role: "resident", name: r.name, nickname: u(r.nickname), kind: r.kind ?? "주민", address: r.address ?? "", location: { lat: r.lat, lng: r.lng } };
 
 const toPost = (r: Row): Post => ({
   id: r.id, title: r.title, category: r.category, description: r.description, authorId: r.author_id,
@@ -43,7 +45,8 @@ const toPost = (r: Row): Post => ({
   deadline: u(r.deadline), revisionLimit: r.revision_limit ?? 2, compensationType: r.compensation_type ?? "VOLUNTEER",
   compensationDescription: r.compensation_description ?? "", paidAmount: u(r.paid_amount), minimumTier: r.minimum_tier ?? "SEED",
 });
-const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, clubId: u(r.club_id), message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at });
+const toApp = (r: Row): Application => ({ id: r.id, postId: r.post_id, studentId: r.student_id, clubId: u(r.club_id), message: r.message, roleId: u(r.role_id), status: r.status, createdAt: r.created_at,
+  shortlistedAt: u(r.shortlisted_at), shortlistCancelledAt: u(r.shortlist_cancelled_at) });
 /** Edge Function 이 보낸 한국어 에러 메시지를 꺼낸다 */
 const fnError = async (error: unknown) =>
   (await (error as { context?: Response }).context?.json?.().then((b: { error?: string }) => b.error).catch(() => undefined)) ?? (error as Error).message;
@@ -131,7 +134,7 @@ const toNotification = (r: Row): Notification => ({ id: r.id, userId: r.user_id,
 /** DB 에러 → 화면용 문장. DB 함수는 'CODE: 설명' 으로 던진다 */
 export function friendly(message: string) {
   if (/row-level security/i.test(message)) return "권한이 없어요 (선정된 학생 또는 해당 의뢰인만 할 수 있어요)";
-  return message.replace(/^[A-Z_]+: /, "");
+  return message.replace(/^[A-Z_]+: /, "").replace(/약속서/g, "계약서").replace(/변경 제안/g, "수정 제안");   // DB 함수 문구는 예전 이름(약속서)
 }
 /** 에러는 그대로 던져서 화면에서 알 수 있게 한다 */
 // 타입 없는 클라이언트라 결과는 Row(any)로 받고, 위의 to* 함수가 도메인 타입으로 바꾼다
@@ -161,10 +164,28 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     if (/post_roles|relationship/i.test(result.error.message)) return maybe(await db.from("posts").select("*").eq("id", id).maybeSingle());
     throw new Error(friendly(result.error.message));
   };
+  /** 계약서 행 → 화면용 (수정 제안자 id 를 학생/의뢰인으로) */
+  const withSide = async (row: Row): Promise<WorkAgreement> => {
+    const a = toAgreement(row) as WorkAgreement & { proposedById?: string | null };
+    if (a.proposedById) {
+      const app = maybe(await db.from("applications").select("student_id").eq("id", row.application_id).maybeSingle());
+      a.proposedBy = app?.student_id === a.proposedById ? "student" : "owner";
+    }
+    delete a.proposedById;
+    return a;
+  };
+  /** 선정 확정 때 프로젝트에 고정할 질문 목록 (지원 역할의 분야, 없으면 공고 분야) */
+  const snapshotFor = async (applicationId: string) => {
+    const app = await repo.getApplication(applicationId);
+    const post = app && await repo.getPost(app.postId);
+    if (!post) throw new Error("지원서를 찾을 수 없어요");
+    const domain = post.teamSlots?.find((role) => role.id === app?.roleId)?.domain ?? listingOf(post).domain;
+    return { domain, version: QUESTION_SET_VERSION, questions: DOMAINS[domain].questions, takenAt: new Date().toISOString() };
+  };
   const repo: Repo = {
     async getAgreement(applicationId) {
       const row = maybe(await db.from("chat_agreements").select("*").eq("application_id", applicationId).maybeSingle());
-      return row ? toAgreement(row) : null;
+      return row ? withSide(row) : null;
     },
     async saveAgreement(applicationId, _actorId, version, terms) {
       validateAgreement(terms);
@@ -172,16 +193,28 @@ export function supabaseRepo(db: SupabaseClient): Repo {
       return toAgreement(Array.isArray(row) ? row[0] : row);
     },
     async confirmAgreement(applicationId, _actorId, version) {
-      const row = ok(await db.rpc("confirm_chat_agreement", { p_application: applicationId, p_version: version }));
-      return toAgreement(Array.isArray(row) ? row[0] : row);
+      // 양쪽이 확인하면 DB 가 그 자리에서 선정 확정한다 → 프로젝트 질문 목록을 같이 보낸다
+      const row = ok(await db.rpc("confirm_chat_agreement", { p_application: applicationId, p_version: version, p_question_snapshot: await snapshotFor(applicationId) }));
+      return withSide(Array.isArray(row) ? row[0] : row);
     },
+    async proposeAgreementChange(applicationId, _actorId, terms) {
+      validateAgreement(terms);
+      const row = ok(await db.rpc("propose_agreement_change", { p_application: applicationId, p_terms: terms }));
+      return withSide(Array.isArray(row) ? row[0] : row);
+    },
+    async respondAgreementChange(applicationId, _actorId, accept) {
+      const row = ok(await db.rpc("respond_agreement_change", { p_application: applicationId, p_accept: accept }));
+      return withSide(Array.isArray(row) ? row[0] : row);
+    },
+    async shortlistApplicant(applicationId) { done(await db.rpc("shortlist_applicant", { p_application: applicationId })); },
+    async cancelShortlist(applicationId) { done(await db.rpc("cancel_shortlist", { p_application: applicationId })); },
     ...chatReads(`supabase:${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`),
     async listUsers() { return ok(await db.from("profiles").select("*")).map(toUser); },
     async getUser(id) { const r = maybe(await db.from("profiles").select("*").eq("id", id).maybeSingle()); return r ? toUser(r) : undefined; },
     async updatePortfolioProfile(studentId, data) {
       const { data: auth } = await db.auth.getUser();
       if (auth.user?.id !== studentId) throw new Error("본인의 프로필만 수정할 수 있어요.");
-      done(await db.from("profiles").update({ about: data.about, ...(data.department !== undefined ? { department: data.department } : {}), ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
+      done(await db.from("profiles").update({ about: data.about, ...(data.department !== undefined ? { department: data.department } : {}), ...(data.nickname !== undefined ? { nickname: data.nickname } : {}), ...(data.avatarUrl ? { avatar_url: data.avatarUrl } : {}) }).eq("id", studentId));
     },
     async uploadPortfolioImage(studentId, file) {
       const { data: auth } = await db.auth.getUser();
@@ -253,6 +286,20 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         const other = r.student_id === userId ? await repo.getUser(post.authorId) : toUser(r.student);
         rooms.push({ application: toApp(r), post, other, last: r.messages?.[0] ? toMsg(r.messages[0]) : undefined });
       }
+      // 단계 표시용: 계약서 확정 시각, 이 학생이 들어간 프로젝트 (읽기 실패해도 목록은 보여 준다)
+      try {
+        const appIds = rooms.map((r) => r.application.id), postIds = [...new Set(rooms.map((r) => r.post.id))];
+        const [agreementRows, projectRows] = await Promise.all([
+          appIds.length ? db.from("chat_agreements").select("application_id, finalized_at").in("application_id", appIds).then(ok) : [],
+          postIds.length ? db.from("projects").select("id, post_id, status, members:project_members(student_id)").in("post_id", postIds).then(ok) : [],
+        ]);
+        const finalized = new Map((agreementRows as Row[]).map((r) => [r.application_id, r.finalized_at as string | null]));
+        for (const room of rooms) {
+          room.agreementFinalizedAt = finalized.get(room.application.id) ?? null;
+          const project = (projectRows as Row[]).find((p) => p.post_id === room.post.id && (p.members ?? []).some((m: Row) => m.student_id === room.application.studentId));
+          if (project) { room.projectId = project.id; room.projectStatus = project.status; }
+        }
+      } catch { /* 단계 정보 없이 '매칭 대기'로 보인다 */ }
       const at = (x: ChatRoom) => x.last?.createdAt ?? x.application.createdAt;
       return rooms.sort((a, b) => at(b).localeCompare(at(a)));
     },
@@ -323,12 +370,7 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     },
     // ── 검증형 포트폴리오 파이프라인 (규칙은 DB 함수가 강제: supabase/migrations/0005) ──────
     async selectApplicant(applicationId) {
-      const app = await repo.getApplication(applicationId);
-      const post = app && await repo.getPost(app.postId);
-      if (!post) throw new Error("지원서를 찾을 수 없어요");
-      const domain = post.teamSlots?.find((role) => role.id === app?.roleId)?.domain ?? listingOf(post).domain;
-      const snapshot = { domain, version: QUESTION_SET_VERSION, questions: DOMAINS[domain].questions, takenAt: new Date().toISOString() };
-      const id: string = ok(await db.rpc("select_applicant", { p_application: applicationId, p_question_snapshot: snapshot }));
+      const id: string = ok(await db.rpc("select_applicant", { p_application: applicationId, p_question_snapshot: await snapshotFor(applicationId) }));
       return toProject(ok(await db.from("projects").select("*").eq("id", id).single()));
     },
     async startTeamProject(projectId, _actorId, leaderId) {

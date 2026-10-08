@@ -61,13 +61,68 @@ log("2 학생 지원");
 await as("s2"); await go(`/posts/detail/?id=${postId}`);
 await page.getByLabel("지원 메시지").fill("저도 지원합니다"); await click("지원하기"); await expectText("확인 대기 중");
 
-// 4. 점주가 김하늘 선정 → 프로젝트
+// 4. 점주가 김하늘 선정 → 대화방(매칭 대기) → 계약서 양쪽 확정 = 선정 확정 → 프로젝트
 await as("r2"); await go(`/posts/detail/?id=${postId}`);
 await page.locator("li", { hasText: "김하늘" }).getByRole("button", { name: "선정" }).click();
+await page.waitForURL(/chats\/room/);
+const appId = new URL(page.url()).searchParams.get("id");
+await expectText("매칭 대기");
+// 선정 중에는 다른 지원자를 선정할 수 없다 (개인 공고)
+await go(`/posts/detail/?id=${postId}`);
+if (await page.locator("li", { hasText: "박도윤" }).getByRole("button", { name: "선정", exact: true }).isEnabled()) throw new Error("두 번째 선정 가능");
+log("3a 점주 선정 → 매칭 대기");
+const openAgreement = async () => { await page.getByRole("button", { name: /작업 계약서/ }).click(); await page.locator("dialog[open]").waitFor(); };
+const inDialog = (name) => page.locator("dialog[open]").getByRole("button", { name, exact: true });
+// 학생이 계약서 작성(공고 내용으로 채워짐) → 저장 → 최종 확인
+await as("s1"); await go(`/chats/room/?id=${appId}`);
+await openAgreement();
+const dlg = page.locator("dialog[open]");
+await dlg.getByLabel("작업 범위").fill("메뉴판 정보 구조 정리와 A2 인쇄 파일 제작");
+await inDialog("다음").click();
+const today = new Date(); const ymd = (d) => d.toISOString().slice(0, 10);
+await dlg.getByLabel("시작일", { exact: true }).fill(ymd(today));
+await dlg.getByLabel("완료 예정일", { exact: true }).fill(ymd(new Date(today.getTime() + 14 * 864e5)));
+await inDialog("다음").click(); await inDialog("다음").click();
+await inDialog("저장하고 양쪽 확인받기").click();
+await page.locator("dialog[open] .agreement-consent input").check();
+await inDialog("이 버전 최종 확인").click();
+await expectText("상대방 확인 대기");
+// 점주가 최종 확인 → 선정 확정
+await as("r2"); await go(`/chats/room/?id=${appId}`);
+await openAgreement();
+await page.locator("dialog[open] .agreement-consent input").check();
+await inDialog("이 버전 최종 확인").click();
+await expectText("우리의 계약이 확정됐어요");
+await inDialog("확인했어요").click();
+await expectText("선정 확정 · 계약서 확정됨");
+await page.getByRole("link", { name: /프로젝트 보기/ }).click();
 await page.waitForURL(/projects\/detail/);
 const projectId = new URL(page.url()).searchParams.get("id");
 await expectText("학생이 작업 중이에요");
-log("3 점주 선정 → 프로젝트", projectId);
+await expectText("양쪽 확인 완료");
+log("3 계약서 확정 → 선정 확정 → 프로젝트", projectId);
+// 3b. 확정 뒤 변경: 학생 제안 → 점주 거절(기존 유지) → 다시 제안 → 점주 수락(다시 확정)
+const propose = async (scope) => {
+  await as("s1"); await go(`/projects/detail/?id=${projectId}`);
+  await page.getByRole("link", { name: "계약서 수정 제안하기 ›" }).click();   // 프로젝트 화면 → 대화방 계약서 창이 바로 열림
+  await page.locator("dialog[open]").waitFor();
+  await inDialog("수정 제안").click();
+  await dlg.getByLabel("작업 범위").fill(scope);
+  for (let i = 0; i < 3; i++) await inDialog("다음").click();
+  await inDialog("수정 제안 보내기").click();
+  await expectText("내가 보낸 수정 제안");
+};
+await propose("메뉴판 + 테이블 POP 1종");
+await as("r2"); await go(`/projects/detail/?id=${projectId}`); await expectText("수정 제안이 와 있어요");
+await go(`/chats/room/?id=${appId}`); await openAgreement(); await expectText("김하늘 님의 수정 제안");
+await inDialog("거절").click(); await expectText("우리의 계약이 확정됐어요");
+await go(`/projects/detail/?id=${projectId}`);
+if (await page.getByText("테이블 POP").count()) throw new Error("거절했는데 바뀜");
+await propose("메뉴판 + 테이블 POP 2종");
+await as("r2"); await go(`/chats/room/?id=${appId}`); await openAgreement();
+await inDialog("수락하고 다시 확정").click(); await expectText("우리의 계약이 확정됐어요");
+await go(`/projects/detail/?id=${projectId}`); await expectText("테이블 POP 2종"); await expectText("양쪽 확인 완료");
+log("3b 계약서 수정 제안 → 거절(유지) → 수락(재확정)");
 
 // 5. 학생: 시작 질문 (1개 답, 짧은 답 → 후속 질문, 1개 건너뛰기)
 await as("s1"); await go(`/projects/detail/?id=${projectId}`);

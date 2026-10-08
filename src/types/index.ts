@@ -2,7 +2,7 @@
 // 프로젝트·증빙·검증·포트폴리오 타입은 서버 함수와 함께 쓰려고 supabase/functions/_shared/portfolio/types.ts 에 있고 여기서 다시 내보낸다.
 import type {
   ActivityLog, Badge, ClientReview, ClientVerification, CompensationType, DomainKey, Evidence, MemberVerification, Outcome, PortfolioDraft,
-  PortfolioEditedVersion, PortfolioSourceSnapshot, Project, ProjectAnswer, ProjectMember, ProjectMode, SubmissionVersion, TierScoreEvent,
+  PortfolioEditedVersion, PortfolioSourceSnapshot, Project, ProjectAnswer, ProjectMember, ProjectMode, ProjectStatus, SubmissionVersion, TierScoreEvent,
 } from "@shared/portfolio/types";
 export type * from "@shared/portfolio/types";
 export type Role = "student" | "resident" | "admin";
@@ -18,6 +18,7 @@ export interface Student {
   id: string;
   role: "student";
   name: string;
+  nickname?: string;         // 동명이인 구분·검색용, 중복 불가 (예전 계정은 비어 있을 수 있음)
   department: string;        // 학과
   skills: string[];          // 보유 기술
   interests: Category[];     // 관심 카테고리
@@ -36,13 +37,14 @@ export interface Resident {
   id: string;
   role: "resident";
   name: string;              // 상호 또는 이름
+  nickname?: string;
   kind: "상인" | "주민";
   location: GeoPoint;
   address: string;
 }
 
 /** 앱 관리자 (단체 등록 심사 등). 화면은 /admin 하나만 쓴다 */
-export interface Admin { id: string; role: "admin"; name: string; location: GeoPoint }
+export interface Admin { id: string; role: "admin"; name: string; nickname?: string; location: GeoPoint }
 
 export type User = Student | Resident | Admin;
 
@@ -104,6 +106,10 @@ export interface Application {
   roleId?: string;
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
+  /** 사장님이 선정한 시각 = 매칭 대기 시작 (대화·계약서가 열린다). 계약서가 확정되면 status 가 accepted */
+  shortlistedAt?: string;
+  /** 선정 취소된 시각 (다시 선정할 수 있다) */
+  shortlistCancelledAt?: string;
 }
 
 export interface Review {                 // 주민·상인의 인증·평가
@@ -160,7 +166,11 @@ export interface ChatMessage {           // 채팅 메시지. 채팅방 = 지원
   createdAt: string;
 }
 
-export interface ChatRoom { application: Application; post: Post; other: User | undefined; last?: ChatMessage }
+export interface ChatRoom {
+  application: Application; post: Post; other: User | undefined; last?: ChatMessage;
+  /** 단계 표시용 (src/lib/matchStage.ts): 계약서 확정 시각, 이 학생이 들어간 프로젝트 */
+  agreementFinalizedAt?: string | null; projectId?: string; projectStatus?: ProjectStatus;
+}
 
 // ── 검증형 포트폴리오 파이프라인 ─────────────────────────────────────────────
 export interface Listing {

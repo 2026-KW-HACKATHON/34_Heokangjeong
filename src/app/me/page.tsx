@@ -8,13 +8,11 @@ import WorkFieldSummary from "@/components/WorkFieldSummary";
 import { useSession } from "@/lib/session";
 import { repo } from "@/lib/repo";
 import type { PublishedPortfolio } from "@/types";
-import { demoPortfolio } from "@/lib/portfolio/demo";
 
 export default function Me() {
   const { mode, user, users, setUserId, signOut } = useSession();
   const [items, setItems] = useState<PublishedPortfolio[]>([]);
   const [feedError, setFeedError] = useState("");
-  const samples = mode === "mock" && user?.role === "student" ? demoPortfolio(user.id) : [];
   const [resetting, setResetting] = useState(false);
   useEffect(() => {
     if (user?.role !== "student") { setItems([]); return; }
@@ -47,8 +45,7 @@ export default function Me() {
         <PortfolioProfileHeader key={user.id} student={user} publishedCount={items.length} editable />
         <WorkFieldSummary key={user.id} studentId={user.id} />
         {feedError && <p role="alert" className="card text-sm">{feedError}</p>}
-        <PortfolioFeed key={user.id} student={user} items={[...items, ...samples.filter(sample => !items.some(item => item.sourceId === sample.sourceId && item.sourceKind === sample.sourceKind))]} owner onChange={updated => setItems(current => current.map(item => item.sourceId === updated.sourceId && item.sourceKind === updated.sourceKind ? updated : item))} />
-        {samples.length > 0 && <p className="portfolio-sample-note">첨부한 이미지 5장은 화면 확인용 샘플 경험입니다.</p>}
+        <PortfolioFeed key={user.id} student={user} items={items} owner onChange={updated => setItems(current => current.map(item => item.sourceId === updated.sourceId && item.sourceKind === updated.sourceKind ? updated : item))} />
         </div>
         <Link href="/portfolio" className="btn w-full">작업 관리 · 공개 범위 설정</Link>
         <details className="portfolio-me-details"><summary>나의 활동 정보</summary><dl><dt>보유 기술</dt><dd>{user.skills.join(", ") || "미입력"}</dd><dt>관심 분야</dt><dd>{user.interests.join(", ") || "미입력"}</dd><dt>가능 시간</dt><dd>{user.availableHours || "미입력"}</dd></dl><Link href="/projects">진행 프로젝트 보기 →</Link></details>
@@ -72,7 +69,9 @@ export default function Me() {
       <ul className="card flex flex-col divide-y divide-[var(--line)] p-0 text-[15px]">
         {(user?.role === "admin"
           ? [["/admin", "관리자 화면"], ["/clubs", "단체 (동아리·학회)"]]
-          : [["/clubs", "단체 (동아리·학회)"], ["/projects", "내 진행 프로젝트"]]
+          : user?.role === "student"
+            ? [["/clubs", "단체 (동아리·학회)"]]   // 학생의 프로젝트 목록은 '기록' 탭(진행 중·완료)으로 합쳤다
+            : [["/clubs", "단체 (동아리·학회)"], ["/projects", "내 진행 프로젝트"]]
         ).map(([href, label]) => (
           <li key={href}><Link href={href} className="flex min-h-14 items-center justify-between px-4 py-3.5">{label}<span className="sub">›</span></Link></li>
         ))}

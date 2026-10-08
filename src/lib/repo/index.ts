@@ -24,7 +24,7 @@ export interface AdminOverview {
 export interface Repo {
   listUsers(): Promise<User[]>;
   getUser(id: string): Promise<User | undefined>;
-  updatePortfolioProfile(studentId: string, data: { about: string; avatarUrl?: string; department?: string }): Promise<void>;
+  updatePortfolioProfile(studentId: string, data: { about: string; avatarUrl?: string; department?: string; nickname?: string }): Promise<void>;
   uploadPortfolioImage(studentId: string, file: File): Promise<string>;
   listPosts(): Promise<Post[]>;
   getPost(id: string): Promise<Post | undefined>;
@@ -43,7 +43,15 @@ export interface Repo {
   listChatRooms(userId: string): Promise<ChatRoom[]>;
   getAgreement(applicationId: string, actorId: string): Promise<WorkAgreement | null>;
   saveAgreement(applicationId: string, actorId: string, expectedVersion: number, terms: AgreementTerms): Promise<WorkAgreement>;
+  /** 양쪽이 확인하면 확정 = 선정 확정 (프로젝트가 만들어진다) */
   confirmAgreement(applicationId: string, actorId: string, version: number): Promise<WorkAgreement>;
+  /** 확정 뒤 수정 제안 / 답하기 (수락 = 새 내용으로 다시 확정, 거절·철회 = 기존 유지) */
+  proposeAgreementChange(applicationId: string, actorId: string, terms: AgreementTerms): Promise<WorkAgreement>;
+  respondAgreementChange(applicationId: string, actorId: string, accept: boolean): Promise<WorkAgreement>;
+  /** 사장님 '선정' = 매칭 대기 시작 (대화·계약서가 열린다). 개인 공고는 한 명씩 */
+  shortlistApplicant(applicationId: string, actorId: string): Promise<void>;
+  /** 선정 취소 (확정 전에만, 사장님·학생 모두) */
+  cancelShortlist(applicationId: string, actorId: string): Promise<void>;
   readChatMessageIds(userId: string, roomId: string): Promise<string[]>;
   markChatRead(userId: string, roomId: string, messageIds: string[]): Promise<void>;
   listMessages(applicationId: string): Promise<ChatMessage[]>;
