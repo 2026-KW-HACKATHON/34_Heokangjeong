@@ -40,12 +40,6 @@ export default function Portfolio() {
         {user?.role === "student" && <WorkFieldSummary key={user.id} studentId={user.id} />}
         {error && <p role="alert" className="card text-sm text-[var(--red)]">{error}</p>}
         {user?.role !== "student" && <EmptyState text="학생 계정에서 볼 수 있어요" />}
-        {user?.role === "student" && (
-          <div className="card bg-[var(--primary)] text-white">
-            <p className="text-sm opacity-90">봉사시간이 아니라, 문제를 해결한 경험을 기록해요</p>
-            <p className="mt-1 font-bold">지역에서 경험하고 → 검증받고 → 커리어로</p>
-          </div>
-        )}
         {docs.map(({ edit, post, project }) => (
           <div key={`${user!.id}:${edit.id}`}>
             <SummaryCard href={`/portfolio/view?id=${project.id}&s=${user!.id}`} title={edit.content.title} domain={DOMAINS[project.domain].label}

@@ -15,7 +15,7 @@ export default function PortfolioPublicationControl({ studentId, sourceId, sourc
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     let active = true;
-    repo.listPublishedPortfolio(studentId).then(items => { if (active) { const item = items.find(p => p.sourceId === sourceId && p.sourceKind === sourceKind); setPublished(!!item); setCurrentCover(item?.coverUrl); } }).catch(() => { if (active) setError("공개 설정을 불러오지 못했어요."); }).finally(() => { if (active) setBusy(false); });
+    repo.listPublishedPortfolio(studentId, true).then(items => { if (active) { const item = items.find(p => p.sourceId === sourceId && p.sourceKind === sourceKind); setPublished(!!item && item.visible !== false); setCurrentCover(item?.coverUrl); } }).catch(() => { if (active) setError("공개 설정을 불러오지 못했어요."); }).finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
   }, [studentId, sourceId, sourceKind]);
   useEffect(() => { if (preview) dialog.current?.showModal(); }, [preview]);

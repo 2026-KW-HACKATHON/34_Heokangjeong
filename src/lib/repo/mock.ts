@@ -610,7 +610,10 @@ export const mockRepo: Repo = {
   },
   async unpublishPortfolio(studentId, sourceId, sourceKind) {
     ensure(); const previous = publications;
-    publications = publications.map(p => p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind ? { ...p, visible: false } : p);
+    const existing = publications.find(p => p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind)
+      ?? demoProjectPublications(db, studentId).find(p => p.sourceId === sourceId && p.sourceKind === sourceKind);
+    if (!existing) throw new Error("공개된 게시물을 찾을 수 없어요.");
+    publications = [{ ...existing, visible: false }, ...publications.filter(p => !(p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind))];
     try { save(); } catch (e) { publications = previous; throw e; }
   },
   async listNotifications(userId) { ensure(); return wait(demoNotifications.filter((n) => n.userId === userId)); },
