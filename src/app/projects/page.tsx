@@ -17,6 +17,7 @@ export default function Projects() {
   const todo = (p: Project) => {
     const owner = p.ownerId === user?.id;
     if (owner) return p.status === "REVIEW_PENDING" ? "검토할 제출이 있어요" : undefined;
+    if (p.status === "CANCELLED") return undefined;
     return p.status === "IN_PROGRESS" ? "기록하고 제출해요" : p.status === "REVISION_REQUESTED" ? "보완 요청이 왔어요" : p.status === "COMPLETED" ? "포트폴리오로 만들 수 있어요" : undefined;
   };
   return (

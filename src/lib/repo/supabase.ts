@@ -202,7 +202,6 @@ export function supabaseRepo(db: SupabaseClient): Repo {
         compensation_description: p.compensationDescription ?? "",
         // 평소 공고는 가게 쿠폰(NON_MONETARY). 긴급 공고일 때만 현금 사례비를 받는다
         paid_amount: p.urgent && p.compensationType === "PAID" ? p.paidAmount ?? null : null,
-        minimum_tier: "SEED",
       };
       // 새 컬럼이 아직 없는 DB 에서도 등록 자체는 되게 한다 (긴급·유지보수 기능만 빠진다)
       let res = await db.from("posts").insert(row).select().single();
@@ -221,6 +220,19 @@ export function supabaseRepo(db: SupabaseClient): Repo {
     },
     async updatePostStatus(id, status) { done(await db.from("posts").update({ status }).eq("id", id)); },
     async deletePost(postId) { done(await db.rpc("delete_post", { p_post: postId })); },
+
+    // ── 합의 취소 ─────────────────────────────────────────────────────────
+    async getCancellation(projectId) {
+      await db.rpc("expire_cancellations");          // 기한 지난 요청을 먼저 거절로 정리한다
+      const r = maybe(await db.from("project_cancellations").select("*").eq("project_id", projectId)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle());
+      return r ? {
+        id: r.id, projectId: r.project_id, requestedBy: r.requested_by, responderId: r.responder_id, reason: r.reason,
+        status: r.status, expiresAt: r.expires_at, createdAt: r.created_at, respondedAt: u(r.responded_at),
+      } : null;
+    },
+    async requestCancellation(projectId, reason) { done(await db.rpc("request_cancellation", { p_project: projectId, p_reason: reason })); },
+    async respondCancellation(cancellationId, accept) { done(await db.rpc("respond_cancellation", { p_id: cancellationId, p_accept: accept })); },
     async listApplications(postId) {
       let q = db.from("applications").select("*").order("created_at");
       if (postId) q = q.eq("post_id", postId);

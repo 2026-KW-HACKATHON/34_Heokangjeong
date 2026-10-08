@@ -3,7 +3,7 @@
 import type {
   ActivityLog, Application, Badge, ClientReview, ClientVerification, Evidence, EvidenceSource, EvidenceType, MemberVerification, Outcome, PortfolioCard,
   PortfolioContent, PortfolioDraft, PortfolioEditedVersion, PortfolioSourceSnapshot, Post, Project, ProjectAnswer, ProjectBundle,
-  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember,
+  ProjectMember, Review, Stage, SubmissionVersion, TeamPeerReview, TierScoreEvent, User, VerificationClaims, AnswerStatus, AnswerOrigin, DraftGenerator, GuardReport, HandoverDoc, MaintainerTerm, MaintenanceTicket, Operations, Club, ClubMember, ProjectCancellation,
 } from "@/types";
 import { DOMAINS, QUESTION_SET_VERSION } from "@shared/portfolio/domains";
 import { nextStatus, WorkflowError } from "@shared/portfolio/stateMachine";
@@ -35,6 +35,7 @@ export interface WorkflowDB {
   edits: PortfolioEditedVersion[];
   tierEvents: TierScoreEvent[];
   badges: Badge[];
+  cancellations: ProjectCancellation[];
   clubs: Club[];
   clubMembers: ClubMember[];
   operations: Operations[];
@@ -48,7 +49,7 @@ export interface WorkflowDB {
 export const emptyDB = (): WorkflowDB => ({
   users: [], posts: [], applications: [], projects: [], members: [], answers: [], logs: [], evidence: [], versions: [], verifications: [], memberVerifications: [],
   reviews: [], outcomes: [], snapshots: [], drafts: [], edits: [], tierEvents: [], badges: [], peerReviews: [], legacyReviews: [], legacyCards: [],
-  clubs: [], clubMembers: [], operations: [], terms: [], tickets: [], handoverDocs: [],
+  cancellations: [], clubs: [], clubMembers: [], operations: [], terms: [], tickets: [], handoverDocs: [],
 });
 export interface Ctx { now: () => string; id: () => string }
 export const defaultCtx: Ctx = {

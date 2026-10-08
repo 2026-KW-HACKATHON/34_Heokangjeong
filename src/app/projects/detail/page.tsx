@@ -7,6 +7,7 @@ import EvidenceItem from "@/components/EvidenceItem";
 import Verification from "@/components/Verification";
 import OperationsCard from "@/components/OperationsCard";
 import ClubWorkers from "@/components/ClubWorkers";
+import CancelProject from "@/components/CancelProject";
 import Readiness from "@/components/Readiness";
 import MissingRequired from "@/components/MissingRequired";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
@@ -194,6 +195,9 @@ function Project() {
         )}
 
         {/* 계속 운영되는 결과물이면 완료 후 운영·유지보수·인수인계가 이어진다 */}
+        {/* 합의 취소: 요청 → 상대 1명 수락, 3일 무응답은 거절 */}
+        <CancelProject bundle={b} onChange={reload} />
+
         {status === "COMPLETED" && <OperationsCard projectId={id} post={b.post} users={users} />}
 
         {status !== "RECRUITING" && (

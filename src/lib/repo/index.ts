@@ -1,6 +1,6 @@
 import type {
   ActivityLog, Application, ChatMessage, ChatRoom, Evidence, Notification, Outcome, PortfolioCard, PortfolioContent, PortfolioDoc, PortfolioDraft,
-  Club, ClubInput, ClubMember, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TicketKind, TrustSummary, User, VerificationClaims
+  Club, ClubInput, ClubMember, HandoverDoc, HandoverInput, MaintenanceTicket, Operations, OperationsBundle, PortfolioEditedVersion, Post, Project, ProjectAnswer, ProjectBundle, PublishedPortfolio, Review, SubmissionVersion, TeamPeerReview, TicketKind, ProjectCancellation, TrustSummary, User, VerificationClaims,
 } from "@/types";
 import type { AnswerInput, EvidenceInput, OutcomeInput, ReviewInput } from "../workflow/engine";
 import type { AgreementTerms, WorkAgreement } from "../agreement";
@@ -30,6 +30,10 @@ export interface Repo {
   createPost(p: Omit<Post, "id" | "createdAt" | "status">): Promise<Post>;
   updatePostStatus(id: string, status: Post["status"]): Promise<void>;
   deletePost(postId: string, actorId: string): Promise<void>;   // 작성자만, 선정 전에만
+  // ── 합의 취소 (진행 중 프로젝트를 양쪽 합의로 끝낸다) ─────────────────────
+  getCancellation(projectId: string): Promise<ProjectCancellation | null>;   // 가장 최근 요청 (기한 지난 건 거절로 정리된다)
+  requestCancellation(projectId: string, reason: string, actorId: string): Promise<void>;
+  respondCancellation(cancellationId: string, accept: boolean, actorId: string): Promise<void>;
   listApplications(postId?: string): Promise<Application[]>;
   apply(postId: string, studentId: string, message: string, roleId?: string, clubId?: string): Promise<Application>;
   getApplication(id: string): Promise<Application | undefined>;

@@ -297,6 +297,51 @@ export const mockRepo: Repo = {
     return post;
   }); },
   async updatePostStatus(id, status) { return tx(() => { const p = db.posts.find((x) => x.id === id); if (p) p.status = status; }); },
+  // ── 합의 취소 (DB 0034 와 같은 규칙) ────────────────────────────────────
+  async getCancellation(projectId) {
+    ensure();
+    const now = new Date().toISOString();
+    for (const c of db.cancellations) if (c.status === "PENDING" && c.expiresAt < now) { c.status = "EXPIRED"; c.respondedAt = now; }
+    return wait(db.cancellations.filter((c) => c.projectId === projectId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null);
+  },
+  async requestCancellation(projectId, reason, actorId) { return tx(() => {
+    const project = db.projects.find((p) => p.id === projectId);
+    if (!project) throw new Error("프로젝트를 찾을 수 없어요");
+    if (project.status === "COMPLETED") throw new Error("이미 완료된 프로젝트는 취소할 수 없어요");
+    if (project.status === "CANCELLED") throw new Error("이미 취소된 프로젝트예요");
+    if (reason.trim().length < 10) throw new Error("취소 사유를 10자 이상 적어 주세요");
+    if (db.cancellations.some((c) => c.projectId === projectId && c.status === "PENDING")) throw new Error("이미 응답을 기다리는 취소 요청이 있어요");
+    const members = db.members.filter((m) => m.projectId === projectId);
+    const lead = members.find((m) => m.isLead)?.studentId ?? members[0]?.studentId;
+    const responder = actorId === project.ownerId ? lead : actorId === lead ? project.ownerId : undefined;
+    if (!responder) throw new Error("의뢰인 또는 학생 쪽 대표만 취소를 요청할 수 있어요");
+    const now = new Date();
+    db.cancellations.push({
+      id: `pc${Date.now()}`, projectId, requestedBy: actorId, responderId: responder, reason: reason.trim(),
+      status: "PENDING", expiresAt: new Date(now.getTime() + 3 * 86400000).toISOString(), createdAt: now.toISOString(),
+    });
+    pushNotification({ userId: responder, kind: "CANCEL_REQUESTED", href: `/projects/detail?id=${projectId}`, text: "상대방이 프로젝트 취소를 요청했어요. 3일 안에 수락하거나 거절해 주세요." });
+  }); },
+  async respondCancellation(cancellationId, accept, actorId) { return tx(() => {
+    const c = db.cancellations.find((x) => x.id === cancellationId);
+    if (!c) throw new Error("취소 요청을 찾을 수 없어요");
+    if (c.responderId !== actorId) throw new Error("상대방만 수락하거나 거절할 수 있어요");
+    if (c.status !== "PENDING" || c.expiresAt < new Date().toISOString()) throw new Error("이미 처리된 요청이에요");
+    c.respondedAt = new Date().toISOString();
+    if (!accept) {
+      c.status = "REJECTED";
+      pushNotification({ userId: c.requestedBy, kind: "CANCEL_REJECTED", href: `/projects/detail?id=${c.projectId}`, text: "취소 요청이 거절됐어요. 채팅으로 상대방과 합의해 주세요." });
+      return;
+    }
+    c.status = "ACCEPTED";
+    const project = db.projects.find((p) => p.id === c.projectId)!;
+    project.status = "CANCELLED";
+    const post = db.posts.find((p) => p.id === project.postId);
+    if (post) post.status = "done";
+    for (const uid of [project.ownerId, ...db.members.filter((m) => m.projectId === c.projectId).map((m) => m.studentId)])
+      pushNotification({ userId: uid, kind: "CANCELLED", href: `/projects/detail?id=${c.projectId}`, text: "프로젝트가 합의 취소됐어요." });
+  }); },
+
   async deletePost(postId, actorId) { return tx(() => {
     const i = db.posts.findIndex((x) => x.id === postId);
     if (i < 0) throw new Error("공고를 찾을 수 없어요");

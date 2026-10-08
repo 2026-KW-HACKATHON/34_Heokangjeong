@@ -7,6 +7,7 @@ const TABLE: Record<ProjectStatus, Partial<Record<ProjectEvent, ProjectStatus>>>
   REVIEW_PENDING: { REQUEST_REVISION: "REVISION_REQUESTED", APPROVE: "COMPLETED" },
   REVISION_REQUESTED: { RESUBMIT: "REVIEW_PENDING" },
   COMPLETED: {},
+  CANCELLED: {},          // 합의 취소된 프로젝트에서는 더 진행할 수 없다
 };
 
 export const STATUS_LABEL: Record<ProjectStatus, string> = {
@@ -15,6 +16,7 @@ export const STATUS_LABEL: Record<ProjectStatus, string> = {
   REVIEW_PENDING: "검토 대기",
   REVISION_REQUESTED: "보완 요청됨",
   COMPLETED: "완료·검증됨",
+  CANCELLED: "합의 취소됨",
 };
 
 export class WorkflowError extends Error {
