@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
 import NotionPanel from "@/components/NotionPanel";
-import WorkFieldSummary from "@/components/WorkFieldSummary";
 import { ErrorText, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
@@ -98,7 +97,6 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu }: { page: Por
   return (
     <>
       <TopBar title={owner ? "내 포트폴리오" : "포트폴리오"} back />
-      <div className="px-4 pb-2"><WorkFieldSummary key={page.studentId} studentId={page.studentId} /></div>
       {owner && (
         <div className="flex flex-col gap-2 px-4 pb-2">
           <p className="sub text-xs">편집본 v{page.edit.version} · {page.edit.createdAt.slice(0, 10)} 저장 · {tpl.name} 디자인</p>
