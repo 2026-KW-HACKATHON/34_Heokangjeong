@@ -3,7 +3,7 @@ import type { Repo } from "../repo";
 
 /**
  * 피드 카드에 쓰는 글 사본만 만든다 (프로젝트 묶음이나 증빙은 복사하지 않는다).
- * 프로젝트 작업의 전체 페이지(검증·평가·증빙 포함)는 공개 중일 때만 get_public_portfolio(0033)로 읽는다.
+ * 프로젝트 작업의 전체 페이지(검증·평가·증빙 포함)는 공개 중일 때만 get_public_portfolio(0036)로 읽는다.
  */
 export async function publicationFromSource(repo: Repo, studentId: string, sourceId: string, sourceKind: PublishedPortfolio["sourceKind"]): Promise<PublishedPortfolio> {
   const base = { studentId, sourceId, sourceKind, publishedAt: new Date().toISOString() };
