@@ -1,8 +1,8 @@
 import type { PublishedPortfolio } from "@/types";
 
 export const ARCHIVE_PUBLIC_LIMIT = 3;
-export type FeedCollection = "experience" | "archive" | "portfolio";
-export const feedCollection = (item: PublishedPortfolio): FeedCollection => item.sections[0]?.collection ?? "experience";
+export type FeedCollection = "experience" | "archive";
+export const feedCollection = (item: PublishedPortfolio): FeedCollection => item.sections[0]?.collection === "archive" ? "archive" : "experience";
 export const isArchive = (item: PublishedPortfolio) => item.sections[0]?.collection === "archive";
 export function withFeedCollection(item: PublishedPortfolio, collection: FeedCollection): PublishedPortfolio {
   return { ...item, sections: item.sections.map((section, index) => {
