@@ -28,16 +28,13 @@ export default function MapView({ posts, me, center, recenterRequest = 0 }: { po
     <div className="relative h-full w-full">
       <MapContainer center={[center.lat, center.lng]} zoom={15} className="h-full w-full" scrollWheelZoom>
         <Recenter center={center} request={recenterRequest} />
-        {/* 키 없이 쓸 수 있는 연한 회색 지도 (Esri Light Gray Canvas). 밑그림 + 글자 두 장을 겹친다 */}
+        {/* 한국 지명·골목이 가장 촘촘한 OpenStreetMap 기본 타일. 키가 필요 없다.
+            (CARTO·Esri 는 각각 API 키 요구·한국 데이터 없음으로 쓸 수 없었다) */}
         <TileLayer
-          attribution='&copy; Esri, &copy; OpenStreetMap'
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-          maxZoom={16}
+          attribution='&copy; OpenStreetMap'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
           eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }}
-        />
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
-          maxZoom={16}
         />
         {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
         {posts.map((p) => (
