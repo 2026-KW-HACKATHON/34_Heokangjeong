@@ -28,13 +28,16 @@ export default function MapView({ posts, me, center, recenterRequest = 0 }: { po
     <div className="relative h-full w-full">
       <MapContainer center={[center.lat, center.lng]} zoom={15} className="h-full w-full" scrollWheelZoom>
         <Recenter center={center} request={recenterRequest} />
-        {/* CARTO Voyager: OpenStreetMap 자료를 쓰되 색이 차분해 앱 화면과 잘 어울린다. 무료(출처 표기 필요) */}
+        {/* 키 없이 쓸 수 있는 연한 회색 지도 (Esri Light Gray Canvas). 밑그림 + 글자 두 장을 겹친다 */}
         <TileLayer
-          attribution='&copy; OpenStreetMap, &copy; CARTO'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={20}
+          attribution='&copy; Esri, &copy; OpenStreetMap'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
           eventHandlers={{ tileerror: () => setTilesFailed(true), load: () => setTilesFailed(false) }}
+        />
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={16}
         />
         {me && <Marker position={[me.lat, me.lng]} icon={meIcon}><Popup>🔵 현재 위치</Popup></Marker>}
         {posts.map((p) => (
