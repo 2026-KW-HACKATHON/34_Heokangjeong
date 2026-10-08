@@ -15,7 +15,7 @@ function Row({ n, label, children }: { n: number; label: string; children: React
   );
 }
 
-export default function EditorialTemplate({ page, content, blocks, editing, onChange }: TemplateProps) {
+export default function EditorialTemplate({ page, content, blocks, editing, onChange, onReplaceImage, imageBusy }: TemplateProps) {
   let n = 0;
   const block = (b: DocBlock, i: number) => {
     switch (b.kind) {
@@ -31,7 +31,7 @@ export default function EditorialTemplate({ page, content, blocks, editing, onCh
             <EditableText label={b.section.title} editing={editing} value={b.section.body} onChange={(v) => onChange(setSection(content, b.section.key, v))} className="pf-ed-text" />
             {b.evidence.length > 0 && (
               <Locked editing={editing} origin="client" className="mt-4">
-                <EvidenceFigures evidence={b.evidence} />
+                <EvidenceFigures evidence={b.evidence} overrides={content.imageOverrides} editing={editing} onReplaceImage={onReplaceImage} imageBusy={imageBusy} />
               </Locked>
             )}
           </Row>
