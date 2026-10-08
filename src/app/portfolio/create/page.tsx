@@ -6,6 +6,7 @@ import TopBar from "@/components/TopBar";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import type { PublishedPortfolio } from "@/types";
+import { withFeedCollection, type FeedCollection } from "@/lib/portfolio/collection";
 
 type SelectedImage = { id: string; file: File; preview: string };
 const accepted = ["image/jpeg", "image/png", "image/webp"];
@@ -19,6 +20,8 @@ export default function CreatePortfolioFeed() {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [collection, setCollection] = useState<FeedCollection>("experience");
+  useEffect(() => { const value = new URLSearchParams(window.location.search).get("collection"); if (value === "archive" || value === "portfolio") setCollection(value); }, []);
   const previews = useRef<string[]>([]);
   useEffect(() => () => { previews.current.forEach(url => URL.revokeObjectURL(url)); }, []);
 
@@ -53,7 +56,7 @@ export default function CreatePortfolioFeed() {
         sections: [{ title: "작업 이야기", body: body.trim() }],
         publishedAt: new Date().toISOString(), coverUrl, imageUrls: uploaded, visible: true,
       };
-      await repo.createPortfolioFeed(user.id, item);
+      await repo.createPortfolioFeed(user.id, withFeedCollection(item, collection));
       router.push(`/portfolio/experience?s=${encodeURIComponent(user.id)}&kind=manual&id=${item.sourceId}`);
     } catch (cause) { setError((cause as Error).message || "피드를 올리지 못했어요. 다시 시도해 주세요."); }
     finally { setBusy(false); }
@@ -69,6 +72,8 @@ export default function CreatePortfolioFeed() {
       <section className="portfolio-compose-section"><div className="portfolio-compose-step"><b>02</b><div><h2>글 형식 선택</h2><p>HTML 글 프롬프트는 추후 추가할 예정이에요.</p></div></div><div className="portfolio-compose-prompt" aria-label="HTML 글 프롬프트 준비 중">선택할 글 형식이 아직 없어요</div></section>
       <section className="portfolio-compose-section"><div className="portfolio-compose-step"><b>03</b><div><h2>내용 작성</h2><p>내가 맡은 일과 배운 점을 자유롭게 적어 주세요.</p></div></div>
         <label>제목<input aria-label="피드 제목" required maxLength={160} value={title} onChange={event => setTitle(event.target.value)} placeholder="예: 동네 카페 메뉴판을 새롭게 만든 경험" /></label>
+        <label>공개 위치<select aria-label="공개 위치" value={collection} onChange={event => setCollection(event.target.value as FeedCollection)}><option value="experience">경험과 작업</option><option value="archive">개인 아카이브 · 앱 밖의 개인 기록</option><option value="portfolio">통합 포트폴리오</option></select></label>
+        {collection === "archive" && <p className="portfolio-compose-help">앱 밖에서 쌓은 개인 기록은 최대 3개까지 공개할 수 있어요.</p>}
         <label>본문<textarea aria-label="피드 본문" required maxLength={10000} rows={12} value={body} onChange={event => setBody(event.target.value)} placeholder="작업을 시작한 이유, 진행 과정, 결과와 느낀 점을 적어 주세요." /></label>
       </section>
       {error && <p role="alert" className="portfolio-compose-error">{error}</p>}

@@ -152,7 +152,7 @@ export interface PublishedPortfolio {
   title: string;
   summary: string;
   category: string;
-  sections: { title: string; body: string }[];
+  sections: { title: string; body: string; collection?: "archive" | "portfolio" }[];
   publishedAt: string;
   coverUrl?: string;
   imageUrls?: string[];

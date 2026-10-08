@@ -14,6 +14,7 @@ import type { PublishedPortfolio } from "@/types";
 import { nicknameProblem } from "../nickname";
 import { demoInProgressChats, demoProjectPublications, seedDemoProjects } from "../portfolio/demoProjects";
 import { publicationFromSource } from "../portfolio/publication";
+import { assertArchiveCapacity, feedCollection, withFeedCollection } from "../portfolio/collection";
 import { reviseAgreement, confirmAgreement, type WorkAgreement, proposeAgreementChange, respondAgreementChange } from "../agreement";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
@@ -227,7 +228,7 @@ let msgs: ChatMessage[] = structuredClone(messages);
 let demoNotifications: Notification[] = structuredClone(seedNotifications);
 let publications: PublishedPortfolio[] = [];
 let agreements: Record<string, WorkAgreement> = {};
-let profileExtras: Record<string, { about: string; avatarUrl?: string; department?: string }> = {};
+let profileExtras: Record<string, { about: string; avatarUrl?: string; department?: string; nickname?: string; skills?: string[]; interests?: import("@/types").Category[] }> = {};
 const withPortfolioProfile = (user: User): User => user.role === "student" ? { ...user, ...profileExtras[user.id] } : user;
 function load() {
   if (typeof window === "undefined") return;
@@ -564,6 +565,7 @@ export const mockRepo: Repo = {
     ensure();
     if (actorId !== item.studentId || item.sourceKind !== "manual" || (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== actorId)) throw new Error("본인의 피드만 올릴 수 있어요.");
     if (!item.title.trim() || !item.coverUrl || !item.imageUrls?.includes(item.coverUrl) || !item.sections.some(section => section.body.trim())) throw new Error("제목, 대표사진, 내용을 확인해 주세요.");
+    assertArchiveCapacity(item, await mockRepo.listPublishedPortfolio(actorId, true));
     if (publications.some(p => p.studentId === actorId && p.sourceKind === "manual" && p.sourceId === item.sourceId)) throw new Error("이미 등록된 피드예요.");
     const previous = publications;
     publications = [structuredClone(item), ...publications];
@@ -575,6 +577,7 @@ export const mockRepo: Repo = {
     const existing = publications.find(p => p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind);
     if (!existing && !demoProjectPublications(db, actorId).some(p => p.sourceId === item.sourceId && p.sourceKind === item.sourceKind)) throw new Error("공개된 게시물을 찾을 수 없어요.");
     if (!item.title.trim()) throw new Error("제목을 입력해 주세요.");
+    assertArchiveCapacity(item, await mockRepo.listPublishedPortfolio(actorId, true));
     const previous = publications;
     publications = [structuredClone(item), ...publications.filter(p => !(p.studentId === actorId && p.sourceId === item.sourceId && p.sourceKind === item.sourceKind))];
     try { save(); } catch(e) { publications = previous; throw e; }
@@ -591,6 +594,8 @@ export const mockRepo: Repo = {
     const item = await publicationFromSource(mockRepo, studentId, sourceId, sourceKind);
     const existing = publications.find(p => p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind);
     item.coverUrl = coverUrl ?? existing?.coverUrl;
+    if (existing) item.sections = withFeedCollection(item, feedCollection(existing)).sections;
+    assertArchiveCapacity(item, await mockRepo.listPublishedPortfolio(studentId, true));
     const previous = publications;
     publications = [item, ...publications.filter(p => !(p.studentId === studentId && p.sourceId === sourceId && p.sourceKind === sourceKind))];
     try { save(); } catch (e) { publications = previous; throw e; }
