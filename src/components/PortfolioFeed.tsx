@@ -19,6 +19,7 @@ export default function PortfolioFeed({ student, items, owner = false, onChange 
     catch(e) { setError((e as Error).message); } finally { setBusy(null); }
   }
   return <section className="portfolio-feed" aria-label="공개 포트폴리오 피드">
+    <hr className="portfolio-feed-divider" />
     <div className="portfolio-feed-heading"><div><p>SELECTED EXPERIENCES</p><div className="portfolio-feed-tabs" role="tablist" aria-label="포트폴리오 구분"><button role="tab" id="experience-tab" aria-controls="portfolio-feed-panel" aria-selected={collection === "experience"} onClick={() => setCollection("experience")}>경험과 작업</button><button role="tab" id="archive-tab" aria-controls="portfolio-feed-panel" aria-selected={collection === "archive"} onClick={() => setCollection("archive")}>개인 아카이브</button></div></div><div className="portfolio-feed-heading-actions"><span>{selectedItems.length}개의 기록</span>{owner && <Link href={`/portfolio/create?collection=${collection}`} className="portfolio-feed-create" aria-label="새 포트폴리오 피드 작성">+<span>피드 작성</span></Link>}</div></div>
     {collection === "archive" && <p className="portfolio-archive-note">월링크 밖에서 쌓은 개인 기록 · 최대 3개까지 공개 가능</p>}
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
