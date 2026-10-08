@@ -1,0 +1,140 @@
+// 샘플 콘텐츠 — 앱의 PortfolioContent + PortfolioPage(잠긴 원본)와 같은 모양으로 둔다.
+// 템플릿은 이 데이터를 읽기만 하고, 디자인·배치·모션은 template.js / template.css 가 맡는다.
+// 모든 샘플은 `sample: true` 로 표시된다. displayTitle(전시용 짧은 제목)·author·focus(띠 미리보기 초점)·gain(띠 미리보기 명도 보정)·섹션의 heading(본문에서 뽑은 짧은 핵심 제목)은 템플릿 전용 선택 필드다. heading 은 본문 문장에서 가져온 말로만 채운다. 이미지는 앱의 public/portfolio-samples 에 있는 실제 파일을 상대 경로로 참조한다 (오프라인 동작).
+// 글은 src/lib/portfolio/demoProjects.ts 의 데모 기록(김하늘 s1)에서 가져왔고, 성과 수치는 tests/portfolio-templates.test.ts 의 샘플 값이다.
+window.WOLINK_SAMPLES = {
+  // ── A. 이미지와 과정 자료가 있는 디자인 프로젝트 ─────────────────────────────
+  menu: {
+    id: "demo-menu-2",
+    sample: true,
+    author: { name: "김하늘", field: "디자인 포트폴리오" },
+    displayTitle: "영문 메뉴판",
+    sampleNote: "샘플 · 데모 기록(김하늘)으로 만든 예시",
+    domain: "DESIGN",
+    domainLabel: "디자인",
+    sectionRoles: { overview: "overview", problem: "problem", decisions: "decision", process: "action", beforeAfter: "evidence", deliverable: "evidence", usage: "result", reflection: "reflection" },
+    content: {
+      title: "외국인 손님을 위한 한식당 영문 메뉴판",
+      summary: "번역기 없이도 고를 수 있도록, 한글 메뉴 9개를 재료와 맵기가 보이는 A4 영문 메뉴판 한 장으로 다시 설계했습니다.",
+      sections: [
+        { key: "overview", title: "개요", body: "광운대 앞 분식집의 외국인 손님을 위해 테이블에 놓을 A4 영문 메뉴판을 만들었습니다. 목표는 한식을 처음 보는 손님도 점주님께 묻지 않고 메뉴를 고르게 하는 것이었습니다.", evidenceIds: [] },
+        { key: "problem", title: "문제", heading: "한글 이름과 가격만 있던 메뉴판", body: "메뉴 9개가 한글 이름과 가격만 적혀 있고 알곤이·들깨처럼 짐작하기 어려운 이름이 많아, 외국인 손님이 올 때마다 점주님이 번역기로 하나씩 설명하셨습니다. 점심시간에 지켜보니 외국인 손님 5팀 중 4팀이 번역기를 썼습니다.", evidenceIds: ["ev-before"] },
+        { key: "decisions", title: "디자인 결정", heading: "이름 아래 재료와 맵기 한 줄", body: "외국인 손님의 질문이 대부분 '무엇이 들어가나요?'와 '맵나요?'였기 때문에, 메뉴를 칼국수·곁들임·여름 메뉴 세 구역으로 나누고 이름 바로 아래에 재료와 맵기를 한 줄로 적었습니다. QR 메뉴판도 고려했지만 점주님이 종이를 편해하셔서 종이 메뉴판으로 정했습니다.", evidenceIds: [] },
+        { key: "process", title: "과정", body: "손스케치로 정보 구조를 잡고 Figma 로 사진형·일러스트형 시안 두 가지를 만들어 점주님과 일러스트형을 골랐습니다. 출력본을 테이블에 두고 외국인 손님 3팀이 고르는 모습을 지켜봤고, 1차 제출 뒤 '매운 메뉴를 한눈에 알았으면 좋겠다'는 요청을 받아 맵기 표시를 더했습니다.", evidenceIds: ["ev-test", "ev-feedback"] },
+        { key: "beforeAfter", title: "작업 전·후", heading: "세 구역으로 나뉜 영문 메뉴판", body: "한글 이름과 가격만 있던 칼국수집 메뉴판(메뉴 9개)이, 영문 이름 아래 재료와 맵기가 적히고 칼국수·곁들임·여름 메뉴 세 구역으로 나뉜 메뉴판으로 바뀌었습니다.", evidenceIds: ["ev-before", "ev-final"] },
+        { key: "deliverable", title: "최종 결과물", body: "인쇄소에 바로 넘길 수 있는 A4 인쇄용 PDF 와 Figma 원본 파일을 전달했습니다.", evidenceIds: ["ev-final"] },
+        { key: "usage", title: "실제 사용", body: "메뉴판은 코팅해서 테이블에 놓였고, 의뢰인이 실제로 사용되고 있음을 확인했습니다.", evidenceIds: ["ev-usage"] },
+        { key: "reflection", title: "회고", heading: "번역보다 음식을 떠올릴 단서", body: "처음에는 번역이 핵심이라고 생각했지만, 손님에게 필요한 것은 음식을 떠올릴 단서였습니다. 다음 프로젝트에서는 시안을 만들기 전에 실제 사용자에게 먼저 묻겠습니다.", evidenceIds: [] },
+      ],
+      skills: ["정보 구조 설계", "편집 디자인", "사용자 관찰"],
+      tools: [{ name: "Figma", why: "점주님과 시안 두 가지를 나란히 보며 고르기 위해" }, { name: "Procreate", why: "대표 메뉴 일러스트를 직접 그리기 위해" }],
+      templateId: "exhibition",
+    },
+    page: {
+      projectId: "demo-menu-2",
+      studentId: "s1",
+      studentName: "김하늘",
+      info: { period: "2026.09.15 ~ 2026.09.17", roleLabel: "기획, 시안 디자인, 최종 디자인", clientName: "행복분식", clientType: "상인", approvedVersion: 2 },
+      verification: { workPerformed: true, roleConfirmed: true, deliverableReceived: true, completionCriteriaMet: true, actuallyUsed: true, createdAt: "2026-09-17", note: "코팅해서 테이블 10곳에 두었어요" },
+      review: { satisfaction: 5, deadline: 5, communication: 4, handoff: 5, comment: "이제 외국인 손님이 메뉴판만 보고 바로 주문해요. 번역기 꺼낼 일이 거의 없어졌어요." },
+      evidence: [
+        { id: "ev-before", type: "BEFORE_IMAGE", description: "작업 전: 한글 이름과 가격만 적힌 칼국수집 메뉴판 (메뉴 9개, 재료·맵기 설명 없음)", url: "../../public/portfolio-samples/menu-before.png", fileName: "menu-before.png", mimeType: "image/png", source: "STUDENT_UPLOAD", focus: "50% 38%", linkedClaim: "메뉴 9개가 한글 이름과 가격만 적혀 있었다" },
+        { id: "ev-final", type: "DELIVERABLE_FILE", description: "최종 영문 메뉴판 (A4 인쇄용)", url: "../../public/portfolio-samples/menu.png", fileName: "menu.png", mimeType: "image/png", source: "STUDENT_UPLOAD", focus: "50% 22%", linkedClaim: "영문 이름 아래 재료와 맵기를 한 줄로 적었다" },
+        { id: "ev-test", type: "TEST_RECORD", description: "출력본을 테이블에 두고 외국인 손님 3팀이 고르는 모습을 지켜봄 — 2팀이 묻지 않고 주문", source: "STUDENT_NOTE", linkedClaim: "묻지 않고 고를 수 있는 메뉴판" },
+        { id: "ev-feedback", type: "CLIENT_FEEDBACK", description: "1차 제출 뒤 '매운 메뉴를 한눈에 알았으면 좋겠다'는 요청 → 고추 아이콘으로 맵기 표시", source: "CLIENT" },
+        { id: "ev-usage", type: "USAGE_PROOF", description: "코팅해서 테이블 10곳에 비치 (의뢰인 확인)", source: "CLIENT", linkedClaim: "실제로 사용되고 있음" },
+      ],
+      outcomes: [
+        { id: "o1", metricName: "메뉴 설명 요청", measured: true, value: 3, unit: "회/일", baseline: 12, measurementPeriod: "게시 후 2주", source: "점주 기록", qualitativeDescription: "", verified: true },
+        { id: "o2", metricName: "주문 시간", measured: false, value: null, unit: "", baseline: null, measurementPeriod: "", source: "", qualitativeDescription: "외국인 손님이 덜 망설였어요", verified: false },
+      ],
+    },
+  },
+
+  // ── B. 이미지가 적고 설명이 긴 활동 프로젝트 ───────────────────────────────
+  real2sim: {
+    id: "demo-real2sim",
+    sample: true,
+    author: { name: "김하늘", field: "웹 개발 포트폴리오" },
+    displayTitle: "연구 소개 웹페이지",
+    sampleNote: "샘플 · 데모 기록(김하늘)으로 만든 예시",
+    domain: "DEVELOPMENT",
+    domainLabel: "웹/앱 개발",
+    sectionRoles: { overview: "overview", problem: "problem", requirements: "context", tech: "decision", implementation: "action", testing: "evidence", delivery: "evidence", usage: "result", reflection: "reflection" },
+    content: {
+      title: "Real2Sim & Sim2Real 연구 소개 웹페이지",
+      summary: "책방 과학 강연에서 휴대폰으로 QR 을 찍어 바로 볼 수 있도록, 시뮬레이션과 실제의 차이를 비교 이미지로 설명하는 한 화면 소개 페이지를 만들었습니다.",
+      sections: [
+        { key: "overview", title: "개요", body: "석계로 책방의 과학 강연에서 소개할 물리 시뮬레이션 연구를 주민 눈높이로 정리한 웹페이지입니다. 강연 중 QR 로 접속해 실제·시뮬레이션 비교 화면을 직접 보게 하는 것이 목표였습니다.", evidenceIds: [] },
+        { key: "problem", title: "문제", heading: "말로만 들어서는 어려운 연구", body: "강연에 온 주민들이 '시뮬레이션과 실제가 왜 다른지'를 말로만 들어서는 이해하기 어렵다고 책방 사장님이 말씀하셨습니다. 연구 자료는 논문 그림과 영어 용어 위주라 그대로 보여 줄 수 없었고, 강연장에는 큰 화면도 없어 각자 휴대폰으로 봐야 했습니다.", evidenceIds: [] },
+        { key: "requirements", title: "사용자·요구사항", body: "휴대폰에서 바로 열릴 것, 실제·시뮬레이션 비교 이미지가 있을 것, 한 화면에 요약이 들어갈 것. 세 가지가 사장님과 합의한 요구사항이었습니다.", evidenceIds: [] },
+        { key: "tech", title: "기술 선택", heading: "사장님이 직접 고치는 정적 페이지", body: "책방 사장님이 글을 직접 고칠 수 있도록 정적 페이지 + 마크다운으로 만들었습니다. 블로그 글도 생각했지만 광고가 섞여서 직접 페이지를 만들었고, 설치나 서버 없이 GitHub Pages 에 올려 QR 하나로 열리게 했습니다.", evidenceIds: [] },
+        { key: "implementation", title: "구현", body: "연구 요약, 실제·시뮬레이션 비교 이미지, 강연 자료 링크 세 부분으로 화면을 나눴습니다. 이미지가 많아 휴대폰에서 느려지지 않게 크기를 줄이고 순서대로 불러오게 했습니다. 전문 용어는 사장님과 한 문장씩 읽으며 주민 눈높이 문장으로 바꿨습니다.", evidenceIds: [] },
+        { key: "testing", title: "테스트", body: "여러 기기에서 확인했습니다. 강연 전 책방에서 사장님 휴대폰과 제 휴대폰, 노트북으로 QR 을 찍어 열리는 속도와 이미지 순서를 확인했습니다.", evidenceIds: ["ev-test"] },
+        { key: "delivery", title: "전달·배포", heading: "QR 하나로 열리는 소개 페이지", body: "GitHub Pages 배포 주소와 강연용 QR 코드 인쇄본을 전달했습니다.", evidenceIds: ["ev-web"] },
+        { key: "usage", title: "실제 사용", body: "강연 두 번에서 참가자들이 QR 로 비교 화면을 직접 열어 봤습니다. 손님 수나 접속 수는 따로 측정하지 않았습니다.", evidenceIds: ["ev-usage"] },
+        { key: "reflection", title: "회고", heading: "전문 용어를 줄이는 일", body: "전문 용어를 줄이는 데 시간이 가장 많이 들었습니다. 다음에는 처음부터 주민 눈높이 문장으로 쓰고, 강연 뒤에 접속 수를 세어 두겠습니다.", evidenceIds: [] },
+      ],
+      skills: ["기획", "프론트엔드", "배포·운영", "쉬운 글쓰기"],
+      tools: [{ name: "HTML/CSS", why: "설치 없이 휴대폰 브라우저에서 바로 열리게" }, { name: "GitHub Pages", why: "서버 없이 QR 하나로 배포하기 위해" }],
+      templateId: "exhibition",
+    },
+    page: {
+      projectId: "demo-real2sim",
+      studentId: "s1",
+      studentName: "김하늘",
+      info: { period: "2026.09.01 ~ 2026.09.06", roleLabel: "기획, 프론트엔드, 배포·운영", clientName: "석계 책방", clientType: "상인", approvedVersion: 1 },
+      verification: { workPerformed: true, roleConfirmed: true, deliverableReceived: true, completionCriteriaMet: true, actuallyUsed: true, createdAt: "2026-09-06", note: "" },
+      review: { satisfaction: 5, deadline: 4, communication: 5, handoff: 4, comment: "강연 때 다들 휴대폰으로 직접 보면서 질문이 많아졌어요." },
+      evidence: [
+        { id: "ev-web", type: "DELIVERABLE_URL", description: "연구 소개 웹페이지 (휴대폰·PC 화면)", url: "../../public/portfolio-samples/real2sim.png", fileName: "real2sim.png", mimeType: "image/png", source: "STUDENT_UPLOAD", focus: "50% 30%", linkedClaim: "QR 로 열리는 한 화면 소개 페이지" },
+        { id: "ev-test", type: "TEST_RECORD", description: "강연 전 휴대폰 2대·노트북에서 QR 접속과 이미지 순서 확인", source: "STUDENT_NOTE" },
+        { id: "ev-usage", type: "USAGE_PROOF", description: "강연 두 번에서 참가자들이 QR 로 직접 열어 봄 (의뢰인 확인)", source: "CLIENT", linkedClaim: "실제로 사용되고 있음" },
+      ],
+      outcomes: [],
+    },
+  },
+  // ── C. 디자인 테스트용 사진 샘플 (실제 프로젝트 증빙 아님) ─────────────────────
+  // 사진: Unsplash License, photos/SOURCES.md 참고. 글은 사진 포트폴리오 형식을 흉내 낸 샘플 문장이다.
+  photo: {
+    id: "design-test-photo",
+    sample: true,
+    sampleNote: "디자인 테스트 · 사진 출처 Unsplash · 실제 프로젝트 증빙 아님",
+    author: { name: "김하늘", field: "사진 포트폴리오 · 디자인 테스트" },
+    displayTitle: "골목의 저녁",
+    domain: "GENERAL",
+    domainLabel: "사진 기록",
+    sectionRoles: { overview: "overview", problem: "problem", decisions: "decision", process: "action", result: "result", reflection: "reflection" },
+    content: {
+      title: "월계동 골목을 걷는 저녁 — 동네 기록 사진 연작",
+      summary: "해가 지는 한 시간 동안 같은 골목을 다섯 번 걸으며 가게 불빛과 사람의 움직임을 기록한 연작입니다. (샘플 문장)",
+      sections: [
+        { key: "overview", title: "개요", body: "동네 상점회가 골목 안내 리플릿에 쓸 사진을 부탁했습니다. 낮 사진 대신 저녁 불빛이 켜지는 순간을 담기로 했습니다. (샘플 문장)", evidenceIds: ["ph-1"] },
+        { key: "problem", title: "문제", heading: "낮 사진에서 사라진 골목의 분위기", body: "기존 안내물의 사진은 한낮에 찍어 간판이 하얗게 날아가고 골목의 분위기가 사라져 있었습니다. 사람들이 실제로 골목을 찾는 시간은 저녁이었습니다. (샘플 문장)", evidenceIds: ["ph-2"] },
+        { key: "decisions", title: "촬영 판단", heading: "삼각대 없이, 흐름 그대로", body: "삼각대 없이 필름 감도를 올려 손에 든 채로 찍기로 했습니다. 지나가는 사람을 기다리지 않고 흐름 그대로 담는 편이 골목의 성격에 맞다고 판단했습니다. (샘플 문장)", evidenceIds: [] },
+        { key: "process", title: "과정", body: "오후 5시 반부터 6시 반까지 같은 길을 다섯 번 왕복했습니다. 첫 두 번은 밝기 기준을 잡는 데 썼고, 세 번째부터 사람과 불빛이 겹치는 순간을 골랐습니다. (샘플 문장)", evidenceIds: ["ph-3"] },
+        { key: "result", title: "결과", heading: "표지와 안쪽 면에 들어간 두 장", body: "리플릿 표지와 안쪽 면에 쓸 사진 두 장을 골라 전달했습니다. 세로 한 장은 표지, 가로 한 장은 지도 옆에 들어갔습니다. (샘플 문장)", evidenceIds: ["ph-4"] },
+        { key: "reflection", title: "회고", heading: "보정보다 시간 선택", body: "사진의 설득력은 보정보다 시간 선택에서 나왔습니다. 다음에는 가게 사장님들께 불 켜는 시각을 미리 여쭤보고 가겠습니다. (샘플 문장)", evidenceIds: ["ph-5"] },
+      ],
+      skills: ["관찰", "현장 판단"],
+      tools: [{ name: "필름 카메라", why: "샘플" }],
+      templateId: "exhibition",
+    },
+    page: {
+      projectId: "design-test-photo",
+      studentId: "s1",
+      studentName: "김하늘",
+      info: { period: "2026.10 (샘플)", roleLabel: "촬영, 선별 (샘플)", clientName: "동네 상점회 (샘플)", clientType: "상인", approvedVersion: null },
+      verification: null,
+      review: null,
+      evidence: [
+        { id: "ph-1", type: "DELIVERABLE_FILE", description: "저녁 골목 (세로) — Unsplash · SUNGWON KIM · 디자인 테스트용", url: "./photos/unsplash-TMoq1a7OKVY-sunset-alley.jpg", fileName: "unsplash-TMoq1a7OKVY-sunset-alley.jpg", mimeType: "image/jpeg", source: "STUDENT_UPLOAD", focus: "50% 55%" },
+        { id: "ph-2", type: "BEFORE_IMAGE", description: "낮의 상점 거리 — Unsplash · chansu shin · 디자인 테스트용", url: "./photos/unsplash-LsD49KuenuM-street-shops.jpg", fileName: "unsplash-LsD49KuenuM-street-shops.jpg", mimeType: "image/jpeg", source: "STUDENT_UPLOAD", focus: "50% 45%" },
+        { id: "ph-3", type: "PROCESS_IMAGE", description: "길을 되돌아 걷는 중 — Unsplash · rawkkim · 디자인 테스트용", url: "./photos/unsplash-jQteagM9KEo-hannam-street.jpg", fileName: "unsplash-jQteagM9KEo-hannam-street.jpg", mimeType: "image/jpeg", source: "STUDENT_UPLOAD", focus: "50% 50%", gain: 1.12 },
+        { id: "ph-4", type: "AFTER_IMAGE", description: "리플릿 표지 후보 (세로) — Unsplash · rawkkim · 디자인 테스트용", url: "./photos/unsplash-eSMxl4dPnFs-hannam-alley.jpg", fileName: "unsplash-eSMxl4dPnFs-hannam-alley.jpg", mimeType: "image/jpeg", source: "STUDENT_UPLOAD", focus: "50% 40%", gain: 1.18 },
+        { id: "ph-5", type: "USAGE_PROOF", description: "골목 끝에서 — Unsplash · rawkkim · 디자인 테스트용", url: "./photos/unsplash-N_vcns6YVO4-narrow-pathway.jpg", fileName: "unsplash-N_vcns6YVO4-narrow-pathway.jpg", mimeType: "image/jpeg", source: "STUDENT_UPLOAD", focus: "50% 50%", gain: 1.35 },
+      ],
+      outcomes: [],
+    },
+  },
+};

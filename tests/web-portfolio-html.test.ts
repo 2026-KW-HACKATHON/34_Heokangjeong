@@ -62,3 +62,18 @@ describe("웹 포트폴리오 HTML", () => {
     expect(html).toContain("새 시안");
   });
 });
+
+
+it("전시는 사용자 데이터를 코드로 실행하지 않고 가변 섹션과 검증을 전달한다", () => {
+  const content: PortfolioContent = {title: '</script><script>alert(1)</script>', summary: "요약", sections: [{key:"legacy",title:"추가 섹션",body:"원문",evidenceIds:[]}],tools:[],skills:[],templateId:"exhibition"};
+  const page = {projectId:"p",studentId:"s",domain:"DESIGN",info:{period:"2026"},evidence:[],outcomes:[],verification:{workPerformed:true},review:null} as unknown as PortfolioPage;
+  const blocks: DocBlock[] = [{kind:"section",section:content.sections[0],evidence:[]}];
+  const html = webPortfolioHtml(page,content,blocks);
+  expect(html).not.toContain('<script>alert(1)</script>');
+  expect(html).toContain('\\u003c/script\\u003e');
+  expect(html).toContain('connect-src \'none\'');
+  expect(html).not.toContain('allow-same-origin');
+  expect(html).toContain('"key":"legacy"');
+  expect(html).toContain('"workPerformed":true');
+  expect(html).toContain('연출 커버 · 실제 증빙 아님');
+});

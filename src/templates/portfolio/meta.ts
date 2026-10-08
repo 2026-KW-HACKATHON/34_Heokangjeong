@@ -3,6 +3,7 @@
 export const TEMPLATE_META = [
   { id: "basic", name: "기본", description: "카드로 나눈 차분한 구성. 모바일에서 읽기 편해요." },
   { id: "editorial", name: "에디토리얼", description: "큰 제목과 왼쪽 라벨·오른쪽 본문의 잡지형 구성." },
+  { id: "exhibition", name: "인터랙티브 전시", description: "밝은 이미지 띠가 펼쳐지는 전시. PC 버전에서 단계별로 감상해요." },
 ] as const;
 export type TemplateId = (typeof TEMPLATE_META)[number]["id"];
 export const DEFAULT_TEMPLATE: TemplateId = "basic";

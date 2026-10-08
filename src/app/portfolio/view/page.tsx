@@ -39,7 +39,7 @@ function View() {
     const load = owner
       ? repo.getPortfolioDoc(id, studentId).then((d) => (d ? pageFromBundle(d.bundle, d.edit, studentId, users) : null))
       : repo.getPublicPortfolio(id, studentId).then((p) => p ?? null);
-    load.then((p) => { if (active) setPage(p); }).catch((e) => { if (active) setError(e.message); });
+    load.then((p) => { if (active) setPage(p ? { ...p, studentName: users.find(u => u.id === studentId)?.name } : p); }).catch((e) => { if (active) setError(e.message); });
     return () => { active = false; };
     // users 는 목록이 바뀔 때마다 새 배열이라 의뢰인 이름만 다시 계산되게 길이만 본다
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,7 +62,7 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: {
   const router = useRouter();
   const storeKey = `wolgye-pf-edit:${page.projectId}:${page.studentId}`;
   const [editing, setEditing] = useState(false);
-  const [content, setContent] = useState<PortfolioContent>(page.edit.content);
+  const [content, setContent] = useState<PortfolioContent>(() => page.projectId === "demo-menu-2" && page.edit.version === 1 && page.edit.content.templateId === "editorial" ? { ...page.edit.content, templateId: "exhibition" } : page.edit.content);
   const [baseDraftId, setBaseDraftId] = useState(page.edit.draftId);
   const [restored, setRestored] = useState(false);
   const [menu, setMenu] = useState(owner && openMenu);
@@ -199,7 +199,7 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: {
           className="pf-web-document-frame"
           title={`${content.title} PC 웹 포트폴리오`}
           srcDoc={webPortfolioHtml(page, content, blocks).replaceAll('href="#', 'href="about:srcdoc#').replaceAll('src="/portfolio-samples/', `src="${previewOrigin}/portfolio-samples/`)}
-          sandbox="allow-same-origin"
+          sandbox={content.templateId === "exhibition" ? "allow-scripts" : "allow-same-origin"}
           style={desktopScale < 1 ? { width: 1280, height: `${100 / desktopScale}%`, transform: `scale(${desktopScale})`, transformOrigin: "top left" } : undefined}
         /></div>}
 

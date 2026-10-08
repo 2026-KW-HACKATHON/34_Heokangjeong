@@ -259,7 +259,7 @@ const MENU_PORTFOLIO: PortfolioContent = {
   ],
   skills: ["정보 구조 설계", "편집 디자인", "사용자 관찰"],
   tools: [{ name: "Figma", why: "점주님과 시안 두 가지를 나란히 보며 고르기 위해" }, { name: "Procreate", why: "대표 메뉴 일러스트를 직접 그리기 위해" }],
-  templateId: "editorial",
+  templateId: "exhibition",
 };
 SPECS[0].portfolio = MENU_PORTFOLIO;
 
