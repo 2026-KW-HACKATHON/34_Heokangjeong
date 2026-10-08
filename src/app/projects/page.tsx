@@ -22,7 +22,7 @@ export default function Projects() {
   };
   return (
     <>
-      <TopBar title="내 프로젝트" />
+      <TopBar title="내 프로젝트" back />
       <section className="flex flex-col gap-3 px-4">
         {rows === null && <p className="sub p-6 text-center text-sm">불러오는 중…</p>}
         {rows?.length === 0 && <EmptyState text={user?.role === "resident" ? "지원자를 선정하면 프로젝트가 시작돼요" : "공고에 지원하고 선정되면 프로젝트가 시작돼요"} />}
