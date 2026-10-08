@@ -71,7 +71,9 @@ export async function createWebPortfolioFile(page: PortfolioPage, content: Portf
     const coverNames = ["eSMxl4dPnFs-hannam-alley", "jQteagM9KEo-hannam-street", "LsD49KuenuM-street-shops", "N_vcns6YVO4-narrow-pathway", "TMoq1a7OKVY-sunset-alley"];
     const imageUrls = [...new Set([
       ...page.evidence.filter(e => e.mimeType?.startsWith("image/")).map(e => content.imageOverrides?.[e.id]?.url || e.url),
+      ...Object.values(content.imageOverrides ?? {}).map(image => image.url),
       ...coverNames.map(name => `${base}/portfolio-exhibition/photos/unsplash-${name}.jpg`),
+      ...(page.projectId === "demo-menu-2" ? ["overview", "problem", "requirements", "process", "before", "usage", "reflection", "evaluation"].map(name => `${base}/portfolio-exhibition/menu-demo/${name}.png`) : []),
     ])].filter((u): u is string => !!u && !u.startsWith("data:"));
     const embedded: Record<string, string> = {};
     await Promise.all(imageUrls.map(async url => {

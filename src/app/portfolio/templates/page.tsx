@@ -27,6 +27,10 @@ function Picker() {
   const [error, setError] = useState("");
   const [index, setIndex] = useState(0);
   const strip = useRef<HTMLDivElement>(null);
+  const selectedIndex = useRef(0);
+  const moving = useRef(false);
+  const settleTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(settleTimer.current), []);
   const act = useAction();
 
   useEffect(() => {
@@ -44,24 +48,40 @@ function Picker() {
   useEffect(() => {
     if (!current) return;
     const i = TEMPLATES.findIndex((t) => t.id === current);
+    selectedIndex.current = i;
     setIndex(i);
-    const el = strip.current?.children[i] as HTMLElement | undefined;
-    el?.scrollIntoView({ inline: "center", block: "nearest" });
+    const el = strip.current;
+    const child = el?.children[i];
+    if (el && child) {
+      const parentRect = el.getBoundingClientRect(), childRect = child.getBoundingClientRect();
+      el.scrollTo({left: el.scrollLeft + childRect.left + childRect.width / 2 - parentRect.left - parentRect.width / 2, behavior: "instant"});
+    }
   }, [current]);
   const blocks = useMemo(() => (page ? pageBlocks(page) : []), [page]);
 
   const go = (i: number) => {
     const n = Math.max(0, Math.min(TEMPLATES.length - 1, i));
+    selectedIndex.current = n;
+    moving.current = true;
     setIndex(n);
-    (strip.current?.children[n] as HTMLElement | undefined)?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    const el = strip.current, child = el?.children[n];
+    if (el && child) {
+      const parentRect = el.getBoundingClientRect(), childRect = child.getBoundingClientRect();
+      el.scrollTo({left: el.scrollLeft + childRect.left + childRect.width / 2 - parentRect.left - parentRect.width / 2, behavior: "smooth"});
+    }
+    clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => { moving.current = false; }, 700);
   };
   const onScroll = () => {
     const el = strip.current;
     if (!el) return;
-    const mid = el.scrollLeft + el.clientWidth / 2;
+    const rect = el.getBoundingClientRect();
+    const mid = rect.left + rect.width / 2;
     let best = 0, dist = Infinity;
-    Array.from(el.children).forEach((c, i) => { const h = c as HTMLElement; const d = Math.abs(h.offsetLeft + h.offsetWidth / 2 - mid); if (d < dist) { dist = d; best = i; } });
-    setIndex(best);
+    Array.from(el.children).forEach((c, i) => { const r = c.getBoundingClientRect(); const d = Math.abs(r.left + r.width / 2 - mid); if (d < dist) { dist = d; best = i; } });
+    if (!moving.current) { selectedIndex.current = best; setIndex(best); }
+    clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => { moving.current = false; selectedIndex.current = best; setIndex(best); }, 150);
   };
 
   async function choose() {
@@ -85,7 +105,7 @@ function Picker() {
           <p className="text-lg font-bold">{first ? "포트폴리오 디자인을 골라 주세요" : "디자인 바꾸기"}</p>
           <p className="sub mt-1 text-sm">옆으로 넘겨 보세요. 어떤 디자인이든 내용은 모두 그대로 들어가고, 나중에 언제든 바꿀 수 있어요.</p>
         </div>
-        <div ref={strip} className="pf-picker" onScroll={onScroll} role="listbox" aria-label="템플릿">
+        <div ref={strip} className="pf-picker" onScroll={onScroll} onPointerDown={() => { moving.current = false; }} onWheel={() => { moving.current = false; }} role="listbox" aria-label="템플릿">
           {TEMPLATES.map((t, i) => (
             <div key={t.id} className="pf-slide" role="option" aria-selected={i === index} aria-current={t.id === current} aria-label={t.name} onClick={() => go(i)}>
               <div className="pf-preview" aria-hidden="true">
@@ -96,10 +116,10 @@ function Picker() {
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-center gap-3" aria-hidden="true">
-          <button type="button" className="chip" onClick={() => go(index - 1)} disabled={index === 0}>‹</button>
+        <div className="flex items-center justify-center gap-3">
+          <button type="button" aria-label="이전 디자인" className="chip" onClick={() => go(selectedIndex.current - 1)} disabled={index === 0}>‹</button>
           {TEMPLATES.map((t, i) => <span key={t.id} className={`h-2 w-2 rounded-full ${i === index ? "bg-[var(--primary)]" : "bg-[var(--line)]"}`} />)}
-          <button type="button" className="chip" onClick={() => go(index + 1)} disabled={index === TEMPLATES.length - 1}>›</button>
+          <button type="button" aria-label="다음 디자인" className="chip" onClick={() => go(selectedIndex.current + 1)} disabled={index === TEMPLATES.length - 1}>›</button>
         </div>
         <div className="px-4">
           <ErrorText text={act.error} />
