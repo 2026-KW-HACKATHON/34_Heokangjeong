@@ -26,6 +26,8 @@ export interface Repo {
   getUser(id: string): Promise<User | undefined>;
   updatePortfolioProfile(studentId: string, data: { about: string; avatarUrl?: string; department?: string; nickname?: string; skills?: string[]; interests?: import("@/types").Category[] }): Promise<void>;
   uploadPortfolioImage(studentId: string, file: File): Promise<string>;
+  /** 프로필 사진만 바꾼다 (학생·사장님 모두). 사진은 uploadPortfolioImage 로 먼저 올린다 */
+  updateAvatar(userId: string, avatarUrl: string): Promise<void>;
   listPosts(): Promise<Post[]>;
   getPost(id: string): Promise<Post | undefined>;
   createPost(p: Omit<Post, "id" | "createdAt" | "status">): Promise<Post>;

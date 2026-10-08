@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import Avatar from "@/components/Avatar";
 import Link from "next/link";
 import TopBar from "@/components/TopBar";
 import Icon from "@/components/Icon";
@@ -23,9 +24,7 @@ export default function ProfileSearchPage() {
         : found.length === 0 ? <p className="card sub text-sm">찾는 학생이 없어요.</p>
         : <ul className="card flex flex-col divide-y divide-[var(--line)] p-0" aria-label="검색 결과">{found.map((s) => <li key={s.id}>
             <Link href={`/profiles/view?id=${s.id}`} className="flex items-center gap-3 px-4 py-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--line)] font-bold">
-                {s.role === "student" && s.avatarUrl ? <img src={s.avatarUrl} alt="" className="h-full w-full object-cover" /> : s.name.slice(0, 1)}
-              </span>
+              <Avatar user={s} size={40} />
               <span className="min-w-0 flex-1"><b>{s.name}</b>{s.nickname && <span className="sub text-sm"> @{s.nickname}</span>}
                 <span className="sub block truncate text-xs">{s.role === "student" ? s.department : ""}</span></span>
               <span className="sub" aria-hidden="true">›</span>

@@ -4,6 +4,7 @@ import type { Category, Student } from "@/types";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { nicknameError, nicknameProblem } from "@/lib/nickname";
+import { Silhouette } from "@/components/Avatar";
 const INTEREST_OPTIONS: Category[] = ["디자인", "사진", "영상", "웹/앱", "SNS홍보", "디지털도움", "기타"];
 
 export default function PortfolioProfileHeader({ student, editable = false }: { student: Student; publishedCount: number; editable?: boolean }) {
@@ -39,7 +40,7 @@ export default function PortfolioProfileHeader({ student, editable = false }: { 
   return <section className={`portfolio-identity${editing ? " is-editing" : ""}`} aria-label="내 소개">
     <div className="portfolio-identity-main">
       <div className="portfolio-identity-avatar" aria-label={`${student.name}의 프로필 사진`}>
-        {preview || student.avatarUrl ? <img src={preview ?? student.avatarUrl} alt="" /> : <span aria-hidden="true">{student.name.slice(0, 1)}</span>}
+        {preview || student.avatarUrl ? <img src={preview ?? student.avatarUrl} alt="" /> : <Silhouette />}
       </div>
       <div className="portfolio-identity-text">
         <div className="portfolio-identity-name-row"><h1>{student.name}</h1>
