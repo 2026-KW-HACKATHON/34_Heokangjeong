@@ -30,15 +30,24 @@ export default function Home() {
   }, [exploring]);
   useEffect(() => { repo.listPosts().then(setPosts).catch(() => setError("공고를 불러오지 못했어요. 잠시 후 새로고침해 주세요.")).finally(() => setLoading(false)); }, []);
   const name = (id: string) => users.find((u) => u.id === id)?.name;
+  // 사장님: 내 공고 / 동네 공고, 학생: 추천 공고 / 내가 지원한 공고
+  const [mineOnly, setMineOnly] = useState(true);
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (user?.role !== "student") return;
+    repo.listApplications().then((list) => setAppliedIds(new Set(list.filter((a) => a.studentId === user.id).map((a) => a.postId)))).catch(() => {});
+  }, [user]);
 
   const rows = useMemo(() => {
-    let list = posts.filter((p) => categoryMatches(cat, p.category) && (!onlyOpen || p.status !== "done") && `${p.title} ${p.description} ${p.address}`.toLowerCase().includes(query.trim().toLowerCase()));
+    const hideDone = onlyOpen && mineOnly;   // 내 공고·내가 지원한 공고 탭에서는 끝난 것도 보여 준다
+    let list = posts.filter((p) => categoryMatches(cat, p.category) && (!hideDone || p.status !== "done") && `${p.title} ${p.description} ${p.address}`.toLowerCase().includes(query.trim().toLowerCase()));
     if (user?.role === "student") {
+      if (!mineOnly) list = list.filter((p) => appliedIds.has(p.id));          // '내가 지원한 공고' 탭
       return list.map((p) => ({ p, d: distanceM(user.location, p.location), s: recommendScore(user, p) })).sort((a, b) => b.s - a.s);
     }
-    if (user?.role === "resident") list = [...list.filter((p) => p.authorId === user.id), ...list.filter((p) => p.authorId !== user.id)];
+    if (user?.role === "resident") list = mineOnly ? list.filter((p) => p.authorId === user.id) : list.filter((p) => p.authorId !== user.id);
     return list.map((p) => ({ p, d: user ? distanceM(user.location, p.location) : undefined, s: undefined as number | undefined }));
-  }, [posts, cat, onlyOpen, user, query]);
+  }, [posts, cat, onlyOpen, user, query, mineOnly, appliedIds]);
 
   // The hero and its CTA use the same active requests as the feed after exploration.
   const connections = useMemo(() => {
@@ -59,13 +68,22 @@ export default function Home() {
       <section className="home-content px-5 pb-6">
         <TalentConnection category={cat} onCategoryChange={setCat} onExplore={explore} count={connections.length} suggestedPost={connections[0]} authorName={connections[0] && name(connections[0].authorId)} loading={loading} failed={!!error} resident={user?.role === "resident"} />
         <div className={`home-feed ${exploring ? "is-arriving" : ""}`}>
-        <div className="mb-4 flex items-center justify-between gap-3"><h2 ref={feedTitle} tabIndex={-1} className="home-feed-title text-xl font-bold tracking-tight">이웃이 기다리는 도움</h2><span className="sub text-xs" role="status">{loading ? "불러오는 중" : `${rows.length}개의 공고`}</span></div>
+        {(user?.role === "resident" || user?.role === "student") && (
+          <div className="mb-4 flex gap-2" role="tablist" aria-label="공고 보기">
+            {(user.role === "resident" ? [[true, "내 공고"], [false, "동네 공고"]] as const : [[true, "추천 공고"], [false, "내가 지원한 공고"]] as const).map(([v, label]) => (
+              <button key={label} role="tab" aria-selected={mineOnly === v} onClick={() => setMineOnly(v)} className={`chip ${mineOnly === v ? "chip-on" : ""}`}>{label}</button>
+            ))}
+          </div>
+        )}
+        <div className="mb-4 flex items-center justify-between gap-3"><h2 ref={feedTitle} tabIndex={-1} className="home-feed-title text-xl font-bold tracking-tight">{user?.role === "resident" ? (mineOnly ? "내가 올린 공고" : "동네 다른 가게 공고") : user?.role === "student" && !mineOnly ? "내가 지원한 공고" : "이웃이 기다리는 도움"}</h2><span className="sub text-xs" role="status">{loading ? "불러오는 중" : `${rows.length}개의 공고`}</span></div>
         <label className="home-search mb-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-[var(--sub)]"><Icon name="search" width={20} height={20} /><input aria-label="공고 검색" type="search" placeholder="제목, 내용, 동네로 찾아보세요" value={query} onChange={(e) => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none" /></label>
         <label className="sub mb-3 flex items-center gap-2 text-xs"><input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} /> 완료된 공고 숨기기</label>
         <div className="flex flex-col gap-3">
           {loading && <p role="status" className="card sub text-sm">이웃의 요청을 불러오고 있어요.</p>}
           {error && <p role="alert" className="card text-sm text-[var(--red)]">{error}</p>}
-          {!loading && !error && rows.length === 0 && <EmptyState text="조건에 맞는 공고가 없어요. 다른 분야를 살펴보세요." />}
+          {!loading && !error && rows.length === 0 && <EmptyState text={user?.role === "resident" && mineOnly ? "아직 올린 공고가 없어요. 위 ＋ 로 공고를 올려 보세요."
+            : user?.role === "student" && !mineOnly ? "아직 지원한 공고가 없어요. 추천 공고에서 찾아보세요."
+            : "조건에 맞는 공고가 없어요. 다른 분야를 살펴보세요."} />}
           {rows.map(({ p, d }, index) => <div key={`${cat}-${p.id}`} className="home-post-enter" style={{ animationDelay: `${Math.min(index, 5) * 45}ms` }}><PostCard post={p} authorName={name(p.authorId)} distance={d} /></div>)}
         </div>
         </div>

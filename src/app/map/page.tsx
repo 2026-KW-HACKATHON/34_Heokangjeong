@@ -13,7 +13,7 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, load
 
 /** ② 위치 기반 MAP: 주변 공고와 상태(🔴🟡🟢), 내 위치에서의 거리·도보 시간 */
 export default function MapPage() {
-  const { user } = useSession();
+  const { user, users } = useSession();
   const [posts, setPosts] = useState<Post[]>([]);
   const [hideDone, setHideDone] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<GeoPoint | null>(null);
@@ -67,7 +67,8 @@ export default function MapPage() {
       {loadError && <p role="alert" className="mx-4 mb-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
       <div className="relative isolate h-[calc(100dvh-13rem)] min-h-[240px] overflow-hidden rounded-t-3xl">
         <MapErrorBoundary posts={shown}>
-          <MapView posts={shown} me={currentLocation ?? undefined} center={mapLocation ?? WOLGYE_CENTER} recenterRequest={recenterRequest} />
+          <MapView posts={shown} me={currentLocation ?? undefined} center={mapLocation ?? WOLGYE_CENTER} recenterRequest={recenterRequest}
+            authorName={(id) => users.find((u) => u.id === id)?.name} />
         </MapErrorBoundary>
         <button
           type="button"
