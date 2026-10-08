@@ -5,6 +5,7 @@ import TopBar from "@/components/TopBar";
 import PortfolioProfileHeader from "@/components/PortfolioProfileHeader";
 import PortfolioFeed from "@/components/PortfolioFeed";
 import WorkFieldSummary from "@/components/WorkFieldSummary";
+import ResidentProfileCard from "@/components/ResidentProfileCard";
 import { useSession } from "@/lib/session";
 import { repo } from "@/lib/repo";
 import type { PublishedPortfolio } from "@/types";
@@ -49,7 +50,7 @@ export default function Me() {
         </div>
         <Link href="/portfolio" className="btn w-full">작업 관리 · 공개 범위 설정</Link>
         <details className="portfolio-me-details"><summary>나의 활동 정보</summary><dl><dt>보유 기술</dt><dd>{user.skills.join(", ") || "미입력"}</dd><dt>관심 분야</dt><dd>{user.interests.join(", ") || "미입력"}</dd><dt>가능 시간</dt><dd>{user.availableHours || "미입력"}</dd></dl><Link href="/projects">진행 프로젝트 보기 →</Link></details>
-      </> : <section className="card"><h2 className="text-xl font-bold">{user?.name ?? "나의 프로필"}</h2><p className="sub mt-2 text-sm">{user?.role === "resident" ? `${user.kind} · ${user.address}` : "계정을 불러오는 중이에요."}</p><Link href="/projects" className="btn mt-5 w-full">내 프로젝트 보기</Link></section>}
+      </> : user?.role === "resident" ? <ResidentProfileCard key={user.id} user={user} /> : <section className="card"><h2 className="text-xl font-bold">{user?.name ?? "나의 프로필"}</h2><p className="sub mt-2 text-sm">{user?.role === "admin" ? "앱 관리자" : "계정을 불러오는 중이에요."}</p><Link href="/projects" className="btn mt-5 w-full">내 프로젝트 보기</Link></section>}
       {mode === "mock" && <>
         <section className="card text-sm">
           <label className="font-semibold" htmlFor="demo-account">데모 계정 전환</label>

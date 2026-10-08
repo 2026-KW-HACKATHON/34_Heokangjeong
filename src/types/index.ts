@@ -41,6 +41,7 @@ export interface Resident {
   kind: "상인" | "주민";
   location: GeoPoint;
   address: string;
+  avatarUrl?: string;        // 가게 사진·로고 등 (채팅·프로필에 보인다)
 }
 
 /** 앱 관리자 (단체 등록 심사 등). 화면은 /admin 하나만 쓴다 */

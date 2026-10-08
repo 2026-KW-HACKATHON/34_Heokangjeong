@@ -224,7 +224,8 @@ let demoNotifications: Notification[] = structuredClone(seedNotifications);
 let publications: PublishedPortfolio[] = [];
 let agreements: Record<string, WorkAgreement> = {};
 let profileExtras: Record<string, { about: string; avatarUrl?: string; department?: string }> = {};
-const withPortfolioProfile = (user: User): User => user.role === "student" ? { ...user, ...profileExtras[user.id] } : user;
+const withPortfolioProfile = (user: User): User => user.role === "student" ? { ...user, ...profileExtras[user.id] }
+  : user.role === "resident" && profileExtras[user.id]?.avatarUrl ? { ...user, avatarUrl: profileExtras[user.id].avatarUrl } : user;
 function load() {
   if (typeof window === "undefined") return;
   try {
@@ -408,6 +409,13 @@ export const mockRepo: Repo = {
     save();
   },
   async uploadPortfolioImage(_studentId, file) { return fileToDataUrl(file, 450_000); },
+  async updateAvatar(userId, avatarUrl) {
+    ensure();
+    if (!users.some(user => user.id === userId && user.role !== "admin")) throw new Error("프로필을 찾을 수 없어요.");
+    if (typeof localStorage !== "undefined" && (localStorage.getItem("wolgye-user") || "s1") !== userId) throw new Error("본인의 프로필만 수정할 수 있어요.");
+    profileExtras[userId] = { ...profileExtras[userId], about: profileExtras[userId]?.about ?? "", avatarUrl };
+    save();
+  },
   async listPosts() { ensure(); return wait([...db.posts].map(withRoleIds).sort((a, b) => b.createdAt.localeCompare(a.createdAt))); },
   async getPost(id) { ensure(); const post = db.posts.find((p) => p.id === id); return wait(post ? withRoleIds(post) : undefined); },
   async createPost(p) { return tx(() => {
