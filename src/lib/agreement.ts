@@ -17,6 +17,12 @@ export interface WorkAgreement {
   ownerConfirmedAt: string | null;
   finalizedAt: string | null;
   updatedAt: string;
+  /** 확정 뒤 변경 제안 (상대가 수락하면 terms 가 이것으로 바뀌고 다시 확정, 거절하면 기존 유지) */
+  proposedTerms?: AgreementTerms | null;
+  proposedBy?: "student" | "owner" | null;
+  proposedAt?: string | null;
+  /** 변경 제안이 수락돼 내용이 바뀐 시각 */
+  amendedAt?: string | null;
 }
 export const AGREEMENT_SUPPORT = "의뢰인이 완료를 확인한 날부터 1개월 동안 합의한 작업 범위 안에서 사용 안내와 가벼운 수정을 지원합니다. 기존 결과물이 약속한 기능대로 동작하지 않는 버그는 완료 확인일부터 3개월까지 요청할 수 있습니다. 새 기능, 디자인 전면 변경, 외부 서비스 변경은 추가 협의합니다. 버그를 접수하면 재현 여부와 수정 일정을 채팅으로 합의합니다.";
 export const AGREEMENT_CHANGE = "최종 확정 전에는 양쪽 모두 수정할 수 있습니다. 수정하면 양쪽의 기존 확인은 취소됩니다. 같은 버전을 양쪽이 확인하면 최종 확정됩니다. 확정 후 변경·중단이 필요하면 채팅에서 작업 범위, 일정, 쿠폰 제공 조건을 다시 합의합니다.";
@@ -45,4 +51,21 @@ export function confirmAgreement(previous: WorkAgreement, version: number, side:
   const next = { ...previous, updatedAt: now, [side === "student" ? "studentConfirmedAt" : "ownerConfirmedAt"]: now };
   if (next.studentConfirmedAt && next.ownerConfirmedAt) next.finalizedAt = now;
   return next;
+}
+
+/** 확정 뒤 변경 제안. 상대방의 제안이 걸려 있으면 먼저 답해야 한다. 기존 약속서는 그대로 효력이 있다 */
+export function proposeAgreementChange(previous: WorkAgreement, side: "student" | "owner", terms: AgreementTerms): WorkAgreement {
+  if (!previous.finalizedAt) throw new Error("확정 전에는 약속서를 바로 고치면 돼요.");
+  if (previous.proposedBy && previous.proposedBy !== side) throw new Error("상대방의 변경 제안에 먼저 답해 주세요.");
+  validateAgreement(terms);
+  const now = new Date().toISOString();
+  return { ...previous, proposedTerms: structuredClone(terms), proposedBy: side, proposedAt: now, updatedAt: now };
+}
+/** 변경 제안에 답하기: 상대가 수락하면 새 내용으로 다시 확정, 거절(또는 제안한 쪽의 철회)이면 기존 유지 */
+export function respondAgreementChange(previous: WorkAgreement, side: "student" | "owner", accept: boolean): WorkAgreement {
+  if (!previous.proposedBy || !previous.proposedTerms) throw new Error("답할 변경 제안이 없어요.");
+  if (accept && previous.proposedBy === side) throw new Error("내 제안은 상대방이 수락해야 해요.");
+  const now = new Date().toISOString();
+  const cleared = { ...previous, proposedTerms: null, proposedBy: null, proposedAt: null, updatedAt: now };
+  return accept ? { ...cleared, terms: previous.proposedTerms, version: previous.version + 1, amendedAt: now } : cleared;
 }

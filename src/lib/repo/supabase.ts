@@ -22,7 +22,9 @@ import { validateAgreement, type WorkAgreement } from "../agreement";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
 const u = <T,>(v: T | null | undefined) => v ?? undefined;
-const toAgreement = (r: Row): WorkAgreement => ({ applicationId: r.application_id, version: r.version, terms: r.terms, studentConfirmedAt: r.student_confirmed_at, ownerConfirmedAt: r.owner_confirmed_at, finalizedAt: r.finalized_at, updatedAt: r.updated_at });
+const toAgreement = (r: Row): WorkAgreement => ({ applicationId: r.application_id, version: r.version, terms: r.terms, studentConfirmedAt: r.student_confirmed_at, ownerConfirmedAt: r.owner_confirmed_at, finalizedAt: r.finalized_at, updatedAt: r.updated_at , proposedTerms: r.proposed_terms ?? null, amendedAt: r.amended_at ?? null, proposedAt: r.proposed_at ?? null,
+  // 제안자는 id 로 저장된다 → 학생/의뢰인으로 바꾸는 건 listChatRooms·getAgreement 에서 지원서를 알 때 (proposerSide)
+  proposedBy: null, proposedById: r.proposed_by ?? null } as WorkAgreement & { proposedById?: string | null });
 let realtimeChannelSequence = 0;
 
 export const toUser = (r: Row): User => r.role === "admin"
