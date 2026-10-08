@@ -14,7 +14,7 @@ import type { Category, DomainKey } from "@/types";
 
 const CATS: Category[] = ["디자인", "영상", "사진", "SNS홍보", "웹/앱", "디지털도움", "기타"];
 const DEMO_EXAMPLE = {
-  memo: "월계 미용실의 주요 시술과 가격을 손님이 한눈에 볼 수 있도록 포스터로 만들고 싶어요.",
+  memo: "월계동에서 미용실을 운영하고 있어요. 시술 안내판이 오래돼서 손님들이 커트와 염색 가격을 자주 물어보세요. 시술명과 가격 목록, 매장 사진은 제가 드릴게요. 매장에 붙일 A3 안내 포스터 한 장과 인스타그램에 올릴 정사각형 이미지 한 장이 필요해요. 완성된 PDF와 수정 가능한 원본 파일도 받고 싶어요. 보상은 3개월 안에 쓸 수 있는 커트 1회 이용권으로 드리려고 해요.",
   title: "월계 미용실 시술 안내 포스터",
   problem: "새로운 시술과 가격 안내가 매장 안에서 잘 보이지 않아 손님이 자주 문의해요.",
   description: "시술명·가격 목록과 매장 사진을 제공할게요. 매장 부착용 포스터와 SNS 안내 이미지를 부탁드립니다.",
@@ -38,7 +38,7 @@ export default function NewPost() {
   // 계속 운영되는 결과물(웹사이트 등)이면 완료 후 유지보수·인수인계가 따라붙는다
   const [ops, setOps] = useState({ ongoing: false, touched: false, requestDays: 30, requestCount: 3, defectDays: 90, clientBilling: true });
   const [urgent, setUrgent] = useState({ on: false, colleges: [] as string[], open: null as string | null });
-  const [memo, setMemo] = useState("");
+  const [memo, setMemo] = useState(() => demo ? DEMO_EXAMPLE.memo : "");
   const [draft, setDraft] = useState<PostDraft | null>(null);
   const [drafting, setDrafting] = useState(false);
   const act = useAction();
@@ -87,12 +87,7 @@ export default function NewPost() {
     setDrafting(true);
     let d: PostDraft;
     try {
-      d = demo ? {
-        title: DEMO_EXAMPLE.title, category: "디자인", description: DEMO_EXAMPLE.description,
-        deliverables: DEMO_EXAMPLE.deliverables.split("\n"), departments: ["디자인학과"],
-        durationDays: 7, difficulty: 2, isTeam: false,
-        reasons: ["데모 모드에서 준비된 예시 초안입니다. 원하는 내용으로 수정할 수 있어요."],
-      } : await draftPost(request + (l.deadline ? `\n희망 마감일: ${l.deadline}` : ""));
+      d = await draftPost(request + (l.deadline ? `\n희망 마감일: ${l.deadline}` : ""));
     } catch (e) { setDrafting(false); return act.setError((e as Error).message); }
     setDraft(d);
     setF({ title: d.title, category: d.category, description: d.description, reward: f.reward, durationDays: 0, difficulty: d.difficulty, isTeam: false });
@@ -104,13 +99,13 @@ export default function NewPost() {
       <TopBar title="공고 등록" back />
       <section className="flex flex-col gap-3 px-4">
         <div className="card flex flex-col gap-3">
-          <div><h2 className="font-bold">✨ {demo ? "예시 공고를 바로 채워 드려요" : "대충 적으면 AI가 공고를 써 드려요"}</h2><p className="sub mt-0.5 text-xs">{demo ? "데모에서는 고민을 비워 둬도 준비된 예시 초안이 채워져요. 실제 AI 생성은 서버 연결 모드에서 동작해요." : "어떤 재능이 필요한지 몰라도 괜찮아요. 가게 고민만 편하게 적어 주세요."}</p></div>
+          <div><h2 className="font-bold">✨ Gemini가 공고를 정리해 드려요</h2><p className="sub mt-0.5 text-xs">{demo ? "체험용 요청 문장을 미리 넣었어요. 그대로 요약하거나 자유롭게 수정해 보세요." : "어떤 재능이 필요한지 몰라도 괜찮아요. 가게 고민만 편하게 적어 주세요."}</p></div>
           <textarea aria-label="가게 고민" className={`${inputCls} h-24`} placeholder={demo ? DEMO_EXAMPLE.memo : "예: 메뉴판이 낡아서 손님들이 잘 못 알아봐요. 폰으로 QR 찍어서 메뉴 보게 하고 싶어요. 메뉴 20개 정도"} value={memo} onChange={(e) => setMemo(e.target.value)} />
           <Field label="마감 기간 선택" hint="언제까지 결과물이 필요하신가요? 실제 작업 기간은 학생이 계약서에서 제안해요."><input aria-label="희망 마감일" type="date" className={inputCls} value={l.deadline} onChange={e => setL({ ...l, deadline: e.target.value })} /></Field>
-          <button data-demo-tour="post-example" onClick={makeDraft} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : demo ? "예시 공고 채우기" : "빠른 AI 공고 생성"}</button>
+          <button data-demo-tour="post-example" onClick={makeDraft} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : "Gemini 요약"}</button>
           {draft && (
-            <div className="rounded-xl bg-[var(--primary-weak)] p-3 text-sm">
-              <p className="font-bold text-[var(--primary)]">{demo ? "데모 예시 초안" : "AI 초안"} · 아래 폼에 채워 두었어요</p>
+            <div data-demo-tour="post-drafted" className="rounded-xl bg-[var(--primary-weak)] p-3 text-sm">
+              <p className="font-bold text-[var(--primary)]">Gemini 초안 · 아래 폼에 채워 두었어요</p>
               <dl className="mt-2 flex flex-col gap-1">
                 <div className="flex gap-2"><dt className="sub w-16 shrink-0">제목</dt><dd className="font-semibold">{draft.title}</dd></div>
                 <div className="flex gap-2"><dt className="sub w-16 shrink-0">필요 재능</dt><dd>{draft.category}</dd></div>

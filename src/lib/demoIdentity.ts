@@ -29,3 +29,11 @@ export function setDemoUserId(id: string) {
   try { sessionStorage.setItem(KEY, id); }
   catch { /* 저장소 접근이 막혀도 현재 탭 상태는 유지한다. */ }
 }
+
+/** 새 체험에서만 호출한다. 실제 계정의 인증·데이터는 건드리지 않는다. */
+export function clearDemoBrowserData() {
+  for (const key of Object.keys(localStorage)) {
+    if (/^wolgye-mock-v\d+$/.test(key) || key.startsWith("wolgye-demo-pf-edit:") || key.startsWith("wolgye-pf-edit:demo-") || key.startsWith("wolgye-chat-read-v1:mock:")) localStorage.removeItem(key);
+  }
+  sessionStorage.removeItem("wolgye-demo-tour");
+}

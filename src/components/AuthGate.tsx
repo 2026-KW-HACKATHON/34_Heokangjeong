@@ -10,7 +10,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const { mode, loading, authId, user } = useSession();
   const router = useRouter();
   const path = (usePathname() ?? "/").replace(/\/$/, "") || "/";
-  const publicDemo = path === "/design-preview";
+  const publicDemo = path === "/design-preview" || path === "/portfolio/shared";
   const target = publicDemo || loading ? null : mode === "mock" ? !user ? "/login" : null : !authId ? "/login" : !user ? "/onboarding" : null;
   const blocked = target !== null && !OPEN.includes(path);
 

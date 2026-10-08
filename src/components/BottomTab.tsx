@@ -28,7 +28,7 @@ export default function BottomTab() {
   const isAdmin = user?.role === "admin";
   const list = isAdmin ? adminTabs : tabs;
   const unread = useUnreadChats(isAdmin ? undefined : user?.id);
-  if (path.startsWith("/login") || path.startsWith("/onboarding")) return null;
+  if (path.startsWith("/portfolio/shared") || path.startsWith("/login") || path.startsWith("/onboarding")) return null;
   // 대화·작성 화면은 그 화면에만 집중하도록 하단 메뉴를 숨긴다
   if (["/chats/room", "/projects/log", "/projects/evidence", "/projects/submit", "/projects/review", "/projects/outcome", "/portfolio/build", "/portfolio/templates"].some(p => path.startsWith(p))) return null;
   return (

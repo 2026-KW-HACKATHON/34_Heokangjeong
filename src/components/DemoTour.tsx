@@ -7,7 +7,7 @@ import { useSession } from "@/lib/session";
 type Step = { path: string; target: string; title: string; description: string; action?: "next" };
 const steps: Record<DemoRole, Step[]> = {
   merchant: [
-    { path: "/posts/new/", target: '[data-demo-tour="post-example"]', title: "예시 공고 채우기", description: "버튼을 눌러 가게의 요청이 공고 초안으로 바뀌는 모습을 확인하세요." },
+    { path: "/posts/new/", target: '[data-demo-tour="post-example"]', title: "Gemini 공고 요약", description: "요청 문장을 미리 넣었어요. Gemini 요약을 눌러 공고 초안으로 정리해 보세요." },
     { path: "/posts/new/", target: '[data-demo-tour="post-submit"]', title: "공고 등록", description: "내용을 살펴본 뒤 등록해 보세요. 등록에 성공하면 공고 상세로 이어집니다." },
     { path: "/posts/detail/", target: '[data-demo-tour="post-created"]', title: "공고 등록 완료", description: "방금 올린 공고가 등록됐어요. 제목과 요청 내용을 확인하세요.", action: "next" },
     { path: "/posts/detail/", target: '[data-demo-tour="post-applicants"]', title: "지원자 비교", description: "데모 학생 두 명이 방금 올린 포스터 공고에 지원했어요. 학과와 제안 내용을 비교하세요.", action: "next" },
@@ -102,9 +102,15 @@ export default function DemoTour() {
 
   useEffect(() => {
     if (!tour || !step || !clicked || step.action === "next") return;
-    if (step.target.includes('"post-submit"') || step.target.includes('"merchant-select"') || step.target.includes('"student-apply"') || step.target.includes('"agreement"') || step.target.includes('"student-me"')) return;
+    if (step.target.includes('"post-example"') || step.target.includes('"post-submit"') || step.target.includes('"merchant-select"') || step.target.includes('"student-apply"') || step.target.includes('"agreement"') || step.target.includes('"student-me"')) return;
     advance();
   }, [tour, step, clicked, advance, finish]);
+
+  useEffect(() => {
+    if (!step?.target.includes('"post-example"') || !clicked) return;
+    const timer = window.setInterval(() => { if (document.querySelector('[data-demo-tour="post-drafted"]')) advance(); }, 200);
+    return () => clearInterval(timer);
+  }, [step, clicked, advance]);
 
   useEffect(() => {
     if (step?.target.includes('"student-me"') && clicked && path?.replace(/\/$/, "") === "/me") {

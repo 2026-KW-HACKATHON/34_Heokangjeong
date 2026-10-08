@@ -10,6 +10,8 @@ import { useSession } from "@/lib/session";
 import { pageBlocks, pageFromBundle, type PortfolioPage } from "@/lib/portfolio/page";
 import { templateFor } from "@/templates/portfolio";
 import { createWebPortfolioFile, downloadWebPortfolioFile, sharePortfolioLink, webPortfolioHtml } from "@/lib/portfolio/webHtml";
+import { portfolioShareUrl } from "@/lib/portfolio/shareSnapshot";
+import { isDemoEnabled } from "@/lib/demoIdentity";
 import type { PortfolioContent } from "@/types";
 
 /**
@@ -60,7 +62,7 @@ function View() {
 
 function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: { page: PortfolioPage; owner: boolean; userId: string; onSaved: () => void; openMenu: boolean; startWeb: boolean }) {
   const router = useRouter();
-  const storeKey = `wolgye-pf-edit:${page.projectId}:${page.studentId}`;
+  const storeKey = `${isDemoEnabled() ? "wolgye-demo-pf-edit" : "wolgye-pf-edit"}:${page.projectId}:${page.studentId}`;
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState<PortfolioContent>(() => page.projectId === "demo-menu-2" && page.edit.version === 1 && page.edit.content.templateId === "editorial" ? { ...page.edit.content, templateId: "exhibition" } : page.edit.content);
   const [baseDraftId, setBaseDraftId] = useState(page.edit.draftId);
@@ -174,7 +176,7 @@ function PortfolioScreen({ page, owner, userId, onSaved, openMenu, startWeb }: {
         {viewMode === "web" && <button type="button" className="pf-mode-download" disabled={!preparedFile} onClick={() => { if (preparedFile) { setDownloadError(""); downloadWebPortfolioFile(preparedFile); } }}>HTML 다운로드</button>}
         {owner && viewMode === "web" && !editing && <button type="button" onClick={() => setEditing(true)}>PC 편집</button>}
         {owner && viewMode === "web" && editing && <><button type="button" onClick={discard} disabled={act.busy}>취소</button><button type="button" className="pf-pill-primary" onClick={save} disabled={act.busy}>{act.busy ? "저장 중…" : "저장"}</button></>}
-        <button type="button" className="pf-mode-share" onClick={() => { const publicBase = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, ""); const url = new URL(window.location.href); if (publicBase) { const base = new URL(publicBase); url.protocol = base.protocol; url.host = base.host; } url.searchParams.set("view", "web"); setDownloadError(""); sharePortfolioLink(content.title, url.toString()).then(result => { if (result === "copied") setDownloadError("포트폴리오 링크를 복사했어요. 카카오톡이나 이메일에 붙여넣어 보내세요."); }).catch(e => { if (e.name !== "AbortError") setDownloadError(e.message); }); }}>링크 공유</button>
+        <button type="button" className="pf-mode-share" onClick={async () => { setDownloadError(""); try { const origin = window.location.protocol === "https:" || (window.location.hostname === "localhost" && !!window.location.port) ? window.location.origin : process.env.NEXT_PUBLIC_APP_URL || "https://wolgye-talent.vercel.app"; const url = await portfolioShareUrl(page, content, origin); const result = await sharePortfolioLink(content.title, url); if (result === "copied") setDownloadError("포트폴리오 링크를 복사했어요. 로그인 없이 볼 수 있어요."); } catch (e) { const error = e as Error; if (error.name !== "AbortError") setDownloadError(error.message); } }}>링크 공유</button>
         {downloadError && <p className="pf-mode-error" role="alert">{downloadError}</p>}
       </div>
 

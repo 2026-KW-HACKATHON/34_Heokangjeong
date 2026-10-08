@@ -1,15 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { isKakaoEnabled, useSession } from "@/lib/session";
 import BrandLogo from "@/components/BrandLogo";
-import { startDemoSession } from "@/lib/demoIdentity";
+import { clearDemoBrowserData, startDemoSession } from "@/lib/demoIdentity";
+import { mockRepo } from "@/lib/repo/mock";
 import { startDemoTour } from "@/lib/demoTour";
 
 /** 이메일·비밀번호 로그인/가입 (Supabase 연결 시에만 쓰인다) */
 export default function Login() {
-  const router = useRouter();
-  const { mode, loading, users, setUserId, signIn, signUp, signInWithKakao } = useSession();
+  const { mode, loading, users, signIn, signUp, signInWithKakao } = useSession();
   const [isNew, setIsNew] = useState(false);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -34,7 +33,7 @@ export default function Login() {
         <p className="sub mt-2 text-sm">가입 없이 예시 계정으로 기능을 체험할 수 있어요.</p>
         <div className="mt-6 flex flex-col gap-3">
           {examples.map(({label, detail, user}) => <button key={label} type="button" disabled={loading || !user}
-            onClick={() => { if (!user) return; setUserId(user.id); router.replace("/"); }}
+            onClick={async () => { if (!user) return; clearDemoBrowserData(); await mockRepo.resetDemo!(); startDemoSession(user.id); if (user.role === "student") startDemoTour("student"); else if (user.role === "resident" && user.kind === "상인") startDemoTour("merchant"); window.location.assign(user.role === "resident" && user.kind === "상인" ? "/posts/new/" : "/"); }}
             className="card flex w-full items-center justify-between gap-3 text-left transition-colors hover:bg-[var(--primary-weak)] disabled:opacity-50">
             <span><span className="block text-base font-bold">{label}</span><span className="sub mt-1 block text-sm">{detail}</span><span className="sub mt-1 block text-xs">예시 계정 · {user?.name ?? "불러오는 중"}</span></span>
             <span aria-hidden="true" className="text-2xl text-[var(--sub)]">›</span>
@@ -50,7 +49,9 @@ export default function Login() {
     try { await (isNew ? signUp : signIn)(email.trim(), pw); } catch (x) { setErr((x as Error).message); } finally { setBusy(false); }
   }
   const field = "w-full rounded-xl bg-[var(--line)] p-3.5 text-[15px] outline-none";
-  function enterDemo(role: "student" | "merchant") {
+  async function enterDemo(role: "student" | "merchant") {
+    clearDemoBrowserData();
+    await mockRepo.resetDemo!();
     startDemoSession(role === "student" ? "s1" : "r7");
     startDemoTour(role);
     window.location.assign(role === "student" ? "/" : "/posts/new/");
