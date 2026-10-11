@@ -167,9 +167,22 @@ export default function ChatAgreement({ application, post, actorId, studentName,
     if(step===2 && (!terms.coupon.trim() || !terms.handoff.trim())) return setError("보상 지급 내용과 인계 방법을 적어 주세요.");
     setStep(s=>s+1); dialog.current?.scrollTo({top:0});
   }
+  /** 체험 중에는 확정 화면을 잠깐 보여 준 뒤 자동으로 닫는다 (닫히면 튜토리얼이 다음 단계로 넘어간다) */
+  function closeAfterGuidedFinal(value: WorkAgreement) {
+    if (guidedAgreement && value.finalizedAt) window.setTimeout(() => dialog.current?.close(), 1600);
+  }
   async function save() {
     setBusy(true); setError("");
-    try { const value=proposing ? await repo.proposeAgreementChange(application.id,actorId,terms) : await repo.saveAgreement(application.id,actorId,shown?.version ?? 0,terms); setAgreement(value); display(value); }
+    try {
+      let value=proposing ? await repo.proposeAgreementChange(application.id,actorId,terms) : await repo.saveAgreement(application.id,actorId,shown?.version ?? 0,terms);
+      if (guidedAgreement && !proposing) {   // 체험: 저장·내 확인·상대 확인을 한 번에
+        value=await repo.confirmAgreement(application.id,actorId,value.version);
+        value=await completeGuidedConfirmation(value);
+        if (value.finalizedAt) onChange?.();
+        closeAfterGuidedFinal(value);
+      }
+      setAgreement(value); display(value);
+    }
     catch(e) {setError((e as Error).message);}
     finally {setBusy(false);}
   }
@@ -180,6 +193,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
       let value=await repo.confirmAgreement(application.id,actorId,shown.version);
       value=await completeGuidedConfirmation(value);
       setAgreement(value); display(value); if (value.finalizedAt) onChange?.();
+      closeAfterGuidedFinal(value);
     }
     catch(e) {setError((e as Error).message);}
     finally {setBusy(false);}
@@ -202,12 +216,12 @@ export default function ChatAgreement({ application, post, actorId, studentName,
       <div className="agreement-body">
         {guidedAgreement && <aside className="agreement-tour-tip" role="status" aria-live="polite" aria-label="작업 계약서 체험 안내">
           <strong>{merchantQuick && !editing ? (shown?.finalizedAt ? "계약 확정!" : "이런 계약서를 주고받아요") : editing ? `계약서 검토 흐름 ${step + 1}/4 · ${["작업 내용과 Gemini 요약", "작업 일정", "보상과 AS", "저장 전 확인"][step]}` : shown?.finalizedAt ? "계약서 검토 완료" : "마지막 · 양쪽 확인"}</strong>
-          <p>{merchantQuick && !editing ? (shown?.finalizedAt ? "닫기(×)를 누르면 2주 뒤로 넘어가요." : "공고 내용으로 계약서가 자동으로 채워졌어요. 아래 ‘이 버전 최종 확인’만 눌러 보세요.") : editing ? [
+          <p>{merchantQuick && !editing ? (shown?.finalizedAt ? "잠시 후 2주 뒤로 넘어가요." : "공고 내용으로 계약서가 자동으로 채워졌어요. 아래 ‘이 버전 최종 확인’만 눌러 보세요.") : editing ? [
             reviewedSummary ? "꼼꼼하게 확인했나요? 아래 ‘다음’을 눌러 일정으로 넘어가세요." : aiDraft ? "Gemini 요약 결과를 읽어 보세요. 화면을 누르면 아래 ‘다음’ 버튼을 안내합니다." : "채팅으로 협의된 작업 범위를 작성해요. 직접 쓰기 또는 예시 프롬프트 입력을 골라 보세요.",
             "손가락으로 시작일부터 완료일까지 드래그해 보세요. 두 날짜를 눌러 선택할 수도 있어요.",
             "보상·AS·파일 인계 방법을 간단히 확인한 뒤 ‘다음’을 눌러 주세요.",
-            "내용을 읽고 ‘저장하고 양쪽 확인받기’를 눌러 주세요. 저장만으로 계약이 확정되지는 않아요.",
-          ][step] : shown?.finalizedAt ? "양쪽 확인이 끝났어요. 오른쪽 위 닫기 버튼을 누르면 다음 튜토리얼로 이어집니다." : "내용을 확인하고 동의 체크 후 ‘이 버전 최종 확인’을 눌러 주세요. 데모에서는 상대방 확인도 자동으로 재현해요."}</p>
+            "내용을 읽고 ‘확인하고 계약 확정’을 눌러 주세요. 체험에서는 상대방 확인까지 한 번에 처리돼요.",
+          ][step] : shown?.finalizedAt ? "양쪽 확인이 끝났어요. 잠시 후 다음 단계로 넘어가요." : "내용을 확인하고 동의 체크 후 ‘이 버전 최종 확인’을 눌러 주세요. 데모에서는 상대방 확인도 자동으로 재현해요."}</p>
           {editing && step === 2 && <span className="agreement-review-nudge">꼼꼼하게 확인해줘요</span>}
         </aside>}
 
@@ -254,7 +268,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         {error && <p role="alert" className="agreement-error">{error}</p>}
         {(error || changed) && <button className="agreement-text-button" disabled={busy} onClick={open}>최신본 다시 불러오기</button>}
         <footer ref={actions} className="agreement-actions">
-          {editing ? <><button type="button" disabled={busy || step===0} onClick={()=>setStep(s=>s-1)}>이전</button><button className="agreement-primary" disabled={busy || changed} onClick={step===3 ? save : next}>{busy?"저장 중…":step===3?(proposing?"수정 제안 보내기":"저장하고 양쪽 확인받기"):"다음"}</button></> : shown?.finalizedAt ? (pending
+          {editing ? <><button type="button" disabled={busy || step===0} onClick={()=>setStep(s=>s-1)}>이전</button><button className="agreement-primary" disabled={busy || changed} onClick={step===3 ? save : next}>{busy?"저장 중…":step===3?(proposing?"수정 제안 보내기":guidedAgreement?"확인하고 계약 확정":"저장하고 양쪽 확인받기"):"다음"}</button></> : shown?.finalizedAt ? (pending
             ? (mineProposal
               ? <><button disabled={busy} onClick={()=>respond(false)}>제안 철회</button><button className="agreement-primary" onClick={()=>dialog.current?.close()}>상대방 답변 대기</button></>
               : <><button disabled={busy} onClick={()=>respond(false)}>거절</button><button className="agreement-primary" disabled={busy} onClick={()=>respond(true)}>{busy?"처리 중…":"수락하고 다시 확정"}</button></>)
