@@ -102,7 +102,7 @@ export default function NewPost() {
         <div className="card flex flex-col gap-3">
           <div><h2 className="font-bold">✨ Gemini가 공고를 정리해 드려요</h2><p className="sub mt-0.5 text-xs">{demo ? "체험용 요청 문장을 미리 넣었어요. 그대로 요약하거나 자유롭게 수정해 보세요." : "어떤 재능이 필요한지 몰라도 괜찮아요. 가게 고민만 편하게 적어 주세요."}</p></div>
           <textarea data-demo-tour="post-memo" aria-label="가게 고민" className={`${inputCls} h-24`} placeholder={demo ? DEMO_EXAMPLE.memo : "예: 메뉴판이 낡아서 손님들이 잘 못 알아봐요. 폰으로 QR 찍어서 메뉴 보게 하고 싶어요. 메뉴 20개 정도"} value={memo} onChange={(e) => setMemo(e.target.value)} />
-          <Field label="마감 기간 선택" hint="언제까지 결과물이 필요하신가요? 실제 작업 기간은 학생이 계약서에서 제안해요."><input data-demo-tour="post-deadline" aria-label="희망 마감일" type="date" className={inputCls} value={l.deadline} onChange={e => setL({ ...l, deadline: e.target.value })} /></Field>
+          <Field label="마감 기간 선택" hint="언제까지 결과물이 필요하신가요? 실제 작업 기간은 학생이 계약서에서 제안해요."><div data-demo-tour="post-deadline" className="relative h-12 w-full min-w-0"><input aria-label="희망 마감일" type="date" className={`${inputCls} post-deadline-input ${!l.deadline ? "is-empty" : ""}`} value={l.deadline} onChange={e => setL({ ...l, deadline: e.target.value })} />{!l.deadline && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-500">날짜 선택 (선택 사항)</span>}</div></Field>
           <button data-demo-tour="post-example" onClick={makeDraft} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : "Gemini 요약"}</button>
           {draft && (
             <div data-demo-tour="post-drafted" className="rounded-xl bg-[var(--primary-weak)] p-3 text-sm">
@@ -154,7 +154,7 @@ export default function NewPost() {
           </fieldset>
         </div>
         {/* 유지보수: 만들고 끝나는 일인지, 계속 운영되는 결과물인지 */}
-        <div className="card flex flex-col gap-3">
+        <div data-demo-tour="post-as" className="card flex flex-col gap-3">
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={ongoing} onChange={(e) => setOps({ ...ops, ongoing: e.target.checked, touched: true })} />
             <span><b>AS 보증 기간 작성</b>
@@ -191,7 +191,7 @@ export default function NewPost() {
           )}
         </div>
         {/* 긴급 공고: 평소 공고는 알림이 가지 않는다. 급할 때만 고른 단과대학 학생에게 즉시 알림 */}
-        <div className="card flex flex-col gap-3">
+        <div data-demo-tour="post-urgent" className="card flex flex-col gap-3">
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={urgent.on} onChange={(e) => setUrgent({ ...urgent, on: e.target.checked })} />
             <span><b>🚨 긴급 공고로 올릴게요</b><span className="sub block text-xs">지금 바로 사람이 필요할 때만 선택하세요. 고른 단과대학 학생과 관심 분야가 맞는 학생에게 즉시 알림이 갑니다.</span></span>

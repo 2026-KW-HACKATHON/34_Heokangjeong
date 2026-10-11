@@ -100,10 +100,13 @@ export default function DemoTour() {
   useEffect(() => { if (completed && path !== "/") router.replace("/"); }, [completed, path, router]);
   useEffect(() => { document.body.classList.toggle("guided-demo", !!tour || completed); return () => document.body.classList.remove("guided-demo"); }, [tour, completed]);
   const finish = useCallback(() => { saveDemoTour(null); setTour(null); setRect(null); setCompleted(false); }, []);
+  const [reviewPart, setReviewPart] = useState(0);
   const baseStep = tour && steps[tour.role][tour.step];
   const step = useMemo(() => tour?.role === "student" && tour.step === 3 && alreadyApplied && !clicked
     ? { ...baseStep!, target: '[data-demo-tour="student-applied"]', title: "이미 지원한 공고", description: "이 브라우저에서는 이미 지원했어요. 지원 내역을 확인한 뒤 다음 단계에서 채팅창으로 이동하세요.", action: "next" as const }
-    : baseStep, [tour?.role, tour?.step, alreadyApplied, clicked, baseStep]);
+    : baseStep?.target.includes('"post-review"') && reviewPart > 0
+      ? { ...baseStep, target: reviewPart === 1 ? '[data-demo-tour="post-as"]' : '[data-demo-tour="post-urgent"]', title: reviewPart === 1 ? "AS 보증 기간 확인" : "긴급 공고 선택 확인", description: reviewPart === 1 ? "완료 후에도 관리가 필요한 작업이면 AS 보증 기간 작성을 선택해 기간과 횟수를 정해 주세요. 파일을 전달하고 끝나는 작업이면 선택하지 않아도 됩니다. 확인 후 다음을 눌러 주세요." : "급하게 학생을 구해야 할 때만 긴급 공고를 선택하세요. 선택하면 추가수당과 알림 받을 학생을 설정할 수 있어요. 일반 공고는 선택하지 않아도 됩니다. 확인 후 다음을 눌러 등록으로 이동하세요." }
+      : baseStep, [reviewPart, tour?.role, tour?.step, alreadyApplied, clicked, baseStep]);
   useEffect(() => {
     if (tour?.role !== "student" || tour.step !== 3 || !path?.startsWith("/posts/detail")) return;
     const update = () => setAlreadyApplied(!!document.querySelector('[data-demo-tour="student-applied"]'));
@@ -113,6 +116,8 @@ export default function DemoTour() {
   }, [tour?.role, tour?.step, path]);
   const advance = useCallback(() => {
     if (!tour) return;
+    if (baseStep?.target.includes('"post-review"') && reviewPart < 2) { setReviewPart(reviewPart + 1); setClicked(false); setRect(null); return; }
+    setReviewPart(0);
     const next = tour.step + 1;
     if (next >= steps[tour.role].length) { saveDemoTour(null); setCompletedRole(tour.role); setTour(null); setRect(null); setCompleted(true); return; }
     const updated = { ...tour, step: next };
@@ -120,7 +125,7 @@ export default function DemoTour() {
     const destination = steps[tour.role][next].path;
     const here = window.location.pathname + window.location.search;
     if (destination !== "/posts/detail/" && destination !== "/chats/room/" && here !== destination) window.location.assign(destination);
-  }, [tour]);
+  }, [tour, baseStep, reviewPart]);
 
   useEffect(() => {
     if (tour?.role !== "student" || tour.step < 10 || tour.step > 18 || !path?.startsWith("/portfolio/view")) return;

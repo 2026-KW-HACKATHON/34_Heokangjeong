@@ -573,3 +573,8 @@ body.guided-demo:has(.pf-web-breakout.is-fullscreen) .pf-web-breakout.is-fullscr
     width:min(360px,calc(100vw - 40px)); max-height:min(820px,calc(100dvh - 72px));
   }
 }
+
+/* Keep native mobile date controls sized and give empty iOS dates a visible prompt. */
+.post-deadline-input { display:block; box-sizing:border-box; width:100%; min-width:0; height:48px; min-height:48px; max-height:48px; font-size:16px; appearance:none; -webkit-appearance:none; }
+.post-deadline-input::-webkit-date-and-time-value { text-align:left; min-height:1.4em; }
+.post-deadline-input.is-empty::-webkit-datetime-edit { color:transparent; }
