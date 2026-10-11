@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
-import { getDemoTour, saveDemoTour, type DemoRole, type DemoTourState } from "@/lib/demoTour";
+import { getDemoTour, saveDemoTour, type DemoPicks, type DemoRole, type DemoTourState } from "@/lib/demoTour";
+import { clearDemoBrowserData, endDemoSession } from "@/lib/demoIdentity";
 import { useSession } from "@/lib/session";
 
 type Step = { path: string; target: string; title: string; description: string; action?: "next"; cta?: string };
@@ -13,18 +14,11 @@ const intro: Step = {
 };
 const steps: Record<DemoRole, Step[]> = {
   merchant: [
-    intro,
-    { path: "/", target: '[data-demo-tour="merchant-create"]', title: "홈에서 공고 쓰기", description: "오른쪽 위 + 버튼을 눌러 우리 가게에 필요한 도움을 요청해 보세요." },
-    { path: "/posts/new/", target: '[data-demo-tour="post-memo"]', title: "가게 요청 내용 쓰기", description: "실제 가게 고민처럼 예시 문장을 미리 넣었어요. 읽어 보거나 직접 수정한 다음 ‘다음’을 눌러 주세요.", action: "next" },
-    { path: "/posts/new/", target: '[data-demo-tour="post-deadline"]', title: "희망 마감일 선택", description: "날짜 입력칸을 눌러 원하는 마감일을 선택해 보세요. 마감일이 정해지지 않았다면 비워 두어도 돼요. 선택 후 ‘다음’을 눌러 주세요.", action: "next" },
-    { path: "/posts/new/", target: '[data-demo-tour="post-example"]', title: "Gemini 공고 요약", description: "요청 문장을 미리 넣었어요. Gemini 요약을 눌러 공고 초안으로 정리해 보세요." },
-    { path: "/posts/new/", target: '[data-demo-tour="post-review"]', title: "자동으로 채워진 공고 확인", description: "방금 입력한 요청으로 제목·필요 재능·설명·결과물이 아래 공고에 채워졌어요. 스크롤하며 확인하고 원하는 부분을 고친 뒤 ‘다음’을 눌러 주세요. 아직 등록되지 않았어요.", action: "next" },
-    { path: "/posts/new/", target: '[data-demo-tour="post-submit"]', title: "공고 등록", description: "내용을 살펴본 뒤 등록해 보세요. 등록에 성공하면 공고 상세로 이어집니다." },
-    { path: "/posts/detail/", target: '[data-demo-tour="post-created"]', title: "공고 등록 완료", description: "방금 올린 공고가 등록됐어요. 제목과 요청 내용을 확인하세요.", action: "next" },
-    { path: "/posts/detail/", target: '[data-demo-tour="post-applicants"]', title: "지원자 비교", description: "데모 학생 두 명이 방금 올린 포스터 공고에 지원했어요. 학과와 제안 내용을 비교하세요.", action: "next" },
-    { path: "/posts/detail/", target: '[data-demo-tour="merchant-select"]', title: "학생 선정하기", description: "디자인 작업 경험이 맞는 윤서연 학생을 선정해 보세요. 계약서를 양쪽이 확인해야 최종 확정됩니다." },
-    { path: "/chats/room/", target: '[data-demo-tour="agreement"]', title: "양쪽이 확인하는 계약서", description: "계약서를 열어 자유 입력칸에 작업 내용을 적고 'Gemini 요약'을 눌러 보세요. 실제 AI 응답이 항목에 반영됩니다. 내용을 확인한 뒤 다음으로 진행하세요." },
-    { path: "/chats/room/", target: '[data-demo-tour="merchant-match-status"]', title: "상인 흐름 완료", description: "데모에서는 학생 확인도 자동으로 재현해 선정이 확정되고 프로젝트가 시작됩니다. 실제 이용에서는 학생이 직접 확인해야 해요. 다른 지원자에게는 미선정 안내가 갑니다.", action: "next" },
+    { path: "/", target: '[data-demo-tour="merchant-create"]', title: "우리 가게 도움 요청하기", description: "오른쪽 위 ＋를 눌러 보세요." },
+    { path: "/posts/new/", target: '[data-demo-tour="post-ai"]', title: "가게 고민 고르기", description: "고민 카드를 하나 골라 보세요. 직접 적고 ‘Gemini 요약’을 눌러도 돼요. AI가 몇 초 만에 공고를 써 줘요." },
+    { path: "/posts/new/", target: '[data-demo-tour="post-submit"]', title: "공고 올리기", description: "AI가 공고를 다 채웠어요. 등록을 눌러 올려 보세요." },
+    { path: "/posts/detail/", target: '[data-demo-tour="merchant-pick"]', title: "지원자 고르기", description: "학생 3명이 지원했어요. 마음에 드는 학생을 골라 보세요. 정답은 없어요!" },
+    { path: "/chats/room/", target: '[data-demo-tour="agreement"]', title: "계약서 확인", description: "선정한 학생과 주고받을 계약서예요. 눌러서 열어 보세요." },
   ],
   student: [
     intro,
@@ -64,6 +58,62 @@ function matchesStep(step: Step, path: string | null) {
     && [...expected.searchParams].every(([key, value]) => current.searchParams.get(key) === value);
 }
 
+/** 다음 방문객을 위해 체험 흔적을 지우고 첫 화면(학생/상인 고르기)으로 돌아간다 */
+export function restartDemo() {
+  clearDemoBrowserData();
+  endDemoSession();
+  window.location.assign("/login/");
+}
+
+const RESULT_IMAGE: Record<string, string> = {
+  "디자인": "/portfolio-exhibition/menu-demo/overview.png", "기타": "/portfolio-exhibition/menu-demo/overview.png",
+  "SNS홍보": "/portfolio-samples/cafe.png", "사진": "/portfolio-samples/cafe.png", "영상": "/portfolio-samples/cafe.png",
+};
+const RESULT_ICON: Record<string, string> = { "웹/앱": "📱", "디지털도움": "🧾" };
+const elapsed = (from?: number) => {
+  if (!from) return "";
+  const sec = Math.max(1, Math.round((Date.now() - from) / 1000));
+  return sec >= 60 ? `${Math.floor(sec / 60)}분 ${sec % 60}초` : `${sec}초`;
+};
+
+/** 상인 체험의 끝: 2주 뒤로 건너뛰어 결과물을 받고, 방문객이 직접 별점을 준다 */
+function MerchantFinale({ picks, onClose }: { picks: DemoPicks; onClose: () => void }) {
+  const [phase, setPhase] = useState<"skip" | "rate" | "done">("skip");
+  const [stars, setStars] = useState(0);
+  const [time] = useState(() => elapsed(picks.startedAt));
+  useEffect(() => { const t = window.setTimeout(() => setPhase("rate"), 1800); return () => clearTimeout(t); }, []);
+  const name = picks.studentName ?? "선정한 학생";
+  const image = RESULT_IMAGE[picks.category ?? ""] ;
+  const icon = RESULT_ICON[picks.category ?? ""] ?? "🎁";
+  if (phase === "skip") return <div className="demo-finale-skip" style={{ textAlign: "center", color: "white" }}>
+    <p style={{ fontSize: 14, opacity: .8 }}>⏩ 시간을 빨리 감는 중…</p>
+    <p style={{ fontSize: 30, fontWeight: 800, marginTop: 8 }}>2주 후</p>
+  </div>;
+  return <div style={{ width: "min(340px, 100%)", padding: 22, borderRadius: 20, background: "white", boxShadow: "0 16px 50px #0004", textAlign: "center" }}>
+    {phase === "rate" ? <>
+      <p style={{ fontSize: 13, fontWeight: 700, color: "#436991" }}>결과물 도착!</p>
+      <h2 style={{ fontSize: 19, fontWeight: 800, marginTop: 4 }}>{name} 학생이 작업을 끝냈어요</h2>
+      {image ? <img src={image} alt="" style={{ width: "100%", maxHeight: 220, objectFit: "contain", marginTop: 14, borderRadius: 12, background: "#f4f2ee" }} />
+        : <div aria-hidden="true" style={{ fontSize: 64, marginTop: 14 }}>{icon}</div>}
+      {picks.title && <p style={{ fontSize: 13, color: "#68717e", marginTop: 8 }}>{picks.title}</p>}
+      <p style={{ fontSize: 15, fontWeight: 700, marginTop: 16 }}>마음에 드셨나요? 별점을 눌러 주세요</p>
+      <div role="group" aria-label="별점" style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
+        {[1, 2, 3, 4, 5].map(n => <button key={n} type="button" aria-label={`${n}점`} onClick={() => { setStars(n); window.setTimeout(() => setPhase("done"), 450); }}
+          style={{ fontSize: 34, lineHeight: 1, color: n <= stars ? "#f5b301" : "#d5d9de", transition: "transform .15s", transform: n <= stars ? "scale(1.12)" : "none" }}>★</button>)}
+      </div>
+    </> : <>
+      <div aria-hidden="true" style={{ fontSize: 46 }}>🎉</div>
+      <h2 style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>체험 완료!</h2>
+      <p style={{ fontSize: 14, lineHeight: 1.6, marginTop: 10 }}>
+        보내 주신 <b style={{ color: "#f5b301" }}>{"★".repeat(stars)}</b> 평가는<br /><b>{name}</b> 학생의 포트폴리오에<br />검증된 경력으로 기록돼요.
+      </p>
+      {time && <p style={{ marginTop: 14, fontSize: 13, fontWeight: 700, color: "#436991", background: "#eef5fc", borderRadius: 10, padding: "8px 10px" }}>고민 하나 해결까지 걸린 시간 · {time}</p>}
+      <button type="button" onClick={restartDemo} style={{ width: "100%", marginTop: 18, padding: 12, borderRadius: 12, background: "#202932", color: "white", fontWeight: 700 }}>다음 분 체험 시작</button>
+      <button type="button" onClick={onClose} style={{ width: "100%", marginTop: 8, padding: 10, borderRadius: 12, color: "#436991", fontWeight: 700, fontSize: 14 }}>자유롭게 둘러보기</button>
+    </>}
+  </div>;
+}
+
 export default function DemoTour() {
   const { mode, loading } = useSession();
   const path = usePathname();
@@ -74,6 +124,7 @@ export default function DemoTour() {
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [completedRole, setCompletedRole] = useState<DemoRole>("student");
+  const [completedPicks, setCompletedPicks] = useState<DemoPicks>({});
   const [frame, setFrame] = useState({left:0, top:0, right:0, bottom:0});
   useEffect(() => {
     if (!tour && !completed) return;
@@ -115,8 +166,8 @@ export default function DemoTour() {
   const advance = useCallback(() => {
     if (!tour) return;
     const next = tour.step + 1;
-    if (next >= steps[tour.role].length) { saveDemoTour(null); setCompletedRole(tour.role); setTour(null); setRect(null); setCompleted(true); return; }
-    const updated = { ...tour, step: next };
+    if (next >= steps[tour.role].length) { setCompletedPicks(getDemoTour()?.picks ?? tour.picks ?? {}); saveDemoTour(null); setCompletedRole(tour.role); setTour(null); setRect(null); setCompleted(true); return; }
+    const updated = { ...tour, picks: { ...tour.picks, ...getDemoTour()?.picks }, step: next };
     saveDemoTour(updated); setTour(updated); setClicked(false); setRect(null);
     const destination = steps[tour.role][next].path;
     const here = window.location.pathname + window.location.search;
@@ -162,12 +213,13 @@ export default function DemoTour() {
 
   useEffect(() => {
     if (!tour || !step || !clicked || step.action === "next") return;
-    if (step.target.includes('"post-example"') || step.target.includes('"post-submit"') || step.target.includes('"merchant-select"') || step.target.includes('"student-apply"') || step.target.includes('"agreement"') || step.target.includes('"student-me"')) return;
+    if (step.target.includes('"post-example"') || step.target.includes('"post-ai"') || step.target.includes('"post-submit"') || step.target.includes('"merchant-pick"') || step.target.includes('"student-apply"') || step.target.includes('"agreement"') || step.target.includes('"student-me"')) return;
     advance();
   }, [tour, step, clicked, advance, finish]);
 
   useEffect(() => {
-    if (!step?.target.includes('"post-example"') || !clicked) return;
+    // 공고 초안이 나타나면 다음 단계로 (고민 카드를 누르든, 직접 쓰고 요약을 누르든)
+    if (!(step?.target.includes('"post-example"') && clicked) && !step?.target.includes('"post-ai"')) return;
     const timer = window.setInterval(() => { if (document.querySelector('[data-demo-tour="post-drafted"]')) advance(); }, 200);
     return () => clearInterval(timer);
   }, [step, clicked, advance]);
@@ -187,7 +239,7 @@ export default function DemoTour() {
   }, [tour, step?.target, clicked, path, advance]);
 
   useEffect(() => {
-    if (step?.target.includes('"merchant-select"') && clicked && path?.replace(/\/$/, "") === "/chats/room") advance();
+    if (step?.target.includes('"merchant-pick"') && clicked && path?.replace(/\/$/, "") === "/chats/room") advance();
   }, [step, step?.target, clicked, path, advance]);
 
   useEffect(() => {
@@ -210,11 +262,11 @@ export default function DemoTour() {
   const bounds = frame.right > frame.left && frame.bottom > frame.top ? frame : {left:0,top:0,right:typeof window === "undefined" ? 390 : window.innerWidth,bottom:typeof window === "undefined" ? 844 : window.innerHeight};
   const frameWidth = bounds.right - bounds.left, frameHeight = bounds.bottom - bounds.top;
   if (completed) return <div role="dialog" aria-modal="true" aria-label="튜토리얼 완료" style={{ position: "fixed", left:bounds.left, top:bounds.top, width:frameWidth, height:frameHeight, borderRadius:frameWidth < window.innerWidth ? 28 : 0, overflowY:"auto", zIndex: 1600, display: "grid", placeItems: "center", padding: 20, background: "rgba(14,19,27,.65)" }}>
-    <div style={{ width: "min(340px, 100%)", padding: 24, borderRadius: 20, background: "white", boxShadow: "0 16px 50px #0004" }}>
+    {completedRole === "merchant" ? <MerchantFinale picks={completedPicks} onClose={finish} /> : <div style={{ width: "min(340px, 100%)", padding: 24, borderRadius: 20, background: "white", boxShadow: "0 16px 50px #0004" }}>
       <h2 style={{ fontSize: 20, fontWeight: 800 }}>튜토리얼 완료!</h2>
-      <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6 }}>{completedRole === "merchant" ? "상인 입장에서 Gemini 공고 작성, 지원자 비교·선정, 채팅과 계약서 확정까지 체험했어요. 이제 자유롭게 둘러보세요." : "학생 입장에서 공고 지원, 사장님과 소통, 검증된 작업 기록과 포트폴리오를 살펴봤어요. 이제 자유롭게 둘러보세요."}</p>
+      <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6 }}>{"학생 입장에서 공고 지원, 사장님과 소통, 검증된 작업 기록과 포트폴리오를 살펴봤어요. 이제 자유롭게 둘러보세요."}</p>
       <button type="button" onClick={finish} style={{ width: "100%", marginTop: 20, padding: 12, borderRadius: 12, background: "#202932", color: "white", fontWeight: 700 }}>자유롭게 둘러보기</button>
-    </div>
+    </div>}
   </div>;
   if (!tour || !step || !rect || loading || mode !== "mock" || !matchesStep(step, path)) return null;
   const pad = 6;
@@ -227,14 +279,19 @@ export default function DemoTour() {
   const reviewSlot = inlineReview ? document.getElementById("post-review-guide") : null;
   const tip = (
     <div ref={setTipElement} style={{ scrollMarginTop:80, position: inlineReview ? "relative" : "fixed", zIndex: 1502, top: inlineReview ? undefined : tipTop, pointerEvents:"auto", left: inlineReview ? undefined : Math.max(bounds.left+12, Math.min(left, bounds.right - Math.min(310,frameWidth-24) - 12)), width: inlineReview ? "100%" : Math.min(310,frameWidth-24), maxHeight:inlineReview ? undefined : frameHeight-24, overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
-      <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
+      {tour.role === "merchant" ? <div aria-label={`${tour.step + 1} / ${steps.merchant.length}단계`} style={{ display: "flex", gap: 5 }}>
+        {steps.merchant.map((_, i) => <span key={i} style={{ height: 6, flex: 1, borderRadius: 3, background: i <= tour.step ? "#52a6ff" : "#e3e8ee" }} />)}
+      </div> : <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>}
       <h2 style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>{step.title}</h2>
       <p style={{ fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>{step.description}</p>
       {!inlineReview && scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
         {scrollDirection === "down" ? "↓ 아래로 내려 강조된 곳 보기" : "↑ 위로 올려 강조된 곳 보기"}
       </button>}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, alignItems: "center" }}>
-        <button type="button" onClick={finish} style={{ fontSize: 12, color: "#68717e" }}>안내 종료</button>
+        <span style={{ display: "flex", gap: 12 }}>
+          <button type="button" onClick={restartDemo} style={{ fontSize: 12, color: "#68717e" }}>처음으로</button>
+          <button type="button" onClick={finish} style={{ fontSize: 12, color: "#68717e" }}>안내 종료</button>
+        </span>
         {step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? (tour.step + 1 === steps[tour.role].length ? "완료" : "다음")}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>파란 테두리 안을 눌러주세요</span>}
       </div>
     </div>

@@ -6,7 +6,7 @@ import { ErrorText, Field, inputCls, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
 import { WOLGYE_CENTER } from "@/lib/geo";
-import { getDemoTour } from "@/lib/demoTour";
+import { getDemoTour, inMerchantTour, rememberDemoPick } from "@/lib/demoTour";
 import { draftPost, type PostDraft } from "@/lib/ai/draft";
 import { CANNED_NOTE } from "@/lib/ai/demo";
 import { COLLEGES, URGENT_MIN_REWARD } from "@/lib/colleges";
@@ -24,6 +24,24 @@ const DEMO_EXAMPLE = {
   reward: "커트 1회 이용권 · 유효기간 3개월",
 };
 
+/** 상인 체험: 방문객이 고르는 가게 고민. 고르면 바로 Gemini 가 공고로 정리한다 */
+const DEMO_CONCERNS = [
+  { icon: "🍽️", label: "메뉴판이 낡았어요", memo: "메뉴판이 오래돼서 글씨가 잘 안 보이고 가격도 손으로 고쳐 놨어요. 깔끔한 새 메뉴판이 필요해요.", reward: "음료 쿠폰 5장 · 유효기간 3개월", criteria: "점주가 메뉴와 가격을 확인하고 인쇄용 파일을 받으면 완료" },
+  { icon: "📸", label: "인스타 홍보 사진이 필요해요", memo: "가게 인스타그램을 시작했는데 사진이 별로라 손님이 안 와요. 신메뉴 사진을 예쁘게 찍어서 올려 주면 좋겠어요.", reward: "신메뉴 시식권 2장", criteria: "보정한 사진과 게시물 문구를 받으면 완료" },
+  { icon: "🧓", label: "어르신이 키오스크를 어려워해요", memo: "매장에 키오스크를 들였는데 어르신 손님들이 주문을 어려워하세요. 쉽게 알려 드릴 안내문이나 도움이 필요해요.", reward: "커피 쿠폰 3장", criteria: "어르신이 안내문만 보고 주문할 수 있으면 완료" },
+  { icon: "📞", label: "전화 예약이 너무 많아요", memo: "예약을 전화로만 받아서 일하다가 자꾸 끊겨요. 손님이 휴대폰으로 예약할 수 있는 간단한 페이지가 있으면 좋겠어요.", reward: "식사권 1장", criteria: "휴대폰에서 예약 페이지가 열리고 점주에게 예약이 전달되면 완료" },
+];
+/** 분야마다 어울리는 데모 학생 3명 (성향이 다른 지원 메시지로 고르는 재미를 준다) */
+const DEMO_APPLICANTS: Record<string, string[]> = {
+  "디자인": ["s5", "s4", "s9"], "SNS홍보": ["s4", "s9", "s12"], "사진": ["s9", "s3", "s14"], "영상": ["s14", "s3", "s7"],
+  "웹/앱": ["s2", "s6", "s11"], "디지털도움": ["s13", "s8", "s2"], "기타": ["s5", "s4", "s2"],
+};
+const applicantMessage = (style: number, title: string) => [
+  `처음에 사장님과 필요한 내용을 하나씩 정리하고, 중간 결과를 자주 보여 드리면서 꼼꼼하게 진행할게요. '${title}' 잘 맞춰 드리겠습니다.`,
+  `손님 눈에 확 띄게 만드는 게 제 강점이에요. 분위기가 다른 시안 두 가지를 먼저 보여 드리고 고르실 수 있게 할게요!`,
+  `일정이 급하시면 3일 안에 첫 결과물을 보여 드릴 수 있어요. 빠르게 만들고 피드백 받아서 바로 고치겠습니다.`,
+][style];
+
 /** 공고 등록 (주민·상인). 고민을 대충 적으면 AI 초안이 폼을 채워 주고, 사장님이 확인·수정 후 등록한다.
  *  문제·기대 결과물·완료 기준은 나중에 학생 제출을 검토하고 검증하는 기준이 된다. 위치는 계정 위치를 기본값으로 쓴다(지도 선택은 TODO). */
 export default function NewPost() {
@@ -39,7 +57,9 @@ export default function NewPost() {
   // 계속 운영되는 결과물(웹사이트 등)이면 완료 후 유지보수·인수인계가 따라붙는다
   const [ops, setOps] = useState({ ongoing: false, touched: false, requestDays: 30, requestCount: 3, defectDays: 90, clientBilling: true });
   const [urgent, setUrgent] = useState({ on: false, colleges: [] as string[], open: null as string | null });
-  const [memo, setMemo] = useState(() => demo ? DEMO_EXAMPLE.memo : "");
+  const [memo, setMemo] = useState(() => demo && !inMerchantTour(getDemoTour()) ? DEMO_EXAMPLE.memo : "");
+  const [concern, setConcern] = useState<(typeof DEMO_CONCERNS)[number] | null>(null);
+  const touring = demo && inMerchantTour(getDemoTour());
   const [draft, setDraft] = useState<PostDraft | null>(null);
   const [drafting, setDrafting] = useState(false);
   const act = useAction();
@@ -52,10 +72,10 @@ export default function NewPost() {
       const example = (value: string, fallback: string) => value.trim() || (demo ? fallback : "");
       const title = example(f.title, DEMO_EXAMPLE.title);
       const problem = example(l.problem, DEMO_EXAMPLE.problem);
-      const reward = example(f.reward, DEMO_EXAMPLE.reward);
+      const reward = example(f.reward, concern?.reward ?? (memo.trim() && memo !== DEMO_EXAMPLE.memo ? "음료 쿠폰 3장" : DEMO_EXAMPLE.reward));
       const description = example(f.description, DEMO_EXAMPLE.description);
       const deliverables = example(l.deliverables, DEMO_EXAMPLE.deliverables);
-      const completionCriteria = example(l.completionCriteria, DEMO_EXAMPLE.completionCriteria);
+      const completionCriteria = example(l.completionCriteria, concern?.criteria ?? (memo.trim() && memo !== DEMO_EXAMPLE.memo ? "점주가 결과물을 확인하고 원본 파일을 받으면 완료" : DEMO_EXAMPLE.completionCriteria));
       if (!title) throw new Error("제목을 입력해 주세요");
       if (!problem) throw new Error("어떤 문제를 해결하고 싶은지 적어 주세요");
       if (ongoing && monthlyCost && (!Number.isSafeInteger(Number(monthlyCost)) || Number(monthlyCost) < 0)) throw new Error("월 운영 비용은 0 이상의 정수로 입력해 주세요");
@@ -75,15 +95,16 @@ export default function NewPost() {
         ongoing, warrantyRequestDays: ops.requestDays, warrantyRequestCount: ops.requestCount, warrantyDefectDays: ops.defectDays, clientOwnedBilling: ops.clientBilling,
         applicantScope: scope,
       });
-      if (demo && getDemoTour()?.role === "merchant" && getDemoTour()?.step === 6) {
-        await repo.apply(p.id, "s5", "안녕하세요. 시각디자인을 전공한 윤서연입니다. 시술명과 가격의 우선순위를 정리해 A3 포스터와 SNS 이미지 시안을 제작하겠습니다.");
-        await repo.apply(p.id, "s10", "안녕하세요. 경영학부 배수아입니다. 손님이 자주 묻는 시술을 먼저 배치하고 읽기 쉬운 안내 문구를 제안하겠습니다.");
+      if (demo && inMerchantTour(getDemoTour())) {
+        const ids = DEMO_APPLICANTS[f.category] ?? DEMO_APPLICANTS["기타"];
+        for (const [i, id] of ids.entries()) await repo.apply(p.id, id, applicantMessage(i, title));
+        rememberDemoPick({ category: f.category, title });
       }
       router.replace(`/posts/detail?id=${p.id}`);
     });
   }
-  async function makeDraft() {
-    const request = memo.trim() || (demo ? DEMO_EXAMPLE.memo : "");
+  async function makeDraft(text?: string) {
+    const request = (text ?? memo).trim() || (demo ? DEMO_EXAMPLE.memo : "");
     if (!request) return act.setError("가게 고민을 한 줄이라도 적어 주세요");
     setDrafting(true);
     let d: PostDraft;
@@ -99,11 +120,19 @@ export default function NewPost() {
     <>
       <TopBar title="공고 등록" back />
       <section className="flex flex-col gap-3 px-4">
-        <div className="card flex flex-col gap-3">
-          <div><h2 className="font-bold">✨ Gemini가 공고를 정리해 드려요</h2><p className="sub mt-0.5 text-xs">{demo ? "체험용 요청 문장을 미리 넣었어요. 그대로 요약하거나 자유롭게 수정해 보세요." : "어떤 재능이 필요한지 몰라도 괜찮아요. 가게 고민만 편하게 적어 주세요."}</p></div>
-          <textarea data-demo-tour="post-memo" aria-label="가게 고민" className={`${inputCls} h-24`} placeholder={demo ? DEMO_EXAMPLE.memo : "예: 메뉴판이 낡아서 손님들이 잘 못 알아봐요. 폰으로 QR 찍어서 메뉴 보게 하고 싶어요. 메뉴 20개 정도"} value={memo} onChange={(e) => setMemo(e.target.value)} />
-          <Field label="마감 기간 선택" hint="언제까지 결과물이 필요하신가요? 실제 작업 기간은 학생이 계약서에서 제안해요."><input data-demo-tour="post-deadline" aria-label="희망 마감일" type="date" className={inputCls} value={l.deadline} onChange={e => setL({ ...l, deadline: e.target.value })} /></Field>
-          <button data-demo-tour="post-example" onClick={makeDraft} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : "Gemini 요약"}</button>
+        <div data-demo-tour="post-ai" className="card flex flex-col gap-3">
+          <div><h2 className="font-bold">✨ Gemini가 공고를 정리해 드려요</h2><p className="sub mt-0.5 text-xs">{demo ? "고민을 고르면 Gemini가 몇 초 만에 공고로 만들어 드려요." : "어떤 재능이 필요한지 몰라도 괜찮아요. 가게 고민만 편하게 적어 주세요."}</p></div>
+          {demo && <div className="grid grid-cols-2 gap-2" aria-label="가게 고민 고르기">
+            {DEMO_CONCERNS.map((c) => <button key={c.label} type="button" disabled={drafting} aria-pressed={concern?.label === c.label}
+              onClick={() => { setConcern(c); setMemo(c.memo); void makeDraft(c.memo); }}
+              className={`rounded-2xl border px-3 py-3 text-left text-sm font-semibold transition-colors disabled:opacity-50 ${concern?.label === c.label ? "border-[var(--primary)] bg-[var(--primary-weak)]" : "border-[var(--line)] bg-white"}`}>
+              <span aria-hidden="true" className="block text-xl">{c.icon}</span>{c.label}
+            </button>)}
+          </div>}
+          {demo && <p className="sub -mt-1 text-xs">고민을 고르거나, 아래에 우리 가게 고민을 직접 적어 보세요.</p>}
+          <textarea data-demo-tour="post-memo" aria-label="가게 고민" className={`${inputCls} h-24`} placeholder={touring ? "예: 우리 가게 메뉴판이 낡아서 새로 만들고 싶어요" : demo ? DEMO_EXAMPLE.memo : "예: 메뉴판이 낡아서 손님들이 잘 못 알아봐요. 폰으로 QR 찍어서 메뉴 보게 하고 싶어요. 메뉴 20개 정도"} value={memo} onChange={(e) => setMemo(e.target.value)} />
+          {!touring && <Field label="마감 기간 선택" hint="언제까지 결과물이 필요하신가요? 실제 작업 기간은 학생이 계약서에서 제안해요."><input data-demo-tour="post-deadline" aria-label="희망 마감일" type="date" className={inputCls} value={l.deadline} onChange={e => setL({ ...l, deadline: e.target.value })} /></Field>}
+          <button data-demo-tour="post-example" onClick={() => makeDraft()} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : "Gemini 요약"}</button>
           {draft && (
             <div data-demo-tour="post-drafted" className="rounded-xl bg-[var(--primary-weak)] p-3 text-sm">
               <p className="font-bold text-[var(--primary)]">{draft.reasons.includes(CANNED_NOTE) ? "체험용 초안" : "Gemini 초안"} · 아래 폼에 채워 두었어요</p>

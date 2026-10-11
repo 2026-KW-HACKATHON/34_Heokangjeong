@@ -11,7 +11,7 @@ import Icon from "@/components/Icon";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { getDemoTour } from "@/lib/demoTour";
+import { getDemoTour, inMerchantTour, rememberDemoPick } from "@/lib/demoTour";
 import { distanceM, formatDistance } from "@/lib/geo";
 import { listingOf } from "@/lib/listing";
 import { DOMAINS } from "@shared/portfolio/domains";
@@ -61,8 +61,13 @@ function PostDetail() {
       setMsg(""); reload();
     });
   }
+  const pickTour = mode === "mock" && inMerchantTour(getDemoTour()) && post?.authorId === user?.id;
   async function select(a: Application) {
-    await act.run(async () => { await repo.shortlistApplicant(a.id, user!.id); router.push(`/chats/room?id=${a.id}`); });
+    await act.run(async () => {
+      await repo.shortlistApplicant(a.id, user!.id);
+      if (mode === "mock") rememberDemoPick({ studentName: users.find((u) => u.id === a.studentId)?.name });   // 체험 결과 카드에 쓴다
+      router.push(`/chats/room?id=${a.id}`);
+    });
   }
   async function cancelSelect(a: Application) { await act.run(async () => { await repo.cancelShortlist(a.id, user!.id); reload(); }); }
   const shortlisting = apps.some((x) => x.status === "pending" && x.shortlistedAt);   // 개인 공고: 한 번에 한 명만 선정 중
@@ -193,7 +198,7 @@ function PostDetail() {
             {individualDecisionComplete && <p className="mb-3 rounded-xl bg-[var(--primary-weak)] px-3 py-2 text-sm">
               <b>{selectedStudent?.name ?? "지원자"} 학생 선정 완료</b><br />나머지 지원자에게는 미선정 안내가 자동으로 전달됐어요.
             </p>}
-            <ul className="flex flex-col gap-2 text-sm">
+            <ul data-demo-tour={pickTour ? "merchant-pick" : undefined} className="flex flex-col gap-2 text-sm">
               {apps.map((a) => { const s = users.find((u) => u.id === a.studentId) as Extract<User, { role: "student" }> | undefined; const role = post.teamSlots?.find((x) => x.id === a.roleId); return (
                 <li key={a.id} className="rounded-xl bg-[var(--line)] px-3 py-2">
                   <div className="flex items-center justify-between"><span><b>{s?.name}</b> <span className="sub">{s?.department}</span></span>
@@ -205,10 +210,10 @@ function PostDetail() {
                     {/* 매칭 대기: 대화하며 계약서를 확정하면 선정 확정, 틀어지면 선정 취소 */}
                     <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn btn-primary px-2 py-2">💬 대화 · 계약서</Link>
                     <button onClick={() => cancelSelect(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">선정 취소</button>
-                  </div> : a.status === "pending" && !individualDecisionComplete ? <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
-                    <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">채팅창으로 가기</Link>
-                    <button data-demo-tour={mode === "mock" && a.studentId === "s5" && post.authorId === "r7" && getDemoTour()?.role === "merchant" ? "merchant-select" : undefined} onClick={() => select(a)} disabled={act.busy || (!post.isTeam && shortlisting)} title={!post.isTeam && shortlisting ? "선정 중인 지원자가 있어요" : undefined} className="btn btn-primary px-2 py-2 disabled:opacity-40">선정</button>
-                    <button onClick={() => reject(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>
+                  </div> : a.status === "pending" && !individualDecisionComplete ? <div className={`mt-2 grid ${pickTour ? "grid-cols-1" : "grid-cols-2"} gap-1.5 text-xs`}>
+                    {!pickTour && <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">채팅창으로 가기</Link>}
+                    <button onClick={() => select(a)} disabled={act.busy || (!post.isTeam && shortlisting)} title={!post.isTeam && shortlisting ? "선정 중인 지원자가 있어요" : undefined} className="btn btn-primary px-2 py-2 disabled:opacity-40">{pickTour ? "이 학생 선정하기" : "선정"}</button>
+                    {!pickTour && <button onClick={() => reject(a)} disabled={act.busy} className="btn bg-white px-2 py-2 disabled:opacity-40">거절</button>}
                   </div> : <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
                     <Link data-demo-tour={a.id === "a13" ? "merchant-chat" : undefined} href={`/chats/room?id=${a.id}`} className="btn bg-white px-2 py-2">💬 채팅</Link>
                     <span className={`btn cursor-default px-2 py-2 ${a.status === "accepted" ? "btn-primary" : "bg-white sub"}`}>{a.status === "accepted" ? "선정 완료" : "미선정 안내 완료"}</span>

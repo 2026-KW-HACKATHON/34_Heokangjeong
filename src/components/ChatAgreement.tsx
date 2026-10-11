@@ -5,7 +5,7 @@ import { AGREEMENT_CHANGE, AGREEMENT_SUPPORT, AGREEMENT_USAGE, type AgreementTer
 import type { Application, Post } from "@/types";
 import AgreementCalendar from "./AgreementCalendar";
 import { useSession } from "@/lib/session";
-import { getDemoTour } from "@/lib/demoTour";
+import { getDemoTour, inMerchantTour } from "@/lib/demoTour";
 import { summarizeAgreement, type AgreementDraft } from "@/lib/ai/agreement";
 import "./agreement.css";
 
@@ -15,6 +15,16 @@ const initialTerms = (post: Post, salonDemo: boolean): AgreementTerms => {
       const date = new Date();
       date.setDate(date.getDate() + days);
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    };
+    if (post.id !== "p10" && post.expectedDeliverables?.length) return {
+      startDate: dateAfter(1), endDate: dateAfter(8),
+      scope: `${post.title}. ${(post.description.split("\n\n")[0] ?? "").trim()}`.trim(),
+      deliverables: post.expectedDeliverables.join("\n"),
+      acceptance: post.completionCriteria || "점주가 결과물을 확인하고 원본 파일을 받으면 완료합니다.",
+      coupon: `${post.compensationDescription || post.reward || "가게 쿠폰"} · 결과물 확인 후 3일 이내 제공`,
+      revisions: 2,
+      exclusions: "인쇄·광고 등 외부에 드는 비용",
+      handoff: "완성 파일과 수정 가능한 원본을 채팅으로 전달하고 사용 방법을 안내합니다.",
     };
     if (post.id !== "p10") return {
       startDate: dateAfter(1), endDate: dateAfter(8),
@@ -48,7 +58,8 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const salonDemo = salonPriceboard || salonPoster;
   const tour = mode === "mock" ? getDemoTour() : null;
   const guidedAgreement = (tour?.role === "student" && tour.step === 6 && salonPriceboard)
-    || (tour?.role === "merchant" && tour.step === 10 && salonPoster);
+    || (inMerchantTour(tour) && salonPoster);
+  const merchantQuick = inMerchantTour(tour) && salonPoster;   // 상인 체험: 작성은 건너뛰고 완성된 계약서를 확인만 한다
   const [agreement,setAgreement] = useState<WorkAgreement | null>(null);
   const [loaded,setLoaded] = useState(false);
   const [loadError,setLoadError] = useState("");
@@ -104,7 +115,8 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   }
   async function open() {
     setBusy(true);
-    try { const current=await repo.getAgreement(application.id,actorId); const value=current ? await completeGuidedConfirmation(current) : null; setAgreement(value); setLoaded(true); setLoadError(""); display(value); if (dialog.current && !dialog.current.open) dialog.current.showModal(); setOpened(true); }
+    try { const current=await repo.getAgreement(application.id,actorId); let value=current ? await completeGuidedConfirmation(current) : null;
+      if (!value && merchantQuick) value = await repo.saveAgreement(application.id, actorId, 0, initialTerms(post, true)); setAgreement(value); setLoaded(true); setLoadError(""); display(value); if (dialog.current && !dialog.current.open) dialog.current.showModal(); setOpened(true); }
     catch { setLoadError("계약서를 불러오거나 데모 확인을 마치지 못했어요. 다시 눌러 주세요."); }
     finally {setBusy(false);}
   }
@@ -169,8 +181,8 @@ export default function ChatAgreement({ application, post, actorId, studentName,
       <header><span>작업 계약서 {shown && <small>v{shown.version}</small>}</span><button type="button" disabled={busy} aria-label="계약서 닫기" onClick={()=>dialog.current?.close()}>×</button></header>
       <div className="agreement-body">
         {guidedAgreement && <aside className="agreement-tour-tip" role="status" aria-live="polite" aria-label="작업 계약서 체험 안내">
-          <strong>{editing ? `계약서 체험 ${step + 1}/4 · ${["작업 내용과 Gemini 요약", "작업 일정", "보상과 AS", "저장 전 확인"][step]}` : shown?.finalizedAt ? "계약서 체험 완료" : "마지막 · 양쪽 확인"}</strong>
-          <p>{editing ? [
+          <strong>{merchantQuick && !editing ? (shown?.finalizedAt ? "계약 확정!" : "이런 계약서를 주고받아요") : editing ? `계약서 체험 ${step + 1}/4 · ${["작업 내용과 Gemini 요약", "작업 일정", "보상과 AS", "저장 전 확인"][step]}` : shown?.finalizedAt ? "계약서 체험 완료" : "마지막 · 양쪽 확인"}</strong>
+          <p>{merchantQuick && !editing ? (shown?.finalizedAt ? "닫기(×)를 누르면 2주 뒤로 넘어가요." : "공고 내용으로 계약서가 자동으로 채워졌어요. 아래 ‘이 버전 최종 확인’만 눌러 보세요.") : editing ? [
             aiDraft ? "Gemini가 정리한 작업 범위·결과물·완료 기준을 확인하고 아래 ‘다음’을 눌러 주세요." : "자유 입력칸에 작업 내용을 적고 ‘Gemini 요약’을 눌러 보세요. 정리된 항목을 확인한 뒤 아래 ‘다음’으로 이동하세요.",
             "달력에서 시작일과 완료일을 드래그하거나 두 날짜를 눌러 정하세요. 확인한 뒤 아래 ‘다음’을 눌러 주세요.",
             "보상 지급, 완료 전 AS 횟수와 파일 인계 방법을 확인하고 아래 ‘다음’을 눌러 주세요.",
