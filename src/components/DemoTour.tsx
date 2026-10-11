@@ -21,14 +21,30 @@ const steps: Record<DemoRole, Step[]> = {
   ],
   student: [
     { path: "/", target: '[data-demo-tour="student-post"]', title: "추천 공고 살펴보기", description: "김하늘 학생의 디자인 관심 분야와 가까운 베이커리 패키지 공고입니다. 카드를 눌러 자세히 보세요." },
-    { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-apply"]', title: "공고에 지원하기", description: "가게가 원하는 결과물을 확인하세요. 김하늘의 지원 메시지가 미리 작성돼 있으니 바로 지원할 수 있어요." },
+    { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-problem"]', title: "문제와 완료 기준 확인", description: "가게가 겪는 문제와 전달할 결과물, 완료 기준을 먼저 읽어 보세요. 준비되면 다음을 눌러 지원 단계로 이동합니다.", action: "next" },
+    { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-apply"]', title: "공고에 지원하기", description: "김하늘의 지원 메시지가 미리 작성돼 있어요. 내용을 확인하고 지원하기를 눌러 보세요." },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-applied"]', title: "지원 후 채팅", description: "지원하면 사장님과 바로 대화할 수 있어요. 채팅창으로 이동해 보세요." },
     { path: "/chats/room/", target: '[data-demo-tour="student-chat-send"]', title: "사장님과 소통하기", description: "인쇄 크기와 선호 색상을 묻는 메시지가 채워져 있어요. 전송하면 매칭 대기 사례로 이어집니다." },
-    { path: "/chats/room/?id=a13", target: '[data-demo-tour="agreement"]', title: "선정 후 작업 계약서", description: "월계 미용실 계약서를 열어 자유 입력 내용을 Gemini로 정리해 보세요. 저장 후 내 확인을 누르면 데모에서 상대방 확인도 재현합니다." },
+    { path: "/chats/room/?id=a13", target: '[data-demo-tour="agreement"]', title: "선정 후 작업 계약서", description: "계약서를 열고 직접 작성하거나 예시 프롬프트를 골라 보세요. 예시는 글자가 입력되는 모습을 보여 주고, Gemini 요약으로 내용을 정리합니다." },
     { path: "/me/", target: '[data-demo-tour="feed-item"]', title: "검증된 경험과 작업", description: "미용실 계약은 아직 진행 중입니다. 여기서는 의뢰인이 검증을 마친 별도의 한식당 메뉴판 작업을 열어봅니다." },
-    { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-detail"]', title: "검증된 작업 기록", description: "작업 과정과 결과를 읽고 자세한 포트폴리오로 이동하세요." },
-    { path: "/portfolio/view/?id=demo-menu-2&s=s1", target: '[data-demo-tour="portfolio-web"]', title: "HTML 포트폴리오", description: "PC 버전을 눌러 같은 내용이 웹용 HTML 레이아웃으로 보이는지 확인하세요." },
-    { path: "/portfolio/view/?id=demo-menu-2&s=s1", target: '[data-demo-tour="student-me"]', title: "이제 자유롭게 둘러보세요", description: "PC 포트폴리오까지 확인했어요. 아래 '나'를 눌러 작업실로 돌아가면 안내가 끝납니다." },
+    { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-experience-content"]', title: "경험 기록 읽기", description: "작업 배경과 역할을 읽어 보세요. 다음을 누르면 단계별 포트폴리오를 엽니다.", action: "next" },
+    { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-detail"]', title: "실제 포트폴리오 열기", description: "문제 정의부터 결과와 의뢰인 평가까지 작성된 포트폴리오를 눌러 확인하세요." },
+    { path: "/portfolio/view/?id=demo-menu-2&s=s1", target: '[data-demo-tour="portfolio-frame"]', title: "포트폴리오 단계 열기", description: "실제 작성된 기록이에요. 첫 번째 ‘개요’ 단계를 눌러 읽기를 시작하세요." },
+    ...[
+      ["개요", "프로젝트 목표와 맡은 역할을 읽고 다음 화살표를 눌러 보세요."],
+      ["문제 정의", "가게와 손님이 겪던 문제와 이를 확인한 배경을 읽어 보세요."],
+      ["요구사항 정리", "의뢰인과 협의해 필요한 내용을 어떻게 정리했는지 확인하세요."],
+      ["시안 제작과 개선", "초안을 만들고 피드백을 반영한 과정을 읽어 보세요."],
+      ["작업 전·후", "작업 전과 후가 어떻게 달라졌는지 살펴보세요."],
+      ["전달한 결과물", "점주에게 전달한 결과물을 확인하세요."],
+      ["현장 사용", "결과물이 현장에서 어떻게 사용됐는지 읽어 보세요."],
+      ["작업 회고", "작업에서 배운 점과 다음에 개선할 부분을 살펴보세요."],
+      ["평가와 검증", "의뢰인 평가와 실제 검증 항목까지 살펴보면 안내가 끝나요."],
+    ].map(([title, description], i) => ({
+      path: "/portfolio/view/?id=demo-menu-2&s=s1", target: '[data-demo-tour="portfolio-frame"]',
+      title, description: i === 8 ? description : `${description} 화면의 다음 화살표를 누르면 이어집니다.`,
+      ...(i === 8 ? { action: "next" as const } : {}),
+    })),
   ],
 };
 
@@ -78,11 +94,11 @@ export default function DemoTour() {
   useEffect(() => { document.body.classList.toggle("guided-demo", !!tour || completed); return () => document.body.classList.remove("guided-demo"); }, [tour, completed]);
   const finish = useCallback(() => { saveDemoTour(null); setTour(null); setRect(null); setCompleted(false); }, []);
   const baseStep = tour && steps[tour.role][tour.step];
-  const step = useMemo(() => tour?.role === "student" && tour.step === 1 && alreadyApplied && !clicked
+  const step = useMemo(() => tour?.role === "student" && tour.step === 2 && alreadyApplied && !clicked
     ? { ...baseStep!, target: '[data-demo-tour="student-applied"]', title: "이미 지원한 공고", description: "이 브라우저에서는 이미 지원했어요. 지원 내역을 확인한 뒤 다음 단계에서 채팅창으로 이동하세요.", action: "next" as const }
     : baseStep, [tour?.role, tour?.step, alreadyApplied, clicked, baseStep]);
   useEffect(() => {
-    if (tour?.role !== "student" || tour.step !== 1 || !path?.startsWith("/posts/detail")) return;
+    if (tour?.role !== "student" || tour.step !== 2 || !path?.startsWith("/posts/detail")) return;
     const update = () => setAlreadyApplied(!!document.querySelector('[data-demo-tour="student-applied"]'));
     update();
     const timer = window.setInterval(update, 250);
@@ -100,6 +116,20 @@ export default function DemoTour() {
   }, [tour]);
 
   useEffect(() => {
+    if (tour?.role !== "student" || tour.step < 9 || tour.step > 17 || !path?.startsWith("/portfolio/view")) return;
+    const stages = ["overview", "problem", "decisions", "process", "beforeAfter", "deliverable", "usage", "reflection", "evaluation"];
+    const stageIndex = tour.step - 9;
+    const frame = document.querySelector<HTMLIFrameElement>('[data-demo-tour="portfolio-frame"]');
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== frame?.contentWindow || event.data?.type !== "wolink-demo-portfolio-stage") return;
+      const expectedAction = stageIndex === 0 ? "open" : "next";
+      if (event.data.stage === stages[stageIndex] && event.data.action === expectedAction) advance();
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [tour?.role, tour?.step, path, advance]);
+
+  useEffect(() => {
     if (!step || loading || mode !== "mock" || (step.target.includes('"agreement"') && clicked) || !matchesStep(step, path)) return;
     let current: Element | null = null;
     const update = () => {
@@ -112,7 +142,7 @@ export default function DemoTour() {
     const observer = new MutationObserver(update);
     observer.observe(document.body, { childList: true, subtree: true });
     const timer = window.setInterval(update, 250);
-    const onClick = (event: MouseEvent) => { if (current && current.contains(event.target as Node)) setClicked(true); };
+    const onClick = (event: MouseEvent) => { if (current && current.contains(event.target as Node) && !step.target.includes('"portfolio-frame"')) setClicked(true); };
     document.addEventListener("click", onClick, true);
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
@@ -170,7 +200,7 @@ export default function DemoTour() {
   if (completed) return <div role="dialog" aria-modal="true" aria-label="튜토리얼 완료" style={{ position: "fixed", left:bounds.left, top:bounds.top, width:frameWidth, height:frameHeight, borderRadius:frameWidth < window.innerWidth ? 28 : 0, overflowY:"auto", zIndex: 1600, display: "grid", placeItems: "center", padding: 20, background: "rgba(14,19,27,.65)" }}>
     <div style={{ width: "min(340px, 100%)", padding: 24, borderRadius: 20, background: "white", boxShadow: "0 16px 50px #0004" }}>
       <h2 style={{ fontSize: 20, fontWeight: 800 }}>튜토리얼 완료!</h2>
-      <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6 }}>{completedRole === "merchant" ? "상인 입장에서 Gemini 공고 작성, 지원자 비교·선정, 채팅과 계약서 확정까지 체험했어요. 이제 자유롭게 둘러보세요." : "학생 입장에서 공고 지원, 채팅, 계약서, 검증된 포트폴리오와 PC 버전까지 살펴봤어요. 이제 자유롭게 둘러보세요."}</p>
+      <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6 }}>{completedRole === "merchant" ? "상인 입장에서 Gemini 공고 작성, 지원자 비교·선정, 채팅과 계약서 확정까지 체험했어요. 이제 자유롭게 둘러보세요." : "학생 입장에서 공고 지원, 사장님과 소통, 검증된 작업 기록과 포트폴리오를 살펴봤어요. 이제 자유롭게 둘러보세요."}</p>
       <button type="button" onClick={finish} style={{ width: "100%", marginTop: 20, padding: 12, borderRadius: 12, background: "#202932", color: "white", fontWeight: 700 }}>자유롭게 둘러보기</button>
     </div>
   </div>;

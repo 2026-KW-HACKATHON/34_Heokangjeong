@@ -9,6 +9,8 @@ css+=`\n.stack{--strip-h:max(7vh,calc((var(--stack-vh) - (var(--n) - 1)*var(--st
 let runtime=read('stack.js')
  .replace('if (location.hash !== u) history.pushState(null, "", u);','if (location.hash !== u) { try { history.pushState(null, "", u); } catch { /* opaque sandbox */ } }')
  .replace('loadSample(window.WOLINK_SAMPLES[sample] ? sample : "menu", { view: view || "list", stage, push: false });','loadSample("menu", { view: window.WOLINK_EDITOR?.stage ? "read" : "list", stage: window.WOLINK_EDITOR?.stage || null, push: false });')
+ .replace('state.view = "read"; document.body.dataset.view = "read"; setCurrent(i); if (push) pushUrl();','state.view = "read"; document.body.dataset.view = "read"; setCurrent(i); if (push) pushUrl(); if (window.parent !== window) window.parent.postMessage({type:"wolink-demo-portfolio-stage",stage:state.model.stages[i]?.id,action:"open"},"*");')
+ .replace('setCurrent(i); if (push) pushUrl();\n    const inner = $$("#content .oh__inner");','setCurrent(i); if (push) pushUrl(); if (window.parent !== window) window.parent.postMessage({type:"wolink-demo-portfolio-stage",stage:state.model.stages[i]?.id,action:"next"},"*");\n    const inner = $$("#content .oh__inner");')
  .replace('`./photos/${COVER_PHOTOS[index % COVER_PHOTOS.length]}`','`${window.WOLINK_ASSET_BASE}/photos/${COVER_PHOTOS[index % COVER_PHOTOS.length]}`')
  .replace(/const safeUrl = \(u\) => (.*);/, 'const safeUrl = (value) => { const u = window.WOLINK_EMBEDDED_IMAGES?.[value] || value; return $1; };');
 const body=html.slice(html.indexOf('<body'),html.indexOf('<noscript>'));

@@ -225,7 +225,7 @@
     killTl(); closeReader();
     const flip = motionOn() ? Flip.getState(state.strips) : null;
     const veilFrom = state.strips.map(veilOf);
-    state.view = "read"; document.body.dataset.view = "read"; setCurrent(i); if (push) pushUrl();
+    state.view = "read"; document.body.dataset.view = "read"; setCurrent(i); if (push) pushUrl(); if (window.parent !== window) window.parent.postMessage({type:"wolink-demo-portfolio-stage",stage:state.model.stages[i]?.id,action:"open"},"*");
     const content = $("#content"), nav = $("#slide-nav"); content.hidden = false; nav.hidden = false;
     fillContent(i);
     if (isMobile() || !motionOn()) { layoutRead(); layoutMobileRead(); gsap?.set([...$$("#content .oh__inner")], { yPercent: 0 }); gsap?.set([$("#btn-back"), $("#arrow-prev"), $("#arrow-next")], { opacity: 1, y: 0 }); $("#title").style.visibility = "hidden"; $("#btn-back").focus(); return; }
@@ -246,7 +246,7 @@
     if (i < 0 || i >= state.strips.length || i === state.current) return;
     const dir = i > state.current ? 1 : -1;
     killTl(); closeReader();
-    setCurrent(i); if (push) pushUrl();
+    setCurrent(i); if (push) pushUrl(); if (window.parent !== window) window.parent.postMessage({type:"wolink-demo-portfolio-stage",stage:state.model.stages[i]?.id,action:"next"},"*");
     const inner = $$("#content .oh__inner");
     if (isMobile() || !motionOn()) { fillContent(i); layoutRead(); layoutMobileRead(); gsap?.set($$("#content .oh__inner"), { yPercent: 0 }); return; }
     const tl = gsap.timeline({ onComplete: () => { state.tl = null; } });

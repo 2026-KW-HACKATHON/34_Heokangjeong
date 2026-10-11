@@ -35,7 +35,7 @@ export default function ExhibitionTemplate(props: TemplateProps) {
   }, []);
   useEffect(() => setOrigin(window.location.origin), []);
   return <div>
-    <iframe ref={frame} className="print:hidden" title={`${props.content.title} 인터랙티브 전시`} sandbox="allow-scripts"
+    <iframe ref={frame} data-demo-tour={props.page.projectId === "demo-menu-2" ? "portfolio-frame" : undefined} className="print:hidden" title={`${props.content.title} 인터랙티브 전시`} sandbox="allow-scripts"
       srcDoc={html}
       style={{width:"100%",height:"85dvh",minHeight:560,border:0,background:"white"}} />
     <div className="hidden print:block"><EditorialTemplate {...props} /></div>

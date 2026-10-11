@@ -43,6 +43,7 @@ function Experience() {
       </div>}
       {saved && <p role="status" className="text-sm text-sky-700">변경사항을 저장했어요.</p>}
       {editing ? <ExperienceEditor key={`${studentId}:${id}`} item={item} onCancel={() => setEditing(false)} onSave={updated => { setItem(updated); setEditing(false); setSaved(true); }} /> : <>
+      <div data-demo-tour="portfolio-experience-content">
       <p className="experience-kicker">{sample ? "SAMPLE EXPERIENCE" : item.category}</p>
       <h1>{item.title}</h1><p className="experience-byline">{name} · {item.category}{sample ? " · 첨부 이미지로 만든 예시" : ` · ${item.publishedAt.slice(0, 10)}`}</p>
       {item.coverUrl && <img className="experience-hero" src={item.coverUrl} alt={`${item.title} 대표 이미지`} />}
@@ -51,6 +52,7 @@ function Experience() {
         {item.sections.map((section, i) => <section key={i}><h2>{section.title}</h2><p>{section.body}</p></section>)}
         {!!item.imageUrls?.length && <section className="experience-photos" aria-label="게시물 사진">{item.imageUrls.filter(url => url !== item.coverUrl).map((url, i) => <img key={`${url}:${i}`} src={url} alt={`${item.title} 사진 ${i + 2}`} loading="lazy" />)}</section>}
       </> : experienceSections(item).map((section, i) => <section key={i}><h2>{section.title}</h2><p>{section.body || "아직 작성한 내용이 없어요."}</p></section>)}
+      </div>
       <section className="experience-detail-cta">
         <h2>더 자세히 보고 싶다면</h2>
         <p>문제·결정·과정·결과를 정리한 포트폴리오 페이지예요. 의뢰인 평가 원문과 검증 결과, 증빙이 함께 들어 있어요.</p>
