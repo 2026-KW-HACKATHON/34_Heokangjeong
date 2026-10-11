@@ -74,7 +74,7 @@ export default function NewPost() {
         ongoing, warrantyRequestDays: ops.requestDays, warrantyRequestCount: ops.requestCount, warrantyDefectDays: ops.defectDays, clientOwnedBilling: ops.clientBilling,
         applicantScope: scope,
       });
-      if (demo && getDemoTour()?.role === "merchant" && getDemoTour()?.step === 5) {
+      if (demo && getDemoTour()?.role === "merchant" && getDemoTour()?.step === 6) {
         await repo.apply(p.id, "s5", "안녕하세요. 시각디자인을 전공한 윤서연입니다. 시술명과 가격의 우선순위를 정리해 A3 포스터와 SNS 이미지 시안을 제작하겠습니다.");
         await repo.apply(p.id, "s10", "안녕하세요. 경영학부 배수아입니다. 손님이 자주 묻는 시술을 먼저 배치하고 읽기 쉬운 안내 문구를 제안하겠습니다.");
       }

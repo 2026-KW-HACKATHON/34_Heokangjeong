@@ -99,7 +99,7 @@ function PostDetail() {
           {post.urgent && <p className="mt-2 text-sm">가게 쿠폰: {listing.compensationDescription || post.reward || "미기재"}</p>}
         </div>
 
-        <div className="card text-sm">
+        <div data-demo-tour="student-problem" className="card text-sm">
           <h3 className="mb-2 font-bold">해결할 문제와 완료 기준</h3>
           <dl className="grid grid-cols-[76px_1fr] gap-y-1.5">
             <dt className="sub">문제</dt><dd>{listing.problem}</dd>

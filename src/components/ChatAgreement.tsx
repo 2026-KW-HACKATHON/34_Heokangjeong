@@ -39,6 +39,7 @@ const initialTerms = (post: Post, salonDemo: boolean): AgreementTerms => {
   }
   return { startDate: "", endDate: "", scope: "", deliverables: post.expectedDeliverables?.join("\n") ?? "", acceptance: post.completionCriteria ?? "", coupon: post.compensationDescription || post.reward || "", revisions: post.revisionLimit ?? 2, exclusions: "", handoff: "원본 파일과 사용 안내를 채팅으로 전달" };
 };
+const STUDENT_DEMO_PROMPT = "월계 미용실 시술 안내 포스터를 새로 디자인합니다. 점주가 준 시술명과 가격을 반영해 A3 인쇄용 PDF, SNS 이미지, 수정 가능한 원본 파일을 전달하고, 점주가 내용을 확인하고 파일을 받으면 완료합니다.";
 /** 확정 전: 양쪽이 고치고 확인 → 확정 = 선정 확정. 확정 뒤: 수정 제안 → 상대 수락(다시 확정) / 거절·철회(기존 유지) */
 export default function ChatAgreement({ application, post, actorId, studentName, ownerName, onChange, autoOpen, canPropose, openRequest }: { application: Application; post: Post; actorId: string; studentName: string; ownerName: string; onChange?: () => void; autoOpen?: boolean; openRequest?: number; canPropose?: boolean }) {
   const { mode } = useSession();
@@ -46,8 +47,8 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const salonPoster = mode === "mock" && post.authorId === "r7" && getDemoTour()?.role === "merchant";
   const salonDemo = salonPriceboard || salonPoster;
   const tour = mode === "mock" ? getDemoTour() : null;
-  const guidedAgreement = (tour?.role === "student" && tour.step === 4 && salonPriceboard)
-    || (tour?.role === "merchant" && tour.step === 9 && salonPoster);
+  const guidedAgreement = (tour?.role === "student" && tour.step === 6 && salonPriceboard)
+    || (tour?.role === "merchant" && tour.step === 10 && salonPoster);
   const [agreement,setAgreement] = useState<WorkAgreement | null>(null);
   const [loaded,setLoaded] = useState(false);
   const [loadError,setLoadError] = useState("");
@@ -62,10 +63,23 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const [proposing,setProposing] = useState(false);   // 확정된 계약서의 수정 제안을 쓰는 중
   const [demoAutoConfirmed,setDemoAutoConfirmed] = useState(false);
   const [freeText,setFreeText] = useState("");
+  const [inputMode,setInputMode] = useState<"choose"|"manual"|"prompt">("manual");
+  const [promptTyping,setPromptTyping] = useState(false);
   const [aiDraft,setAiDraft] = useState<AgreementDraft | null>(null);
   const [aiBusy,setAiBusy] = useState(false);
   const [aiError,setAiError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (!guidedAgreement || inputMode !== "prompt") return;
+    setFreeText(""); setPromptTyping(true);
+    let position = 0;
+    const timer = window.setInterval(() => {
+      position += 1;
+      setFreeText(STUDENT_DEMO_PROMPT.slice(0, position));
+      if (position >= STUDENT_DEMO_PROMPT.length) { window.clearInterval(timer); setPromptTyping(false); }
+    }, 18);
+    return () => window.clearInterval(timer);
+  }, [guidedAgreement, inputMode]);
   useEffect(() => {
     let live = true;
     const refresh = () => repo.getAgreement(application.id,actorId).then(value => { if(live) { setAgreement(value); setLoaded(true); setLoadError(""); } }).catch(() => { if(live) setLoadError("계약서를 불러오지 못했어요. 다시 열어 주세요."); });
@@ -75,6 +89,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   useEffect(() => { if(!opened) return; const before=document.body.style.overflow; document.body.style.overflow="hidden"; return () => {document.body.style.overflow=before;}; },[opened]);
   function display(value: WorkAgreement | null) {
     setShown(value); setTerms(value?.terms ?? initialTerms(post, salonDemo)); setEditing(!value); setStep(value ? 3 : 0); setConsent(!!value && salonDemo); setError(""); setProposing(false);
+    setFreeText(""); setInputMode(guidedAgreement && !value ? "choose" : "manual"); setAiDraft(null); setAiError("");
   }
   async function completeGuidedConfirmation(value: WorkAgreement): Promise<WorkAgreement> {
     if (!guidedAgreement || value.finalizedAt) return value;
@@ -170,8 +185,10 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         {editing && <div className="agreement-progress" aria-label={`${step+1}/4단계`}>{[0,1,2,3].map(n=><span key={n} className={n<=step?"on":""}/>)}</div>}
         {editing && step===0 && <div className="agreement-fields">
           {!proposing && <div className="agreement-support" data-demo-tour="agreement-ai"><strong>자유롭게 적고 Gemini로 정리하기</strong><p>할 일, 결과물, 보상 등을 평소 말하듯 적어 주세요. AI가 계약서 항목으로 나눠 줍니다. 빈 내용은 만들어내지 않으며, 적용 후 아래에서 직접 수정할 수 있어요.</p>
-            <textarea aria-label="계약서 자유 입력" maxLength={2000} value={freeText} onChange={e=>setFreeText(e.target.value)} placeholder="예: 미용실 시술 안내 포스터를 만들어 주세요. A3 PDF와 SNS 이미지 하나를 받고, 가격을 확인한 뒤 완료할게요. 커트 1회 이용권을 드립니다." className="mt-3 min-h-28 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm" />
-            <button type="button" className="agreement-ai-button" disabled={aiBusy || !freeText.trim()} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini 요약"}</button>
+            {guidedAgreement && inputMode === "choose" && <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" className="agreement-ai-button" onClick={()=>{setInputMode("manual");setFreeText("");}}>직접 쓰기</button><button type="button" className="agreement-ai-button" onClick={()=>setInputMode("prompt")}>예시 프롬프트로 쓰기</button></div>}
+            {(!guidedAgreement || inputMode !== "choose") && <textarea aria-label="계약서 자유 입력" maxLength={2000} readOnly={promptTyping} value={freeText} onChange={e=>setFreeText(e.target.value)} placeholder="예: 미용실 시술 안내 포스터를 만들어 주세요. A3 PDF와 SNS 이미지 하나를 받고, 가격을 확인한 뒤 완료할게요. 커트 1회 이용권을 드립니다." className="mt-3 min-h-28 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm" />}
+            {promptTyping && <p role="status" className="mt-2 text-xs text-slate-500">예시 문장을 입력하고 있어요…</p>}
+            <button type="button" className="agreement-ai-button" disabled={aiBusy || promptTyping || !freeText.trim() || (guidedAgreement && inputMode === "choose")} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini 요약"}</button>
             {aiDraft && <p role="status" className="mt-3 whitespace-pre-wrap"><strong>Gemini 요약</strong> · {aiDraft.summary}<br /><small>실제 Gemini 응답 · {aiDraft.model} · 아래 항목에 반영됐어요. 저장 전에 확인해 주세요.</small></p>}
             {aiError && <p role="alert" className="agreement-error mt-2">{aiError}</p>}
           </div>}
