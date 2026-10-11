@@ -220,11 +220,11 @@ export default function DemoTour() {
   const tipTop = Math.max(bounds.top + 12, Math.min(bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12, bottom + tipHeight + 24 < bounds.bottom ? bottom + 12 : top - tipHeight - 12));
   const inlineReview = step.target.includes('"post-review"');
   const tip = (
-    <div ref={setTipElement} style={{ scrollMarginTop:80, position: "fixed", zIndex: 1502, top: inlineReview ? bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12 : tipTop, pointerEvents:"auto", left: Math.max(bounds.left+12, Math.min(left, bounds.right - Math.min(310,frameWidth-24) - 12)), width: Math.min(310,frameWidth-24), maxHeight:frameHeight-24, overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
+    <div ref={setTipElement} style={{ scrollMarginTop:80, position: "fixed", zIndex: 1502, top: inlineReview ? bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12 : tipTop, pointerEvents:"auto", left: inlineReview ? bounds.left + (frameWidth - Math.min(310,frameWidth-24)) / 2 : Math.max(bounds.left+12, Math.min(left, bounds.right - Math.min(310,frameWidth-24) - 12)), width: Math.min(310,frameWidth-24), maxHeight:frameHeight-24, overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
       <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>{step.title}</h2>
       <p style={{ fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>{step.description}</p>
-      {!inlineReview && scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
+      {scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
         {scrollDirection === "down" ? "↓ 아래로 내려 강조된 곳 보기" : "↑ 위로 올려 강조된 곳 보기"}
       </button>}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, alignItems: "center" }}>
@@ -233,7 +233,6 @@ export default function DemoTour() {
       </div>
     </div>
   );
-  if (inlineReview) return <div aria-label="데모 안내" role="dialog" aria-live="polite" style={{pointerEvents:"none"}}>{tip}</div>;
   return <div aria-label="데모 안내" role="dialog" aria-live="polite" style={{position:"fixed",left:bounds.left,top:bounds.top,width:frameWidth,height:frameHeight,zIndex:1500,pointerEvents:"none",clipPath:`inset(0 round ${frameWidth < window.innerWidth ? 28 : 0}px)`}}>
     <div style={{ ...shade, left: 0, right: 0, top: 0, height: top }} />
     <div style={{ ...shade, left: 0, top, width: left, height: bottom - top }} />
