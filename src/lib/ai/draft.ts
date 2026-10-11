@@ -1,5 +1,6 @@
 import type { Category, RoleSlot } from "@/types";
 import { supabase } from "../supabase";
+import { cannedAi, cannedPause, cannedPostDraft } from "./demo";
 
 /**
  * 사장님이 대충 적은 고민 → 공고 초안 (Gemini).
@@ -22,6 +23,7 @@ export interface PostDraft {
 }
 
 export async function draftPost(text: string): Promise<PostDraft> {
+  if (cannedAi()) { await cannedPause(); return cannedPostDraft(text); }   // 체험 중에는 준비된 답 (Gemini 대기 없음)
   if (!supabase) throw new Error("AI 초안은 서버(Supabase)를 연결하면 쓸 수 있어요");
   const { data, error } = await supabase.functions.invoke<PostDraft>("draft-post", { body: { text } });
   if (error) {

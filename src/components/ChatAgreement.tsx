@@ -101,7 +101,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
     if (!freeText.trim()) { setAiError("먼저 작업 약속을 자유롭게 적어 주세요."); return; }
     setAiBusy(true); setAiError(""); setAiDraft(null);
     try {
-      const draft = await summarizeAgreement(freeText.trim());
+      const draft = await summarizeAgreement(freeText.trim(), post);
       setAiDraft(draft);
       setTerms(previous => ({ ...previous,
         scope: draft.scope || previous.scope,
@@ -172,7 +172,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
           {!proposing && <div className="agreement-support" data-demo-tour="agreement-ai"><strong>자유롭게 적고 Gemini로 정리하기</strong><p>할 일, 결과물, 보상 등을 평소 말하듯 적어 주세요. AI가 계약서 항목으로 나눠 줍니다. 빈 내용은 만들어내지 않으며, 적용 후 아래에서 직접 수정할 수 있어요.</p>
             <textarea aria-label="계약서 자유 입력" maxLength={2000} value={freeText} onChange={e=>setFreeText(e.target.value)} placeholder="예: 미용실 시술 안내 포스터를 만들어 주세요. A3 PDF와 SNS 이미지 하나를 받고, 가격을 확인한 뒤 완료할게요. 커트 1회 이용권을 드립니다." className="mt-3 min-h-28 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm" />
             <button type="button" className="agreement-ai-button" disabled={aiBusy || !freeText.trim()} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini 요약"}</button>
-            {aiDraft && <p role="status" className="mt-3 whitespace-pre-wrap"><strong>Gemini 요약</strong> · {aiDraft.summary}<br /><small>실제 Gemini 응답 · {aiDraft.model} · 아래 항목에 반영됐어요. 저장 전에 확인해 주세요.</small></p>}
+            {aiDraft && <p role="status" className="mt-3 whitespace-pre-wrap"><strong>{aiDraft.source === "DEMO" ? "체험용 요약" : "Gemini 요약"}</strong> · {aiDraft.summary}<br /><small>{aiDraft.source === "DEMO" ? "체험용 예시 답변이에요. 실제 이용 때는 Gemini가 정리해요" : `실제 Gemini 응답 · ${aiDraft.model}`} · 아래 항목에 반영됐어요. 저장 전에 확인해 주세요.</small></p>}
             {aiError && <p role="alert" className="agreement-error mt-2">{aiError}</p>}
           </div>}
           <label>작업 범위<textarea aria-label="작업 범위" maxLength={3000} value={terms.scope} onChange={e=>change("scope",e.target.value)} placeholder={salonPoster ? "예: 월계 미용실 A3 포스터와 SNS 이미지 디자인" : salonDemo ? "예: 월계 미용실 벽면 가격표와 시술 안내지 디자인" : "예: 신메뉴 포스터 1장과 SNS 이미지 3장 디자인"} /></label>

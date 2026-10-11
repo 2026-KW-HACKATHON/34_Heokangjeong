@@ -105,7 +105,7 @@ export default function NewPost() {
           <button data-demo-tour="post-example" onClick={makeDraft} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : "Gemini 요약"}</button>
           {draft && (
             <div data-demo-tour="post-drafted" className="rounded-xl bg-[var(--primary-weak)] p-3 text-sm">
-              <p className="font-bold text-[var(--primary)]">Gemini 초안 · 아래 폼에 채워 두었어요</p>
+              <p className="font-bold text-[var(--primary)]">{demo ? "체험용 초안" : "Gemini 초안"} · 아래 폼에 채워 두었어요</p>
               <dl className="mt-2 flex flex-col gap-1">
                 <div className="flex gap-2"><dt className="sub w-16 shrink-0">제목</dt><dd className="font-semibold">{draft.title}</dd></div>
                 <div className="flex gap-2"><dt className="sub w-16 shrink-0">필요 재능</dt><dd>{draft.category}</dd></div>
