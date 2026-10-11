@@ -19,7 +19,7 @@ function Experience() {
   const menu = useRef<HTMLDetailsElement>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-  // "자세한 포트폴리오 보기"는 모든 게시물에 붙는다. HTML 포트폴리오(의뢰인 검증 포함)가 있으면 열고, 없으면 안내 창
+  // 상세 포트폴리오 버튼은 모든 게시물에 붙는다. HTML 포트폴리오(의뢰인 검증 포함)가 있으면 열고, 없으면 안내 창
   const [detailed, setDetailed] = useState<boolean | null>(null);   // null = 확인 중
   const [noPortfolio, setNoPortfolio] = useState(false);
   const sample = mode === "mock" && id.startsWith("demo-");
@@ -57,8 +57,8 @@ function Experience() {
         <h2>더 자세히 보고 싶다면</h2>
         <p>문제·결정·과정·결과를 정리한 포트폴리오 페이지예요. 의뢰인 평가 원문과 검증 결과, 증빙이 함께 들어 있어요.</p>
         {detailed
-          ? <Link data-demo-tour="portfolio-detail" className="btn btn-primary w-full" href={`/portfolio/view?id=${encodeURIComponent(id)}&s=${encodeURIComponent(studentId)}`}>자세한 포트폴리오 보기</Link>
-          : <button type="button" className="btn btn-primary w-full disabled:opacity-50" disabled={detailed === null} onClick={() => setNoPortfolio(true)}>자세한 포트폴리오 보기</button>}
+          ? <Link data-demo-tour="portfolio-detail" className="btn btn-primary w-full" href={`/portfolio/view?id=${encodeURIComponent(id)}&s=${encodeURIComponent(studentId)}`}>AI가 생성한 포트폴리오 보기</Link>
+          : <button type="button" className="btn btn-primary w-full disabled:opacity-50" disabled={detailed === null} onClick={() => setNoPortfolio(true)}>AI가 생성한 포트폴리오 보기</button>}
       </section>
       </>}
     </article>}

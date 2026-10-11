@@ -29,7 +29,7 @@ const steps: Record<DemoRole, Step[]> = {
     { path: "/chats/room/?id=a13", target: '[data-demo-tour="agreement"]', title: "사장님과 협의한 계약서 검토", description: "사장님과 채팅으로 협의한 작업 내용을 확인하고 계약서를 열어 보세요. 직접 입력하거나 예시 프롬프트를 체험한 뒤 Gemini로 정리할 수 있어요." },
     { path: "/me/", target: '[data-demo-tour="feed-item"]', title: "검증된 경험과 작업", description: "미용실 계약은 아직 진행 중입니다. 여기서는 의뢰인이 검증을 마친 별도의 한식당 메뉴판 작업을 열어봅니다." },
     { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-experience-content"]', title: "경험 기록 읽기", description: "작업 배경과 역할을 읽어 보세요. 다음을 누르면 단계별 포트폴리오를 엽니다.", action: "next" },
-    { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-detail"]', title: "실제 포트폴리오 열기", description: "문제 정의부터 결과와 의뢰인 평가까지 작성된 포트폴리오를 눌러 확인하세요." },
+    { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-detail"]', title: "AI가 생성한 포트폴리오 보기", description: "문제 정의부터 결과와 의뢰인 평가까지 정리된 포트폴리오를 눌러 확인하세요." },
     { path: "/portfolio/view/?id=demo-menu-2&s=s1", target: '[data-demo-tour="portfolio-frame"]', title: "첫 번째 바 눌러보기", description: "파란 테두리로 표시된 첫 번째 ‘개요’ 바를 눌러 작업 기록을 읽어 보세요." },
     ...[
       ["개요", "프로젝트 목표와 맡은 역할을 읽고 아래로 스크롤해 ‘다음 단계’를 눌러 보세요."],
@@ -300,24 +300,26 @@ export default function DemoTour() {
   const shade: React.CSSProperties = { position: "fixed", background: tall ? "rgba(14, 19, 27, .35)" : "rgba(14, 19, 27, .72)", zIndex: 1500, pointerEvents: "auto" };
   const tipTop = Math.max(bounds.top + 12, Math.min(bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12, bottom + tipHeight + 24 < bounds.bottom ? bottom + 12 : top - tipHeight - 12));
   const portfolioStep = step.target.includes('"portfolio-frame"');
+  const compactPortfolio = tour.role === "student" && tour.step >= 8 && (path?.startsWith("/portfolio/experience") || path?.startsWith("/portfolio/view"));
   const inlineReview = step.target.includes('"post-review"') || step.target.includes('"post-created"');
+  const compactWidth = Math.min(220, frameWidth - 24);
   const tip = (
-    <div ref={setTipElement} style={{ scrollMarginTop:80, position: "fixed", zIndex: 1502, top: inlineReview ? bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12 : tipTop, pointerEvents:"auto", left: inlineReview ? bounds.left + (frameWidth - Math.min(310,frameWidth-24)) / 2 : Math.max(bounds.left+12, Math.min(left, bounds.right - Math.min(310,frameWidth-24) - 12)), width: Math.min(310,frameWidth-24), maxHeight:frameHeight-24, overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
-      <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {portfolioStep ? tour.step === 10 ? "첫 번째 바 누르기" : "기록 읽기" : step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
-      <h2 style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>{step.title}</h2>
-      <p style={{ fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>{step.description}</p>
+    <div ref={setTipElement} style={{ scrollMarginTop:80, position: "fixed", zIndex: 1502, top: compactPortfolio ? bounds.top + 76 : inlineReview ? bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12 : tipTop, pointerEvents:"auto", left: compactPortfolio ? bounds.right - compactWidth - 12 : inlineReview ? bounds.left + (frameWidth - Math.min(310,frameWidth-24)) / 2 : Math.max(bounds.left+12, Math.min(left, bounds.right - Math.min(310,frameWidth-24) - 12)), width: compactPortfolio ? compactWidth : Math.min(310,frameWidth-24), maxHeight:frameHeight-24, overflowY: "auto", padding: compactPortfolio ? 10 : 16, borderRadius: compactPortfolio ? 12 : 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
+      <p style={{ fontSize: compactPortfolio ? 10 : 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {portfolioStep ? tour.step === 10 ? "첫 번째 바 누르기" : "기록 읽기" : step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
+      <h2 style={{ fontSize: compactPortfolio ? 14 : 17, fontWeight: 800, marginTop: 4 }}>{step.title}</h2>
+      <p style={{ fontSize: compactPortfolio ? 11 : 13, lineHeight: 1.45, marginTop: compactPortfolio ? 4 : 7 }}>{step.description}</p>
       {tour.role === "student" && tour.step === 0 && <div role="group" aria-label="관심 분야 고르기" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 12 }}>
         {STUDENT_FIELDS.map(f => <button key={f.postId} type="button" onClick={() => { rememberDemoPick({ postId: f.postId }); advance(); }}
           style={{ padding: "10px 4px", borderRadius: 12, border: "1px solid #dfe5ec", background: "#f7f9fc", fontSize: 13, fontWeight: 700 }}>
           <span aria-hidden="true" style={{ display: "block", fontSize: 20 }}>{f.icon}</span>{f.label}
         </button>)}
       </div>}
-      {!inlineReview && !portfolioStep && scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
+      {!compactPortfolio && !inlineReview && !portfolioStep && scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
         {scrollDirection === "down" ? "↓ 아래로 내려 강조된 곳 보기" : "↑ 위로 올려 강조된 곳 보기"}
       </button>}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, alignItems: "center" }}>
-        <button type="button" onClick={finish} style={{ fontSize: 12, color: "#68717e" }}>안내 종료</button>
-        {tour.role === "student" && tour.step === 0 ? <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>관심 분야를 골라 보세요</span> : step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? (tour.step + 1 === steps[tour.role].length ? "완료" : "다음")}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>{portfolioStep && tour.step > 10 ? "읽고 아래 ‘다음 단계’를 눌러주세요" : "파란 테두리 안을 눌러주세요"}</span>}
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 4, marginTop: compactPortfolio ? 8 : 14, alignItems: "center" }}>
+        <button type="button" onClick={finish} style={{ fontSize: compactPortfolio ? 10 : 12, color: "#68717e" }}>안내 종료</button>
+        {tour.role === "student" && tour.step === 0 ? <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>관심 분야를 골라 보세요</span> : step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: compactPortfolio ? 11 : 13, fontWeight: 700, padding: compactPortfolio ? "6px 9px" : "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? (tour.step + 1 === steps[tour.role].length ? "완료" : "다음")}</button> : <span style={{ fontSize: compactPortfolio ? 10 : 12, fontWeight: 700, color: "#436991" }}>{portfolioStep && tour.step > 10 ? "읽고 ‘다음 단계’" : "파란 테두리 안을 눌러주세요"}</span>}
       </div>
     </div>
   );
