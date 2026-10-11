@@ -141,6 +141,7 @@ export default function DemoTour() {
     return () => { clearInterval(timer); window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
   }, [tour, completed, path]);
   const [tipHeight, setTipHeight] = useState(230);
+  const [barOpen, setBarOpen] = useState(true);   // 상인 체험 아래 띠: 설명 펼침 여부
   const [tipElement, setTipElement] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!tipElement) return;
@@ -273,7 +274,8 @@ export default function DemoTour() {
   const left = Math.min(bounds.right, Math.max(bounds.left, rect.left - pad)), top = Math.min(bounds.bottom, Math.max(bounds.top, rect.top - pad));
   const right = Math.max(left, Math.min(bounds.right, rect.right + pad)), bottom = Math.max(top, Math.min(bounds.bottom, rect.bottom + pad));
   const scrollDirection = rect.top < bounds.top ? "up" : rect.bottom > bounds.bottom ? "down" : null;
-  const shade: React.CSSProperties = { position: "fixed", background: "rgba(14, 19, 27, .72)", zIndex: 1500, pointerEvents: "auto" };
+  const tall = rect.height > frameHeight * 0.55;
+  const shade: React.CSSProperties = { position: "fixed", background: tall ? "rgba(14, 19, 27, .35)" : "rgba(14, 19, 27, .72)", zIndex: 1500, pointerEvents: "auto" };
   const tipTop = Math.max(bounds.top + 12, Math.min(bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12, bottom + tipHeight + 24 < bounds.bottom ? bottom + 12 : top - tipHeight - 12));
   const inlineReview = step.target.includes('"post-review"');
   const reviewSlot = inlineReview ? document.getElementById("post-review-guide") : null;
@@ -296,6 +298,32 @@ export default function DemoTour() {
       </div>
     </div>
   );
+  // 띠는 강조된 곳의 위·아래 중 빈 공간이 더 넓은 쪽에 붙인다 (버튼이 아래에 있으면 위로)
+  const barOnTop = top - bounds.top > bounds.bottom - bottom;
+  const bar = tour.role === "merchant" && (
+    <div ref={setTipElement} style={{ position: "fixed", zIndex: 1502, pointerEvents: "auto", left: bounds.left + 10, right: window.innerWidth - bounds.right + 10, ...(barOnTop ? { top: bounds.top + 10 } : { bottom: window.innerHeight - bounds.bottom + 10 }), padding: "10px 14px 10px", borderRadius: 16, background: "white", boxShadow: "0 4px 24px #0003", color: "#1a2029" }}>
+      <button type="button" onClick={() => setBarOpen(v => !v)} aria-expanded={barOpen} style={{ display: "block", width: "100%", textAlign: "left" }}>
+        <div aria-label={`${tour.step + 1} / ${steps.merchant.length}단계`} style={{ display: "flex", gap: 4 }}>
+          {steps.merchant.map((_, i) => <span key={i} style={{ height: 4, flex: 1, borderRadius: 2, background: i <= tour.step ? "#52a6ff" : "#e3e8ee" }} />)}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 7 }}>
+          <strong style={{ fontSize: 15 }}>{step.title}</strong>
+          <span aria-hidden="true" style={{ fontSize: 12, color: "#8a929c" }}>{barOpen ? "접기 ▾" : "설명 ▴"}</span>
+        </div>
+        {barOpen && <p style={{ fontSize: 13, lineHeight: 1.45, marginTop: 3, color: "#3c4450" }}>{step.description}</p>}
+      </button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, fontSize: 12 }}>
+        <span style={{ display: "flex", gap: 12, color: "#68717e" }}>
+          <button type="button" onClick={restartDemo}>처음으로</button>
+          <button type="button" onClick={finish}>안내 종료</button>
+        </span>
+        {scrollDirection ? <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({ block: scrollDirection === "down" ? "end" : "start", behavior: "smooth" })} style={{ fontWeight: 700, color: "#285887" }}>
+          {scrollDirection === "down" ? "↓ 강조된 곳 보기" : "↑ 강조된 곳 보기"}</button>
+          : step.action === "next" ? <button type="button" onClick={advance} style={{ fontWeight: 700, padding: "6px 12px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? "다음"}</button>
+          : <span style={{ fontWeight: 700, color: "#436991" }}>파란 테두리 안을 눌러 주세요</span>}
+      </div>
+    </div>
+  );
   if (reviewSlot) return createPortal(<div aria-label="데모 안내" role="dialog" aria-live="polite">{tip}</div>, reviewSlot);
   return <div aria-label="데모 안내" role="dialog" aria-live="polite" style={{position:"fixed",left:bounds.left,top:bounds.top,width:frameWidth,height:frameHeight,zIndex:1500,pointerEvents:"none",clipPath:`inset(0 round ${frameWidth < window.innerWidth ? 28 : 0}px)`}}>
     <div style={{ ...shade, left: 0, right: 0, top: 0, height: top }} />
@@ -303,6 +331,6 @@ export default function DemoTour() {
     <div style={{ ...shade, left: right, top, right: 0, height: bottom - top }} />
     <div style={{ ...shade, left: 0, right: 0, top: bottom, bottom: 0 }} />
     <div aria-hidden="true" style={{ position: "fixed", left, top, width: right - left, height: bottom - top, border: "3px solid #52a6ff", borderRadius: 12, boxShadow: "0 0 0 4px rgba(82,166,255,.3)", zIndex: 1501, pointerEvents: "none" }} />
-    {tip}
+    {bar || tip}
   </div>;
 }
