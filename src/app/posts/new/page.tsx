@@ -119,7 +119,6 @@ export default function NewPost() {
           )}
         </div>
         <div data-demo-tour="post-review" className="card flex flex-col gap-3">
-          <div id="post-review-guide" />
           {demo && <p className="sub text-xs">데모에서는 빈칸의 예시 내용이 등록할 때 자동으로 사용돼요. 바꾸고 싶은 항목만 입력해 주세요.</p>}
           <Field label="제목"><input className={inputCls} placeholder={demo ? DEMO_EXAMPLE.title : "어떤 도움이 필요한가요? (예: 메뉴판 디자인)"} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1">{CATS.map((c) => <button key={c} type="button" aria-pressed={f.category === c} onClick={() => setF({ ...f, category: c })} className={`chip ${f.category === c ? "chip-on" : ""}`}>{c}</button>)}</div>
