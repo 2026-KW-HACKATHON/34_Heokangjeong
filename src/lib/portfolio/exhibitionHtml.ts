@@ -7,6 +7,32 @@ import { exhibitionAssets } from "./exhibitionAssets";
 const escape = (s: string) => s.replace(/[&<>"']/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"})[c]!);
 // 사용자 데이터는 실행 코드가 아니라 JSON으로만 전달한다.
 const json = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+const tourCss = `body[data-wolink-tour="first"] .strip[data-index="0"] { outline:4px solid #52a6ff; outline-offset:3px; box-shadow:0 0 0 7px #52a6ff40; z-index:5; }
+body[data-wolink-tour="read"] #c-title { outline:3px solid #52a6ff; outline-offset:6px; border-radius:4px; }
+body[data-wolink-tour="next"] #arrow-next { outline:4px solid #52a6ff; outline-offset:4px; box-shadow:0 0 0 8px #52a6ff38; }`;
+const tourBridge = `(() => {
+  let activeStep = -1;
+  const update = () => {
+    if (activeStep < 11 || activeStep >= 19) return;
+    const next = document.querySelector('#arrow-next');
+    if (!next || next.disabled) return;
+    const box = next.getBoundingClientRect();
+    document.body.dataset.wolinkTour = box.top >= 0 && box.bottom <= innerHeight - 8 ? 'next' : 'read';
+  };
+  window.addEventListener('message', event => {
+    if (event.source !== parent || event.data?.type !== 'wolink-demo-tour-target') return;
+    const step = event.data.step;
+    if (!Number.isInteger(step) || step === activeStep) return;
+    activeStep = step;
+    document.body.dataset.wolinkTour = step === 10 ? 'first' : 'read';
+    requestAnimationFrame(() => {
+      const target = step === 10 ? document.querySelector('.strip[data-index="0"]') : document.querySelector('#content');
+      target?.scrollIntoView({block: step === 10 ? 'center' : 'start', behavior: 'auto'});
+      update();
+    });
+  });
+  window.addEventListener('scroll', update, {passive:true});
+})();`;
 
 export function exhibitionPortfolioHtml(page: PortfolioPage, content: PortfolioContent, blocks: DocBlock[], origin = "", editor?: {editing: boolean; stage: string | null}) {
   const base = origin || (typeof window !== "undefined" ? window.location.origin : "");
@@ -36,5 +62,5 @@ export function exhibitionPortfolioHtml(page: PortfolioPage, content: PortfolioC
   const nonce = "wolink-exhibition-runtime";
   const script = (s: string) => `<script nonce="${nonce}">${s.replace(/<\/script/gi, "<\\/script")}</script>`;
   const bootstrap = `window.WOLINK_EDITOR=${json(editor || null)};window.WOLINK_ASSET_BASE=${json(assetBase)};window.WOLINK_SAMPLES={menu:${json(sample)}};`;
-  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; img-src data: https: http:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"><title>${escape(content.title)}</title><style>${exhibitionAssets.css}</style></head><body data-view="list" data-motion="on" data-font="brush">${exhibitionAssets.markup}${script(exhibitionAssets.gsap)}${script(exhibitionAssets.flip)}${script(bootstrap)}${script(exhibitionAssets.runtime)}</body></html>`;
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; img-src data: https: http:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"><title>${escape(content.title)}</title><style>${exhibitionAssets.css}${page.projectId === "demo-menu-2" ? tourCss : ""}</style></head><body data-view="list" data-motion="on" data-font="brush">${exhibitionAssets.markup}${script(exhibitionAssets.gsap)}${script(exhibitionAssets.flip)}${script(bootstrap)}${script(exhibitionAssets.runtime)}${page.projectId === "demo-menu-2" ? script(tourBridge) : ""}</body></html>`;
 }

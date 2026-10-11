@@ -24,6 +24,13 @@ function Room() {
   const [post, setPost] = useState<Post | null | undefined>(undefined);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
+  const [demoReplyPending, setDemoReplyPending] = useState(false);
+  const [demoReadyForNext, setDemoReadyForNext] = useState(false);
+  useEffect(() => {
+    if (!demoReplyPending) return;
+    const timer = window.setTimeout(() => { setDemoReadyForNext(true); window.dispatchEvent(new Event("wolink-demo-chat-ready")); }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [demoReplyPending]);
   useEffect(() => {
     if (post?.id === "p9" && user?.id === "s1" && mode === "mock" && getDemoTour()?.role === "student")
       setText("안녕하세요, 선물상자 띠지와 스티커의 인쇄 크기와 선호하는 색상을 알려주시면 시안에 반영하겠습니다.");
@@ -91,6 +98,7 @@ function Room() {
       const m = await repo.sendMessage(id, user.id, body);
       setText("");
       setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+      if (mode === "mock" && post?.id === "p9" && getDemoTour()?.role === "student" && getDemoTour()?.step === 5) setDemoReplyPending(true);
     } catch (e) { setNotice((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -157,6 +165,14 @@ function Room() {
             </div>
           );
         })}
+        {demoReplyPending && <div className="mt-2 flex items-start gap-2" role="status" aria-live="polite">
+          <Avatar user={other} />
+          <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+            <p className="text-sm font-semibold">사장님이 답장중이에요!</p>
+            <span className="sub animate-pulse text-xs">● ● ●</span>
+          </div>
+        </div>}
+        {demoReadyForNext && <button data-demo-tour="student-chat-next" type="button" className="btn btn-primary self-end px-5 py-2.5">다음</button>}
         <div ref={bottom} />
       </section>
       <form onSubmit={send} style={{ bottom: keyboardInset }} className="fixed bottom-0 left-1/2 z-[1001] pb-[env(safe-area-inset-bottom)] flex w-full max-w-[480px] -translate-x-1/2 gap-2 border-t border-[var(--line)] bg-white p-2">

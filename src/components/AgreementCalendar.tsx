@@ -1,11 +1,12 @@
 "use client";
 import { useRef, useState } from "react";
 const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
-export default function AgreementCalendar({ start, end, onChange }: { start: string; end: string; onChange: (start: string, end: string) => void }) {
+export default function AgreementCalendar({ start, end, onChange, guided = false }: { start: string; end: string; onChange: (start: string, end: string) => void; guided?: boolean }) {
   const [month, setMonth] = useState(() => start ? new Date(`${start}T12:00:00`) : new Date());
   const drag = useRef<string | null>(null);
   const moved = useRef(false);
   const [tapStart, setTapStart] = useState<string | null>(null);
+  const [selectedInTour, setSelectedInTour] = useState(false);
   const year = month.getFullYear(), m = month.getMonth();
   const offset = new Date(year,m,1).getDay();
   const count = new Date(year,m+1,0).getDate();
@@ -13,6 +14,8 @@ export default function AgreementCalendar({ start, end, onChange }: { start: str
   return <div className="agreement-calendar">
     <div className="agreement-month"><button type="button" aria-label="이전 달" onClick={() => setMonth(new Date(year,m-1,1))}>‹</button><strong>{year}년 {m+1}월</strong><button type="button" aria-label="다음 달" onClick={() => setMonth(new Date(year,m+1,1))}>›</button></div>
     <p>첫날부터 마지막 날까지 드래그하거나, 두 날짜를 눌러 주세요.</p>
+    {guided && !selectedInTour && <div className="agreement-drag-hint" aria-hidden="true"><span className="agreement-drag-finger">☝️</span><span>손가락으로 날짜를 이어 보세요</span></div>}
+    {guided && selectedInTour && <div className="agreement-date-popover" role="status">일정 선택 완료! 날짜를 확인하고 아래 ‘다음’을 눌러 주세요.</div>}
     <div className="agreement-calendar-days" onPointerDown={e => {
       if (e.button !== 0) return;
       const target = (e.target as HTMLElement).closest<HTMLElement>("[data-agreement-day]");
@@ -26,9 +29,9 @@ export default function AgreementCalendar({ start, end, onChange }: { start: str
       const day = target?.dataset.agreementDay;
       if (day && e.currentTarget.contains(target) && day !== drag.current) { moved.current = true; range(drag.current,day); }
     }} onPointerUp={e => {
-      if (moved.current) setTapStart(null);
+      if (moved.current) { setTapStart(null); setSelectedInTour(true); }
       else if (drag.current) {
-        if (tapStart) { range(tapStart, drag.current); setTapStart(null); }
+        if (tapStart) { range(tapStart, drag.current); setTapStart(null); setSelectedInTour(true); }
         else { onChange(drag.current, drag.current); setTapStart(drag.current); }
       }
       drag.current = null;
@@ -38,9 +41,9 @@ export default function AgreementCalendar({ start, end, onChange }: { start: str
       {Array.from({length:offset},(_,i) => <span key={`blank${i}`} />)}
       {Array.from({length:count},(_,i) => { const day = dateKey(new Date(year,m,i+1)); return <button key={day} type="button" data-agreement-day={day} aria-label={day} aria-pressed={!!start && day>=start && day<=end} className={`${day===start || day===end ? "is-end" : ""}`} onClick={e => {
         if (e.detail !== 0) return;
-        if (tapStart) { range(tapStart,day); setTapStart(null); } else { onChange(day,day); setTapStart(day); }
+        if (tapStart) { range(tapStart,day); setTapStart(null); setSelectedInTour(true); } else { onChange(day,day); setTapStart(day); }
       }}>{i+1}</button>; })}
     </div>
-    <div className="agreement-date-inputs"><label>시작일<input type="date" value={start} onChange={e => onChange(e.target.value,end)} /></label><label>완료 예정일<input type="date" value={end} min={start} onChange={e => onChange(start,e.target.value)} /></label></div>
+    <div className="agreement-date-inputs"><label>시작일<input type="date" value={start} onChange={e => {onChange(e.target.value,end);setSelectedInTour(!!e.target.value && !!end);}} /></label><label>완료 예정일<input type="date" value={end} min={start} onChange={e => {onChange(start,e.target.value);setSelectedInTour(!!start && !!e.target.value);}} /></label></div>
   </div>;
 }

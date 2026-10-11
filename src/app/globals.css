@@ -565,6 +565,8 @@ body:has(.pf-web-breakout.is-fullscreen) .pf-pill { display: none; }
 }
 body.guided-demo:has(.pf-web-breakout.is-fullscreen) .bottom-tab-bar { display: block; z-index: 1400; }
 body.guided-demo:has(.pf-web-breakout.is-fullscreen) .pf-web-breakout.is-fullscreen { bottom: 62px; height: calc(100dvh - 118px - env(safe-area-inset-top)); }
+body.guided-portfolio .bottom-tab-bar { display: none !important; }
+body.guided-portfolio .pf-web-breakout.is-fullscreen { bottom: 0; height: calc(100dvh - 56px - env(safe-area-inset-top)); }
 
 .pf-web-breakout.is-fullscreen > div { height: 100%; }.pf-web-breakout.is-fullscreen > div > iframe { height: 100% !important; min-height: 0 !important; }
 
@@ -573,3 +575,8 @@ body.guided-demo:has(.pf-web-breakout.is-fullscreen) .pf-web-breakout.is-fullscr
     width:min(360px,calc(100vw - 40px)); max-height:min(820px,calc(100dvh - 72px));
   }
 }
+
+/* Keep native mobile date controls sized and give empty iOS dates a visible prompt. */
+.post-deadline-input { display:block; box-sizing:border-box; width:100%; min-width:0; height:48px; min-height:48px; max-height:48px; font-size:16px; appearance:none; -webkit-appearance:none; }
+.post-deadline-input::-webkit-date-and-time-value { text-align:left; min-height:1.4em; }
+.post-deadline-input.is-empty::-webkit-datetime-edit { color:transparent; }
