@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getDemoTour, saveDemoTour, type DemoPicks, type DemoRole, type DemoTourState } from "@/lib/demoTour";
+import { getDemoTour, rememberDemoPick, saveDemoTour, STUDENT_FIELDS, studentDemoPostId, type DemoPicks, type DemoRole, type DemoTourState } from "@/lib/demoTour";
 import { clearDemoBrowserData, endDemoSession } from "@/lib/demoIdentity";
 import { useSession } from "@/lib/session";
 
@@ -21,7 +21,7 @@ const steps: Record<DemoRole, Step[]> = {
   ],
   student: [
     intro,
-    { path: "/", target: '[data-demo-tour="student-post"]', title: "원하는 공고 지원하기", description: "관심 있는 공고를 살펴보고 지원하는 흐름을 체험해요. 김하늘 학생에게 맞는 베이커리 패키지 공고 카드를 눌러 시작하세요." },
+    { path: "/", target: '[data-demo-tour="student-post"]', title: "원하는 공고 지원하기", description: "고른 분야의 공고예요. 카드를 눌러 어떤 일인지 살펴보세요." },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-problem"]', title: "문제와 완료 기준 확인", description: "가게가 겪는 문제와 전달할 결과물, 완료 기준을 먼저 읽어 보세요. 준비되면 다음을 눌러 지원 단계로 이동합니다.", action: "next" },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-apply"]', title: "공고에 지원하기", description: "김하늘의 지원 메시지가 미리 작성돼 있어요. 내용을 확인하고 지원하기를 눌러 보세요." },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-applied"]', title: "지원 후 채팅", description: "지원하면 사장님과 바로 대화할 수 있어요. 채팅창으로 이동해 보세요." },
@@ -48,6 +48,9 @@ const steps: Record<DemoRole, Step[]> = {
     })),
   ],
 };
+
+/** 학생 체험의 공고 경로(?id=p9)를 학생이 고른 분야의 공고로 바꾼다 */
+const resolveStep = (step: Step): Step => step.path.includes("id=p9") ? { ...step, path: step.path.replace("id=p9", `id=${studentDemoPostId()}`) } : step;
 
 function matchesStep(step: Step, path: string | null) {
   if (!path) return false;
@@ -159,7 +162,7 @@ export default function DemoTour() {
   }, [tour, path]);
   const finish = useCallback(() => { saveDemoTour(null); setTour(null); setRect(null); setCompleted(false); }, []);
   const [reviewPart, setReviewPart] = useState(0);
-  const baseStep = tour && steps[tour.role][tour.step];
+  const baseStep = tour && steps[tour.role][tour.step] && resolveStep(steps[tour.role][tour.step]);
   const step = useMemo(() => tour?.role === "student" && tour.step === 3 && alreadyApplied && !clicked
     ? { ...baseStep!, target: '[data-demo-tour="student-applied"]', title: "이미 지원한 공고", description: "이 브라우저에서는 이미 지원했어요. 지원 내역을 확인한 뒤 다음 단계에서 채팅창으로 이동하세요.", action: "next" as const }
     : baseStep?.target.includes('"post-review"') && reviewPart > 0
@@ -182,7 +185,7 @@ export default function DemoTour() {
     if (next >= steps[tour.role].length) { setCompletedPicks(getDemoTour()?.picks ?? tour.picks ?? {}); saveDemoTour(null); setCompletedRole(tour.role); setTour(null); setRect(null); setCompleted(true); return; }
     const updated = { ...tour, picks: { ...tour.picks, ...getDemoTour()?.picks }, step: next };
     saveDemoTour(updated); setTour(updated); setClicked(false); setRect(null); setChatNextReady(false);
-    const destination = steps[tour.role][next].path;
+    const destination = resolveStep(steps[tour.role][next]).path;
     const here = window.location.pathname + window.location.search;
     if (destination !== "/posts/detail/" && destination !== "/chats/room/" && here !== destination) window.location.assign(destination);
   }, [tour, baseStep, reviewPart]);
@@ -303,12 +306,18 @@ export default function DemoTour() {
       <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {portfolioStep ? tour.step === 10 ? "첫 번째 바 누르기" : "기록 읽기" : step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>{step.title}</h2>
       <p style={{ fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>{step.description}</p>
+      {tour.role === "student" && tour.step === 0 && <div role="group" aria-label="관심 분야 고르기" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginTop: 12 }}>
+        {STUDENT_FIELDS.map(f => <button key={f.postId} type="button" onClick={() => { rememberDemoPick({ postId: f.postId }); advance(); }}
+          style={{ padding: "10px 4px", borderRadius: 12, border: "1px solid #dfe5ec", background: "#f7f9fc", fontSize: 13, fontWeight: 700 }}>
+          <span aria-hidden="true" style={{ display: "block", fontSize: 20 }}>{f.icon}</span>{f.label}
+        </button>)}
+      </div>}
       {!inlineReview && !portfolioStep && scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
         {scrollDirection === "down" ? "↓ 아래로 내려 강조된 곳 보기" : "↑ 위로 올려 강조된 곳 보기"}
       </button>}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, alignItems: "center" }}>
         <button type="button" onClick={finish} style={{ fontSize: 12, color: "#68717e" }}>안내 종료</button>
-        {step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? (tour.step + 1 === steps[tour.role].length ? "완료" : "다음")}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>{portfolioStep && tour.step > 10 ? "읽고 아래 ‘다음 단계’를 눌러주세요" : "파란 테두리 안을 눌러주세요"}</span>}
+        {tour.role === "student" && tour.step === 0 ? <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>관심 분야를 골라 보세요</span> : step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? (tour.step + 1 === steps[tour.role].length ? "완료" : "다음")}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>{portfolioStep && tour.step > 10 ? "읽고 아래 ‘다음 단계’를 눌러주세요" : "파란 테두리 안을 눌러주세요"}</span>}
       </div>
     </div>
   );

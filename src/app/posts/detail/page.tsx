@@ -11,7 +11,7 @@ import Icon from "@/components/Icon";
 import { ErrorText, ProjectStatusBadge, useAction } from "@/components/ui";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { getDemoTour, inMerchantTour, rememberDemoPick } from "@/lib/demoTour";
+import { getDemoTour, inMerchantTour, rememberDemoPick, studentDemoField, studentDemoPostId } from "@/lib/demoTour";
 import { distanceM, formatDistance } from "@/lib/geo";
 import { listingOf } from "@/lib/listing";
 import { DOMAINS } from "@shared/portfolio/domains";
@@ -32,8 +32,8 @@ function PostDetail() {
   const [project, setProject] = useState<Project | undefined>();
   const [msg, setMsg] = useState("");
   useEffect(() => {
-    if (id === "p9" && mode === "mock" && getDemoTour()?.role === "student")
-      setMsg("안녕하세요. 패키지 디자인을 공부하는 김하늘입니다. 제공해 주시는 로고와 제품 사진으로 선물상자 띠지와 스티커 시안을 만들고, 인쇄용 파일까지 전달하겠습니다.");
+    if (id === studentDemoPostId() && mode === "mock" && getDemoTour()?.role === "student")
+      setMsg(studentDemoField().apply);   // 학생 체험에서 고른 분야의 지원 메시지
   }, [id, mode]);
   const [roleId, setRoleId] = useState("");
   const [clubId, setClubId] = useState("");                 // 단체 이름으로 지원하기 (소속이 확정된 단체만)
@@ -148,7 +148,7 @@ function PostDetail() {
             {mine ? (
               <>
                 <p className="sub text-sm">&ldquo;{mine.message}&rdquo; · {mine.status === "accepted" ? "선정 확정 🎉" : mine.status === "rejected" ? "이번에는 함께하지 못해요" : mine.shortlistedAt ? "선정됐어요 · 대화하며 계약서를 확정하면 시작해요" : mine.shortlistCancelledAt ? "선정이 취소됐어요 · 채팅은 계속할 수 있어요" : "확인 대기 중"}</p>
-                {(mine.status === "accepted" || mine.status === "pending") && <Link data-demo-tour={id === "p9" ? "student-applied" : undefined} href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">채팅창으로 가기</Link>}
+                {(mine.status === "accepted" || mine.status === "pending") && <Link data-demo-tour={id === studentDemoPostId() ? "student-applied" : undefined} href={`/chats/room?id=${mine.id}`} className="btn btn-ghost mt-3 w-full">채팅창으로 가기</Link>}
               </>
             ) : (
               <>
@@ -188,7 +188,7 @@ function PostDetail() {
                   </fieldset>
                 )}
                 <textarea aria-label="지원 메시지" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="할 수 있는 것과 가능한 시간을 간단히 적어 주세요" className="h-24 w-full rounded-xl bg-[var(--line)] p-3 text-sm outline-none" />
-                <button data-demo-tour={id === "p9" ? "student-apply" : undefined} onClick={submit} disabled={act.busy || (scope === "CLUB" && !clubId)} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
+                <button data-demo-tour={id === studentDemoPostId() ? "student-apply" : undefined} onClick={submit} disabled={act.busy || (scope === "CLUB" && !clubId)} className="btn btn-primary mt-3 w-full disabled:opacity-50">지원하기</button>
               </>
             )}
             <div className="mt-2"><ErrorText text={act.error} /></div>

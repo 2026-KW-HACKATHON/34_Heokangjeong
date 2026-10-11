@@ -7,7 +7,7 @@ import ChatAgreement from "@/components/ChatAgreement";
 import Avatar from "@/components/Avatar";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session";
-import { getDemoTour } from "@/lib/demoTour";
+import { getDemoTour, studentDemoField, studentDemoPostId } from "@/lib/demoTour";
 import type { Application, ChatMessage, Post } from "@/types";
 
 /** 채팅방 (/chats/room?id=지원서id). 정적 export 호환을 위해 쿼리로 받는다. */
@@ -32,8 +32,8 @@ function Room() {
     return () => window.clearTimeout(timer);
   }, [demoReplyPending]);
   useEffect(() => {
-    if (post?.id === "p9" && user?.id === "s1" && mode === "mock" && getDemoTour()?.role === "student")
-      setText("안녕하세요, 선물상자 띠지와 스티커의 인쇄 크기와 선호하는 색상을 알려주시면 시안에 반영하겠습니다.");
+    if (post?.id === studentDemoPostId() && user?.id === "s1" && mode === "mock" && getDemoTour()?.role === "student")
+      setText(studentDemoField().ask);   // 학생 체험에서 고른 분야에 맞는 첫 질문
   }, [post?.id, user?.id, mode]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -98,7 +98,7 @@ function Room() {
       const m = await repo.sendMessage(id, user.id, body);
       setText("");
       setMsgs((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-      if (mode === "mock" && post?.id === "p9" && getDemoTour()?.role === "student" && getDemoTour()?.step === 5) setDemoReplyPending(true);
+      if (mode === "mock" && post?.id === studentDemoPostId() && getDemoTour()?.role === "student" && getDemoTour()?.step === 5) setDemoReplyPending(true);
     } catch (e) { setNotice((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -184,7 +184,7 @@ function Room() {
           </div>}
         </div>
         <input aria-label="메시지" onFocus={() => setToolsOpen(false)} value={text} onChange={(e) => setText(e.target.value)} disabled={!canChat} placeholder={canChat ? "메시지 보내기" : "종료된 지원은 메시지를 보낼 수 없어요"} className="min-w-0 flex-1 rounded-full bg-[var(--line)] px-4 py-2.5 text-base outline-none disabled:opacity-60" />
-        <button data-demo-tour={post.id === "p9" && user?.id === "s1" ? "student-chat-send" : undefined} disabled={busy || !canChat || !text.trim()} className="btn btn-primary rounded-full px-4 py-2.5 disabled:opacity-40">전송</button>
+        <button data-demo-tour={post.id === studentDemoPostId() && user?.id === "s1" ? "student-chat-send" : undefined} disabled={busy || !canChat || !text.trim()} className="btn btn-primary rounded-full px-4 py-2.5 disabled:opacity-40">전송</button>
       </form>
     </>
   );

@@ -1,5 +1,6 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { DEMO_PICK_EVENT, studentDemoPostId } from "@/lib/demoTour";
 import TopBar from "@/components/TopBar";
 import PostCard from "@/components/PostCard";
 import EmptyState from "@/components/EmptyState";
@@ -21,6 +22,13 @@ export default function HomePage() { return <Suspense fallback={null}><Home /></
 function Home() {
   const { user, users } = useSession();
   const [posts, setPosts] = useState<Post[]>([]);
+  // 학생 체험: 첫 화면에서 고른 분야의 공고를 강조한다 (고르는 순간 다시 읽는다)
+  const [demoPostId, setDemoPostId] = useState("p9");
+  useEffect(() => {
+    const sync = () => setDemoPostId(studentDemoPostId());
+    sync(); window.addEventListener(DEMO_PICK_EVENT, sync);
+    return () => window.removeEventListener(DEMO_PICK_EVENT, sync);
+  }, []);
   const [cat, setCat] = useUrlState<HomeCategory>("cat", "전체", ["전체", ...HOME_CATEGORIES.map((c) => c.value)]);
   const [onlyOpen, setOnlyOpen] = useUrlFlag("open", true);
   const [query, setQuery] = useState("");
@@ -95,7 +103,7 @@ function Home() {
           {!loading && !error && rows.length === 0 && <EmptyState text={user?.role === "resident" && mineOnly ? "아직 올린 공고가 없어요. 위 ＋ 로 공고를 올려 보세요."
             : user?.role === "student" && !mineOnly ? "아직 지원한 공고가 없어요. 추천 공고에서 찾아보세요."
             : "조건에 맞는 공고가 없어요. 다른 분야를 살펴보세요."} />}
-          {rows.map(({ p, d }, index) => <div data-demo-tour={p.id === "p9" ? "student-post" : undefined} key={`${cat}-${p.id}`} className="home-post-enter" style={{ animationDelay: `${Math.min(index, 5) * 45}ms` }}><PostCard post={p} authorName={name(p.authorId)} distance={d} /></div>)}
+          {rows.map(({ p, d }, index) => <div data-demo-tour={p.id === demoPostId ? "student-post" : undefined} key={`${cat}-${p.id}`} className="home-post-enter" style={{ animationDelay: `${Math.min(index, 5) * 45}ms` }}><PostCard post={p} authorName={name(p.authorId)} distance={d} /></div>)}
         </div>
         </div>
       </section>
