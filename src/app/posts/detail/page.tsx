@@ -72,6 +72,7 @@ function PostDetail() {
     <>
       <TopBar title="공고" back />
       <section className="flex flex-col gap-5 px-5 pb-6">
+        <div data-demo-tour="post-created" className="flex flex-col gap-5">
         <div className="card">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="flex flex-wrap items-center gap-1.5">
@@ -89,7 +90,7 @@ function PostDetail() {
             <p className="sub mb-1 text-xs">{post.urgentColleges.map(collegeLabel).filter(Boolean).join(", ")} 학생에게 알림이 갔어요</p>
           )}
           <div className="silver-badge mb-5 mt-4"><Icon name="folder" width={22} height={22} /></div>
-          <h2 data-demo-tour="post-created" className="page-title">{post.title}</h2>
+          <h2 className="page-title">{post.title}</h2>
           <p className="sub mt-1 text-sm">{author?.name} · {post.address}{user && <> · 📍 {formatDistance(distanceM(user.location, post.location))}</>}</p>
           <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed">{post.description}</p>
           <dl className="mt-4 grid grid-cols-2 gap-2 text-center text-sm">
@@ -109,6 +110,8 @@ function PostDetail() {
             <dt className="sub">보완 요청</dt><dd>최대 {listing.revisionLimit}번</dd>
             <dt className="sub">기록 방식</dt><dd>{DOMAINS[listing.domain].label} 포트폴리오 템플릿</dd>
           </dl>
+        </div>
+
         </div>
 
         {post.isTeam && post.teamSlots && (

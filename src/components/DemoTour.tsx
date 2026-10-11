@@ -19,7 +19,7 @@ const steps: Record<DemoRole, Step[]> = {
     { path: "/posts/new/", target: '[data-demo-tour="post-example"]', title: "Gemini 공고 요약", description: "요청 문장을 미리 넣었어요. Gemini 요약을 눌러 공고 초안으로 정리해 보세요." },
     { path: "/posts/new/", target: '[data-demo-tour="post-review"]', title: "자동으로 채워진 공고 확인", description: "방금 입력한 요청으로 제목·필요 재능·설명·결과물이 아래 공고에 채워졌어요. 스크롤하며 확인하고 원하는 부분을 고친 뒤 ‘다음’을 눌러 주세요. 아직 등록되지 않았어요.", action: "next" },
     { path: "/posts/new/", target: '[data-demo-tour="post-submit"]', title: "공고 등록", description: "내용을 살펴본 뒤 등록해 보세요. 등록에 성공하면 공고 상세로 이어집니다." },
-    { path: "/posts/detail/", target: '[data-demo-tour="post-created"]', title: "공고 등록 완료", description: "방금 올린 공고가 등록됐어요. 제목과 요청 내용을 확인하세요.", action: "next" },
+    { path: "/posts/detail/", target: '[data-demo-tour="post-created"]', title: "공고 등록 완료", description: "방금 올린 공고가 등록됐어요. 아래로 스크롤하며 제목·요청 내용·결과물·완료 기준·마감일과 보상을 확인한 뒤 다음을 눌러 주세요.", action: "next" },
     { path: "/posts/detail/", target: '[data-demo-tour="post-applicants"]', title: "지원자 비교", description: "데모 학생 두 명이 방금 올린 포스터 공고에 지원했어요. 학과와 제안 내용을 비교하세요.", action: "next" },
     { path: "/posts/detail/", target: '[data-demo-tour="merchant-select"]', title: "학생 선정하기", description: "디자인 작업 경험이 맞는 윤서연 학생을 선정해 보세요. 계약서를 양쪽이 확인해야 최종 확정됩니다." },
     { path: "/chats/room/", target: '[data-demo-tour="agreement"]', title: "양쪽이 확인하는 계약서", description: "계약서를 열어 자유 입력칸에 작업 내용을 적고 'Gemini 요약'을 눌러 보세요. 실제 AI 응답이 항목에 반영됩니다. 내용을 확인한 뒤 다음으로 진행하세요." },
@@ -159,7 +159,7 @@ export default function DemoTour() {
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     update();
-    document.querySelector(step.target)?.scrollIntoView({ block: step.target.includes('"post-review"') ? "start" : "center", behavior: "auto" });
+    document.querySelector(step.target)?.scrollIntoView({ block: step.target.includes('"post-review"') || step.target.includes('"post-created"') ? "start" : "center", behavior: "auto" });
     update();
     return () => { observer.disconnect(); clearInterval(timer); document.removeEventListener("click", onClick, true); window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
   }, [step, path, loading, mode, clicked, tour]);
@@ -226,10 +226,10 @@ export default function DemoTour() {
   const pad = 6;
   const left = Math.min(bounds.right, Math.max(bounds.left, rect.left - pad)), top = Math.min(bounds.bottom, Math.max(bounds.top, rect.top - pad));
   const right = Math.max(left, Math.min(bounds.right, rect.right + pad)), bottom = Math.max(top, Math.min(bounds.bottom, rect.bottom + pad));
-  const scrollDirection = rect.top < bounds.top ? "up" : rect.bottom > bounds.bottom ? "down" : null;
+  const scrollDirection = rect.bottom > bounds.bottom ? "down" : rect.top < bounds.top ? "up" : null;
   const shade: React.CSSProperties = { position: "fixed", background: "rgba(14, 19, 27, .72)", zIndex: 1500, pointerEvents: "auto" };
   const tipTop = Math.max(bounds.top + 12, Math.min(bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12, bottom + tipHeight + 24 < bounds.bottom ? bottom + 12 : top - tipHeight - 12));
-  const inlineReview = step.target.includes('"post-review"');
+  const inlineReview = step.target.includes('"post-review"') || step.target.includes('"post-created"');
   const tip = (
     <div ref={setTipElement} style={{ scrollMarginTop:80, position: "fixed", zIndex: 1502, top: inlineReview ? bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12 : tipTop, pointerEvents:"auto", left: inlineReview ? bounds.left + (frameWidth - Math.min(310,frameWidth-24)) / 2 : Math.max(bounds.left+12, Math.min(left, bounds.right - Math.min(310,frameWidth-24) - 12)), width: Math.min(310,frameWidth-24), maxHeight:frameHeight-24, overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
       <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
