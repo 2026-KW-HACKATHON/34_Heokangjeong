@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
   if (!text) return json({ error: "정리할 내용을 적어 주세요" }, 400);
   if (text.length > 2000) return json({ error: "2000자 이내로 적어 주세요" }, 400);
   try {
-    const { data, model } = await geminiJson(system, text, schema, 40_000, { thinking: "minimal", perModelMs: 15_000 });
+    const { data, model } = await geminiJson(system, text, schema, 40_000, { preferLite: true, thinking: "minimal", perModelMs: 10_000 });
     const result = data as Record<string, unknown>;
     const field = (key: string) => typeof result[key] === "string" ? String(result[key]).trim().slice(0, 3000) : "";
     return json({ summary: field("summary"), scope: field("scope"), deliverables: field("deliverables"), acceptance: field("acceptance"), coupon: field("coupon"), handoff: field("handoff"), source: "Gemini", model });

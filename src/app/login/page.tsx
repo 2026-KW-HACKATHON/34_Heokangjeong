@@ -20,7 +20,6 @@ export default function Login() {
     const examples = [
       { label: "학생으로 체험", detail: "공고 찾기부터 지원·포트폴리오까지", user: users.find(u => u.role === "student") },
       { label: "상인으로 체험", detail: "공고 등록부터 학생 선정·결과 확인까지", user: users.find(u => u.role === "resident" && u.kind === "상인") },
-      { label: "주민으로 체험", detail: "필요한 도움을 요청하고 진행 과정 살펴보기", user: users.find(u => u.role === "resident" && u.kind === "주민") },
     ];
     return <main className="flex min-h-screen flex-col justify-center px-6 py-10">
       <header className="text-center">

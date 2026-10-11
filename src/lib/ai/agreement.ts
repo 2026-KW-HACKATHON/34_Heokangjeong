@@ -1,4 +1,6 @@
+import type { Post } from "@/types";
 import { supabase } from "@/lib/supabase";
+import { cannedAgreement, cannedAi, cannedPause } from "./demo";
 
 export interface AgreementDraft {
   summary: string;
@@ -7,11 +9,12 @@ export interface AgreementDraft {
   acceptance: string;
   coupon: string;
   handoff: string;
-  source: "Gemini";
+  source: "Gemini" | "DEMO";   // DEMO: 체험용 준비된 답
   model: string;
 }
 
-export async function summarizeAgreement(text: string): Promise<AgreementDraft> {
+export async function summarizeAgreement(text: string, post?: Post): Promise<AgreementDraft> {
+  if (cannedAi()) { await cannedPause(); return cannedAgreement(text, post); }   // 체험 중에는 준비된 답 (Gemini 대기 없음)
   if (!supabase) throw new Error("Gemini 연결이 설정되지 않았어요. Supabase 환경변수를 확인해 주세요.");
   const { data, error } = await supabase.functions.invoke<AgreementDraft>("agreement-ai", { body: { text } });
   if (error) {

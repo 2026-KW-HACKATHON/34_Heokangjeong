@@ -1,6 +1,7 @@
 import type { DomainKey, QuestionDefinition } from "@/types";
 import { needsFollowUp, ruleFollowUps } from "@shared/portfolio/followup";
 import { supabase } from "../supabase";
+import { cannedAi } from "./demo";
 
 // AI 응답이 수십 초 걸릴 수 있어서, 화면은 규칙 기반 질문을 바로 보여 주고 AI 질문은 도착하면 바꿔 끼운다
 const AI_TIMEOUT_MS = 30_000;
@@ -19,7 +20,7 @@ export function suggestFollowUps(q: QuestionDefinition, answer: string, domain: 
 }
 
 async function aiFollowUps(q: QuestionDefinition, answer: string, domain: DomainKey): Promise<FollowUpSuggestion | null> {
-  if (!supabase) return null;
+  if (!supabase || cannedAi()) return null;
   try {
     const call = supabase.functions.invoke<{ questions: string[]; examples?: string[]; source: string }>("portfolio-ai", { body: { action: "followup", question: q.title, answer, domain } });
     const timeout = new Promise<{ data: null; error: Error }>((r) => setTimeout(() => r({ data: null, error: new Error("timeout") }), AI_TIMEOUT_MS));
