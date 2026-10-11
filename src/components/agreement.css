@@ -18,4 +18,4 @@
 .agreement-tour-tip { position:sticky; top:0; z-index:2; margin:0 0 22px; padding:14px 16px; border:0; border-radius:14px; background:#eff6ff; color:#243f5e; box-shadow:0 4px 14px #243f5e12; }
 .agreement-tour-tip strong { display:block; font-size:13px; }
 .agreement-tour-tip p { margin-top:7px; font-size:12px; line-height:1.65; }
-.agreement-dialog[data-guided-step] .agreement-actions .agreement-primary { outline:2px solid #436991; outline-offset:4px; }
+.agreement-dialog[data-guided-step="0"][data-summary-reviewed="true"] .agreement-actions .agreement-primary,.agreement-dialog[data-guided-step="1"] .agreement-actions .agreement-primary,.agreement-dialog[data-guided-step="2"] .agreement-actions .agreement-primary,.agreement-dialog[data-guided-step="3"] .agreement-actions .agreement-primary { outline:2px solid #436991; outline-offset:4px; }

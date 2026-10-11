@@ -79,17 +79,11 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const [aiDraft,setAiDraft] = useState<AgreementDraft | null>(null);
   const [aiBusy,setAiBusy] = useState(false);
   const [aiError,setAiError] = useState("");
-  const [choiceHint,setChoiceHint] = useState(false);
   const [reviewedSummary,setReviewedSummary] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const freeTextInput = useRef<HTMLTextAreaElement>(null);
   const resultHeading = useRef<HTMLDivElement>(null);
   const actions = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!guidedAgreement || !opened || !editing || step !== 0 || aiDraft) return;
-    const timer = window.setTimeout(() => setChoiceHint(true), 2200);
-    return () => window.clearTimeout(timer);
-  }, [guidedAgreement, opened, editing, step, aiDraft]);
   useEffect(() => {
     if (!guidedAgreement || !opened || !editing || step !== 0 || !aiDraft) return;
     resultHeading.current?.scrollIntoView({block:"center",behavior:"smooth"});
@@ -124,8 +118,9 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   },[application.id,actorId]);
   useEffect(() => { if(!opened) return; const before=document.body.style.overflow; document.body.style.overflow="hidden"; return () => {document.body.style.overflow=before;}; },[opened]);
   function display(value: WorkAgreement | null) {
-    setShown(value); setTerms(value?.terms ?? initialTerms(post, salonDemo)); setEditing(!value); setStep(value ? 3 : 0); setConsent(!!value && salonDemo); setError(""); setProposing(false);
-    setFreeText(""); setInputMode(guidedAgreement && !value ? "choose" : "manual"); setAiDraft(null); setAiError(""); setChoiceHint(false); setReviewedSummary(false);
+    const startingTerms = value?.terms ?? initialTerms(post, salonDemo);
+    setShown(value); setTerms(guidedAgreement && !value && !merchantQuick ? { ...startingTerms, scope: "", deliverables: "", acceptance: "" } : startingTerms); setEditing(!value); setStep(value ? 3 : 0); setConsent(!!value && salonDemo); setError(""); setProposing(false);
+    setFreeText(""); setInputMode(guidedAgreement && !value ? "choose" : "manual"); setAiDraft(null); setAiError(""); setReviewedSummary(false);
   }
   async function completeGuidedConfirmation(value: WorkAgreement): Promise<WorkAgreement> {
     if (!guidedAgreement || value.finalizedAt) return value;
@@ -202,13 +197,13 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const changed = !!shown && !!agreement && shown.version!==agreement.version;
   return <>
     <div className="chat-agreement-pin"><button data-demo-tour="agreement" type="button" disabled={busy} onClick={open}><span className="agreement-pin-icon" aria-hidden="true">▤</span><span><strong>작업 계약서</strong><small>{loadError || (!loaded ? "불러오는 중…" : !agreement ? "범위와 일정을 함께 정해요" : agreement.finalizedAt ? (agreement.proposedTerms ? `수정 제안 대기 · v${agreement.version}` : `양쪽 확인 완료 · v${agreement.version}`) : `v${agreement.version} · ${Number(!!agreement.studentConfirmedAt)+Number(!!agreement.ownerConfirmedAt)}/2명 확인`)}</small></span><span>{agreement ? "보기 ›" : "작성 ›"}</span></button></div>
-    <dialog className="agreement-dialog" data-guided-step={guidedAgreement ? editing ? step : "confirm" : undefined} ref={dialog} aria-label="작업 계약서 작성" onClose={()=>setOpened(false)} onCancel={e=>{if(busy)e.preventDefault();}}>
+    <dialog className="agreement-dialog" data-guided-step={guidedAgreement ? editing ? step : "confirm" : undefined} data-summary-reviewed={guidedAgreement && step===0 ? reviewedSummary : undefined} ref={dialog} aria-label="작업 계약서 작성" onClose={()=>setOpened(false)} onCancel={e=>{if(busy)e.preventDefault();}}>
       <header><span>작업 계약서 {shown && <small>v{shown.version}</small>}</span><button type="button" disabled={busy} aria-label="계약서 닫기" onClick={()=>dialog.current?.close()}>×</button></header>
       <div className="agreement-body">
         {guidedAgreement && <aside className="agreement-tour-tip" role="status" aria-live="polite" aria-label="작업 계약서 체험 안내">
           <strong>{merchantQuick && !editing ? (shown?.finalizedAt ? "계약 확정!" : "이런 계약서를 주고받아요") : editing ? `계약서 검토 흐름 ${step + 1}/4 · ${["작업 내용과 Gemini 요약", "작업 일정", "보상과 AS", "저장 전 확인"][step]}` : shown?.finalizedAt ? "계약서 검토 완료" : "마지막 · 양쪽 확인"}</strong>
           <p>{merchantQuick && !editing ? (shown?.finalizedAt ? "닫기(×)를 누르면 2주 뒤로 넘어가요." : "공고 내용으로 계약서가 자동으로 채워졌어요. 아래 ‘이 버전 최종 확인’만 눌러 보세요.") : editing ? [
-            reviewedSummary ? "꼼꼼하게 확인했나요? 아래 ‘다음’을 눌러 일정으로 넘어가세요." : aiDraft ? "Gemini 요약 결과를 읽어 보세요. 화면을 누르면 아래 ‘다음’ 버튼을 안내합니다." : choiceHint ? "직접 쓰기 또는 예시 프롬프트 입력을 골라 보세요. 입력 후 Gemini 요약을 누를 수 있어요." : "채팅으로 협의된 작업 범위를 작성해요. 잠시 후 입력 방법을 선택할 수 있어요.",
+            reviewedSummary ? "꼼꼼하게 확인했나요? 아래 ‘다음’을 눌러 일정으로 넘어가세요." : aiDraft ? "Gemini 요약 결과를 읽어 보세요. 화면을 누르면 아래 ‘다음’ 버튼을 안내합니다." : "채팅으로 협의된 작업 범위를 작성해요. 직접 쓰기 또는 예시 프롬프트 입력을 골라 보세요.",
             "손가락으로 시작일부터 완료일까지 드래그해 보세요. 두 날짜를 눌러 선택할 수도 있어요.",
             "보상·AS·파일 인계 방법을 간단히 확인한 뒤 ‘다음’을 눌러 주세요.",
             "내용을 읽고 ‘저장하고 양쪽 확인받기’를 눌러 주세요. 저장만으로 계약이 확정되지는 않아요.",
@@ -224,16 +219,16 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         {editing && step===0 && <div className="agreement-fields">
           {!proposing && <div className="agreement-support" data-demo-tour="agreement-ai"><strong>협업 내용을 Gemini로 요약해 보세요</strong><p>직접 작성하거나 예시 프롬프트를 입력해 체험할 수 있어요. 작업 내용·결과물·완료 기준을 평소 말하듯 적어 주세요.</p>
             <textarea ref={freeTextInput} aria-label="계약서 자유 입력" maxLength={2000} readOnly={promptTyping} value={freeText} onChange={e=>{setInputMode("manual");setFreeText(e.target.value);}} placeholder="예: 미용실 시술 안내 포스터를 만들어 주세요. A3 PDF와 SNS 이미지 하나를 받고, 가격을 확인한 뒤 완료할게요." className="agreement-free-input" />
-            {guidedAgreement && <div className={`agreement-choice mt-3 grid grid-cols-2 gap-2 ${choiceHint && !freeText && !aiDraft ? "agreement-choice-highlight" : ""}`}><button type="button" className="agreement-ai-button" onClick={()=>{setInputMode("manual");setFreeText("");freeTextInput.current?.focus();}}>직접 쓰기</button><button type="button" className="agreement-ai-button" onClick={()=>setInputMode("prompt")}>예시 프롬프트 입력</button></div>}
+            {guidedAgreement && <div className={`agreement-choice mt-3 grid grid-cols-2 gap-2 ${inputMode === "choose" && !aiDraft ? "agreement-choice-highlight" : ""}`}><button type="button" className="agreement-ai-button" onClick={()=>{setInputMode("manual");setFreeText("");freeTextInput.current?.focus();}}>직접 쓰기</button><button type="button" className="agreement-ai-button" onClick={()=>setInputMode("prompt")}>예시 프롬프트 입력</button></div>}
             {promptTyping && <p role="status" className="mt-2 text-xs text-slate-500">예시 문장을 입력하고 있어요…</p>}
             <button type="button" className="agreement-ai-button" disabled={aiBusy || promptTyping || !freeText.trim()} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini 요약"}</button>
             {aiDraft && <p role="status" className="mt-3 whitespace-pre-wrap"><strong>{aiDraft.source === "DEMO" ? "체험용 요약" : "Gemini 요약"}</strong> · {aiDraft.summary}<br /><small>{aiDraft.source === "DEMO" ? "체험용 예시 답변이에요. 실제 이용 때는 Gemini가 정리해요" : `실제 Gemini 응답 · ${aiDraft.model}`} · 아래 항목에 반영됐어요. 저장 전에 확인해 주세요.</small></p>}
             {aiError && <p role="alert" className="agreement-error mt-2">{aiError}</p>}
           </div>}
-          {guidedAgreement && <div ref={resultHeading} className={`agreement-result-heading ${aiDraft && !reviewedSummary ? "agreement-result-highlight" : ""}`}><strong>Gemini 요약 결과</strong><small>{aiDraft ? "AI가 정리한 초안입니다. 아래 내용을 직접 수정할 수 있어요." : "요약 전에는 협의 내용을 바탕으로 한 예시가 표시됩니다."}</small></div>}
-          <label>작업 범위<textarea aria-label="작업 범위" maxLength={3000} value={terms.scope} onChange={e=>change("scope",e.target.value)} placeholder={salonPoster ? "예: 월계 미용실 A3 포스터와 SNS 이미지 디자인" : salonDemo ? "예: 월계 미용실 벽면 가격표와 시술 안내지 디자인" : "예: 신메뉴 포스터 1장과 SNS 이미지 3장 디자인"} /></label>
-          <label>전달할 결과물<textarea aria-label="전달할 결과물" maxLength={3000} value={terms.deliverables} onChange={e=>change("deliverables",e.target.value)} placeholder={salonPoster ? "예: A3 포스터 PDF와 SNS 이미지, 원본 파일" : salonDemo ? "예: A2 가격표·A4 안내지의 인쇄용 PDF와 원본 파일" : "예: 인쇄용 PDF 1개, 이미지 PNG 3개, 원본 파일"} /></label>
-          <label>완료 확인 기준<textarea aria-label="완료 확인 기준" maxLength={3000} value={terms.acceptance} onChange={e=>change("acceptance",e.target.value)} placeholder={salonDemo ? "예: 점주가 시술명과 가격을 확인하고 인쇄용 파일을 수령" : "예: 점주가 문구·가격을 확인하고 인쇄 가능한 파일을 수령"} /></label>
+          {guidedAgreement && <div ref={resultHeading} className={`agreement-result-heading ${aiDraft && !reviewedSummary ? "agreement-result-highlight" : ""}`}><strong>Gemini 요약 결과</strong><small>{aiDraft ? "AI가 정리한 초안입니다. 아래 내용을 직접 수정할 수 있어요." : "Gemini 요약을 누르면 결과가 이곳에 표시됩니다."}</small></div>}
+          <label>작업 범위<textarea aria-label="작업 범위" maxLength={3000} value={terms.scope} onChange={e=>change("scope",e.target.value)} placeholder={guidedAgreement && !aiDraft ? "" : salonPoster ? "예: 월계 미용실 A3 포스터와 SNS 이미지 디자인" : salonDemo ? "예: 월계 미용실 벽면 가격표와 시술 안내지 디자인" : "예: 신메뉴 포스터 1장과 SNS 이미지 3장 디자인"} /></label>
+          <label>전달할 결과물<textarea aria-label="전달할 결과물" maxLength={3000} value={terms.deliverables} onChange={e=>change("deliverables",e.target.value)} placeholder={guidedAgreement && !aiDraft ? "" : salonPoster ? "예: A3 포스터 PDF와 SNS 이미지, 원본 파일" : salonDemo ? "예: A2 가격표·A4 안내지의 인쇄용 PDF와 원본 파일" : "예: 인쇄용 PDF 1개, 이미지 PNG 3개, 원본 파일"} /></label>
+          <label>완료 확인 기준<textarea aria-label="완료 확인 기준" maxLength={3000} value={terms.acceptance} onChange={e=>change("acceptance",e.target.value)} placeholder={guidedAgreement && !aiDraft ? "" : salonDemo ? "예: 점주가 시술명과 가격을 확인하고 인쇄용 파일을 수령" : "예: 점주가 문구·가격을 확인하고 인쇄 가능한 파일을 수령"} /></label>
         </div>}
         {editing && step===1 && <AgreementCalendar start={terms.startDate} end={terms.endDate} guided={guidedAgreement} onChange={(startDate,endDate)=>setTerms(t=>({...t,startDate,endDate}))}/>}
         {editing && step===2 && <div className="agreement-fields">
