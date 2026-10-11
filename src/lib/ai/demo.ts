@@ -1,14 +1,13 @@
 import type { Category, Post } from "@/types";
 import { supabase } from "../supabase";
-import { isDemoEnabled } from "../demoIdentity";
 import type { PostDraft } from "./draft";
 import type { AgreementDraft } from "./agreement";
 
 /**
- * 체험(데모) 중에는 Gemini 를 부르지 않고 준비된 답을 바로 쓴다.
- * 주민분들께 시연할 때 AI 응답을 수십 초씩 기다리지 않게 하려는 것이다. 실제 이용(로그인)에서는 그대로 Gemini 를 부른다.
+ * 서버(Supabase) 연결이 아예 없는 데모 빌드에서만 Gemini 대신 준비된 답을 쓴다.
+ * 배포 앱의 체험 모드는 방문객이 적은 고민을 진짜 Gemini 가 읽고 정리한다 (서버 함수가 가벼운 모델부터 불러 2초 안팎).
  */
-export const cannedAi = () => !supabase || isDemoEnabled();
+export const cannedAi = () => !supabase;
 
 /** 버튼을 누른 느낌이 나도록 아주 짧게만 기다린다 */
 export const cannedPause = (ms = 600) => new Promise<void>((resolve) => setTimeout(resolve, ms));

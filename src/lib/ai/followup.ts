@@ -20,7 +20,7 @@ export function suggestFollowUps(q: QuestionDefinition, answer: string, domain: 
 }
 
 async function aiFollowUps(q: QuestionDefinition, answer: string, domain: DomainKey): Promise<FollowUpSuggestion | null> {
-  if (!supabase || cannedAi()) return null;   // 체험 중에는 규칙 기반 질문만 (AI 대기 없음)
+  if (!supabase || cannedAi()) return null;
   try {
     const call = supabase.functions.invoke<{ questions: string[]; examples?: string[]; source: string }>("portfolio-ai", { body: { action: "followup", question: q.title, answer, domain } });
     const timeout = new Promise<{ data: null; error: Error }>((r) => setTimeout(() => r({ data: null, error: new Error("timeout") }), AI_TIMEOUT_MS));

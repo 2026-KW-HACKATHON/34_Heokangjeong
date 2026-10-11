@@ -2,11 +2,9 @@
 // 사장님이 대충 적은 고민 → Gemini 가 필요한 재능·추천 학과·결과물·기간을 유추해 PostDraft JSON 으로 돌려준다.
 // Gemini 키는 여기(서버)에만 둔다: `npx supabase secrets set GEMINI_API_KEY=...`
 // 배포: `npx supabase functions deploy draft-post`
+import { AiUnavailable, geminiJson } from "../_shared/gemini.ts";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-// 무료 등급 모델. 앞 모델이 붐비거나(503) 한도 초과(429)·없어지면(404) 다음 모델로 넘어간다.
-// 순서를 바꾸려면 secrets 에 GEMINI_MODELS=모델1,모델2 설정
-const MODELS = (Deno.env.get("GEMINI_MODELS") ?? "gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite").split(",").map((m) => m.trim());
 
 const CATEGORIES = ["디자인", "영상", "사진", "SNS홍보", "웹/앱", "디지털도움", "기타"];
 
@@ -64,25 +62,17 @@ Deno.serve(async (req) => {
   if (typeof text !== "string" || !text.trim()) return json({ error: "내용을 적어 주세요" }, 400);
   if (text.length > 2000) return json({ error: "2000자 이내로 적어 주세요" }, 400);
 
-  const body = JSON.stringify({
-    systemInstruction: { parts: [{ text: PROMPT }] },
-    contents: [{ role: "user", parts: [{ text }] }],
-    generationConfig: { responseMimeType: "application/json", responseSchema: SCHEMA },
-  });
-  let r: Response | null = null;
-  for (const model of MODELS) {
-    r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY }, body,
-    });
-    if (r.ok) break;
-    console.error("gemini", model, r.status, await r.text());
-    if (![404, 429, 500, 503].includes(r.status)) break; // 요청 자체가 잘못된 경우는 다른 모델도 같다
+  // 가벼운 모델(flash-lite)부터, 생각은 최소로: 측정해 보니 무거운 모델 기본 설정은 30초 넘게, lite 는 2초 안팎이었다.
+  // 한 모델이 붐비거나 멈추면 10초 뒤 다음 모델로 넘어간다.
+  let d: Record<string, any>;
+  try {
+    d = (await geminiJson(PROMPT, text, SCHEMA, 30_000, { preferLite: true, thinking: "minimal", perModelMs: 10_000 })).data as Record<string, any>;
+  } catch (e) {
+    console.error("draft", e);
+    return json({ error: e instanceof AiUnavailable && String(e.message).includes("429") ? "AI 사용량이 많아요. 잠시 후 다시 시도해 주세요" : "AI 초안을 만들지 못했어요. 잠시 후 다시 시도해 주세요" }, 502);
   }
-  if (!r?.ok) return json({ error: r?.status === 429 ? "AI 사용량이 많아요. 잠시 후 다시 시도해 주세요" : "AI 초안을 만들지 못했어요. 잠시 후 다시 시도해 주세요" }, 502);
 
   try {
-    const data = await r.json();
-    const d = JSON.parse(data.candidates[0].content.parts[0].text);
     // 모델 출력을 앱의 PostDraft 형태로 정리
     const slots = (d.teamSlots ?? []).filter((s: { category: string }) => CATEGORIES.includes(s.category))
       .map((s: { category: string; count: number }) => ({ category: s.category, count: Math.max(1, Math.min(5, s.count || 1)), filled: [] }));
