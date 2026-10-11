@@ -4,9 +4,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { getDemoTour, saveDemoTour, type DemoRole, type DemoTourState } from "@/lib/demoTour";
 import { useSession } from "@/lib/session";
 
-type Step = { path: string; target: string; title: string; description: string; action?: "next" };
+type Step = { path: string; target: string; title: string; description: string; action?: "next"; cta?: string };
+const intro: Step = {
+  path: "/", target: '[data-demo-tour="brand-intro"]', title: "월계와 사람을 잇는 WOLINK",
+  description: "WOLINK는 월계(Wolgye)와 링크(Link)를 합친 이름입니다. 월계1동의 청년과 지역을 이어 함께 성장해요. 대학생은 전공을 살린 재능기부로 실무 경험을 쌓고, 주민과 상인은 디지털 도움과 홍보를 얻습니다.",
+  action: "next", cta: "가자",
+};
 const steps: Record<DemoRole, Step[]> = {
   merchant: [
+    intro,
     { path: "/", target: '[data-demo-tour="merchant-create"]', title: "홈에서 공고 쓰기", description: "오른쪽 위 + 버튼을 눌러 우리 가게에 필요한 도움을 요청해 보세요." },
     { path: "/posts/new/", target: '[data-demo-tour="post-memo"]', title: "가게 요청 내용 쓰기", description: "실제 가게 고민처럼 예시 문장을 미리 넣었어요. 읽어 보거나 직접 수정한 다음 ‘다음’을 눌러 주세요.", action: "next" },
     { path: "/posts/new/", target: '[data-demo-tour="post-deadline"]', title: "희망 마감일 선택", description: "날짜 입력칸을 눌러 원하는 마감일을 선택해 보세요. 마감일이 정해지지 않았다면 비워 두어도 돼요. 선택 후 ‘다음’을 눌러 주세요.", action: "next" },
@@ -20,7 +26,8 @@ const steps: Record<DemoRole, Step[]> = {
     { path: "/chats/room/", target: '[data-demo-tour="merchant-match-status"]', title: "상인 흐름 완료", description: "데모에서는 학생 확인도 자동으로 재현해 선정이 확정되고 프로젝트가 시작됩니다. 실제 이용에서는 학생이 직접 확인해야 해요. 다른 지원자에게는 미선정 안내가 갑니다.", action: "next" },
   ],
   student: [
-    { path: "/", target: '[data-demo-tour="student-post"]', title: "추천 공고 살펴보기", description: "김하늘 학생의 디자인 관심 분야와 가까운 베이커리 패키지 공고입니다. 카드를 눌러 자세히 보세요." },
+    intro,
+    { path: "/", target: '[data-demo-tour="student-post"]', title: "원하는 공고 지원하기", description: "관심 있는 공고를 살펴보고 지원하는 흐름을 체험해요. 김하늘 학생에게 맞는 베이커리 패키지 공고 카드를 눌러 시작하세요." },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-problem"]', title: "문제와 완료 기준 확인", description: "가게가 겪는 문제와 전달할 결과물, 완료 기준을 먼저 읽어 보세요. 준비되면 다음을 눌러 지원 단계로 이동합니다.", action: "next" },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-apply"]', title: "공고에 지원하기", description: "김하늘의 지원 메시지가 미리 작성돼 있어요. 내용을 확인하고 지원하기를 눌러 보세요." },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-applied"]', title: "지원 후 채팅", description: "지원하면 사장님과 바로 대화할 수 있어요. 채팅창으로 이동해 보세요." },
@@ -94,11 +101,11 @@ export default function DemoTour() {
   useEffect(() => { document.body.classList.toggle("guided-demo", !!tour || completed); return () => document.body.classList.remove("guided-demo"); }, [tour, completed]);
   const finish = useCallback(() => { saveDemoTour(null); setTour(null); setRect(null); setCompleted(false); }, []);
   const baseStep = tour && steps[tour.role][tour.step];
-  const step = useMemo(() => tour?.role === "student" && tour.step === 2 && alreadyApplied && !clicked
+  const step = useMemo(() => tour?.role === "student" && tour.step === 3 && alreadyApplied && !clicked
     ? { ...baseStep!, target: '[data-demo-tour="student-applied"]', title: "이미 지원한 공고", description: "이 브라우저에서는 이미 지원했어요. 지원 내역을 확인한 뒤 다음 단계에서 채팅창으로 이동하세요.", action: "next" as const }
     : baseStep, [tour?.role, tour?.step, alreadyApplied, clicked, baseStep]);
   useEffect(() => {
-    if (tour?.role !== "student" || tour.step !== 2 || !path?.startsWith("/posts/detail")) return;
+    if (tour?.role !== "student" || tour.step !== 3 || !path?.startsWith("/posts/detail")) return;
     const update = () => setAlreadyApplied(!!document.querySelector('[data-demo-tour="student-applied"]'));
     update();
     const timer = window.setInterval(update, 250);
@@ -116,9 +123,9 @@ export default function DemoTour() {
   }, [tour]);
 
   useEffect(() => {
-    if (tour?.role !== "student" || tour.step < 9 || tour.step > 17 || !path?.startsWith("/portfolio/view")) return;
+    if (tour?.role !== "student" || tour.step < 10 || tour.step > 18 || !path?.startsWith("/portfolio/view")) return;
     const stages = ["overview", "problem", "decisions", "process", "beforeAfter", "deliverable", "usage", "reflection", "evaluation"];
-    const stageIndex = tour.step - 9;
+    const stageIndex = tour.step - 10;
     const frame = document.querySelector<HTMLIFrameElement>('[data-demo-tour="portfolio-frame"]');
     const onMessage = (event: MessageEvent) => {
       if (event.source !== frame?.contentWindow || event.data?.type !== "wolink-demo-portfolio-stage") return;
@@ -226,7 +233,7 @@ export default function DemoTour() {
       </button>}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, alignItems: "center" }}>
         <button type="button" onClick={finish} style={{ fontSize: 12, color: "#68717e" }}>안내 종료</button>
-        {step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{tour.step + 1 === steps[tour.role].length ? "완료" : "다음"}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>파란 테두리 안을 눌러주세요</span>}
+        {step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? (tour.step + 1 === steps[tour.role].length ? "완료" : "다음")}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>파란 테두리 안을 눌러주세요</span>}
       </div>
     </div>
   </div>;

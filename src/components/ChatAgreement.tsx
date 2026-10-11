@@ -47,8 +47,8 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const salonPoster = mode === "mock" && post.authorId === "r7" && getDemoTour()?.role === "merchant";
   const salonDemo = salonPriceboard || salonPoster;
   const tour = mode === "mock" ? getDemoTour() : null;
-  const guidedAgreement = (tour?.role === "student" && tour.step === 5 && salonPriceboard)
-    || (tour?.role === "merchant" && tour.step === 9 && salonPoster);
+  const guidedAgreement = (tour?.role === "student" && tour.step === 6 && salonPriceboard)
+    || (tour?.role === "merchant" && tour.step === 10 && salonPoster);
   const [agreement,setAgreement] = useState<WorkAgreement | null>(null);
   const [loaded,setLoaded] = useState(false);
   const [loadError,setLoadError] = useState("");
