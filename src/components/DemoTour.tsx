@@ -8,7 +8,7 @@ type Step = { path: string; target: string; title: string; description: string; 
 const intro: Step = {
   path: "/", target: '[data-demo-tour="brand-intro"]', title: "월계와 사람을 잇는 WOLINK",
   description: "WOLINK는 월계(Wolgye)와 링크(Link)를 합친 이름입니다. 월계1동의 청년과 지역을 이어 함께 성장해요. 대학생은 전공을 살린 재능기부로 실무 경험을 쌓고, 주민과 상인은 디지털 도움과 홍보를 얻습니다.",
-  action: "next", cta: "가자",
+  action: "next", cta: "다음",
 };
 const steps: Record<DemoRole, Step[]> = {
   merchant: [
@@ -31,8 +31,8 @@ const steps: Record<DemoRole, Step[]> = {
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-problem"]', title: "문제와 완료 기준 확인", description: "가게가 겪는 문제와 전달할 결과물, 완료 기준을 먼저 읽어 보세요. 준비되면 다음을 눌러 지원 단계로 이동합니다.", action: "next" },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-apply"]', title: "공고에 지원하기", description: "김하늘의 지원 메시지가 미리 작성돼 있어요. 내용을 확인하고 지원하기를 눌러 보세요." },
     { path: "/posts/detail/?id=p9", target: '[data-demo-tour="student-applied"]', title: "지원 후 채팅", description: "지원하면 사장님과 바로 대화할 수 있어요. 채팅창으로 이동해 보세요." },
-    { path: "/chats/room/", target: '[data-demo-tour="student-chat-send"]', title: "사장님과 소통하기", description: "인쇄 크기와 선호 색상을 묻는 메시지가 채워져 있어요. 전송하면 매칭 대기 사례로 이어집니다." },
-    { path: "/chats/room/?id=a13", target: '[data-demo-tour="agreement"]', title: "선정 후 작업 계약서", description: "계약서를 열고 직접 작성하거나 예시 프롬프트를 골라 보세요. 예시는 글자가 입력되는 모습을 보여 주고, Gemini 요약으로 내용을 정리합니다." },
+    { path: "/chats/room/", target: '[data-demo-tour="student-chat-send"]', title: "사장님과 소통하기", description: "인쇄 크기와 선호 색상을 묻는 메시지가 채워져 있어요. 전송한 뒤 사장님의 답장 안내를 보고 ‘다음’을 눌러 주세요." },
+    { path: "/chats/room/?id=a13", target: '[data-demo-tour="agreement"]', title: "사장님과 협의한 계약서 검토", description: "사장님과 채팅으로 협의한 작업 내용을 확인하고 계약서를 열어 보세요. 직접 입력하거나 예시 프롬프트를 체험한 뒤 Gemini로 정리할 수 있어요." },
     { path: "/me/", target: '[data-demo-tour="feed-item"]', title: "검증된 경험과 작업", description: "미용실 계약은 아직 진행 중입니다. 여기서는 의뢰인이 검증을 마친 별도의 한식당 메뉴판 작업을 열어봅니다." },
     { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-experience-content"]', title: "경험 기록 읽기", description: "작업 배경과 역할을 읽어 보세요. 다음을 누르면 단계별 포트폴리오를 엽니다.", action: "next" },
     { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-detail"]', title: "실제 포트폴리오 열기", description: "문제 정의부터 결과와 의뢰인 평가까지 작성된 포트폴리오를 눌러 확인하세요." },
@@ -161,9 +161,15 @@ export default function DemoTour() {
 
   useEffect(() => {
     if (!tour || !step || !clicked || step.action === "next") return;
-    if (step.target.includes('"post-example"') || step.target.includes('"post-submit"') || step.target.includes('"merchant-select"') || step.target.includes('"student-apply"') || step.target.includes('"agreement"') || step.target.includes('"student-me"')) return;
+    if (step.target.includes('"post-example"') || step.target.includes('"post-submit"') || step.target.includes('"merchant-select"') || step.target.includes('"student-apply"') || step.target.includes('"student-chat-send"') || step.target.includes('"agreement"') || step.target.includes('"student-me"')) return;
     advance();
   }, [tour, step, clicked, advance, finish]);
+
+  useEffect(() => {
+    if (tour?.role !== "student" || tour.step !== 5) return;
+    window.addEventListener("wolink-demo-chat-next", advance);
+    return () => window.removeEventListener("wolink-demo-chat-next", advance);
+  }, [tour?.role, tour?.step, advance]);
 
   useEffect(() => {
     if (!step?.target.includes('"post-example"') || !clicked) return;
@@ -211,7 +217,7 @@ export default function DemoTour() {
       <button type="button" onClick={finish} style={{ width: "100%", marginTop: 20, padding: 12, borderRadius: 12, background: "#202932", color: "white", fontWeight: 700 }}>자유롭게 둘러보기</button>
     </div>
   </div>;
-  if (!tour || !step || !rect || loading || mode !== "mock" || !matchesStep(step, path)) return null;
+  if (!tour || !step || !rect || loading || mode !== "mock" || !matchesStep(step, path) || (step.target.includes('"student-chat-send"') && clicked)) return null;
   const pad = 6;
   const left = Math.min(bounds.right, Math.max(bounds.left, rect.left - pad)), top = Math.min(bounds.bottom, Math.max(bounds.top, rect.top - pad));
   const right = Math.max(left, Math.min(bounds.right, rect.right + pad)), bottom = Math.max(top, Math.min(bounds.bottom, rect.bottom + pad));

@@ -69,6 +69,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const [aiBusy,setAiBusy] = useState(false);
   const [aiError,setAiError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
+  const freeTextInput = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (!guidedAgreement || inputMode !== "prompt") return;
     setFreeText(""); setPromptTyping(true);
@@ -169,11 +170,11 @@ export default function ChatAgreement({ application, post, actorId, studentName,
       <header><span>작업 계약서 {shown && <small>v{shown.version}</small>}</span><button type="button" disabled={busy} aria-label="계약서 닫기" onClick={()=>dialog.current?.close()}>×</button></header>
       <div className="agreement-body">
         {guidedAgreement && <aside className="agreement-tour-tip" role="status" aria-live="polite" aria-label="작업 계약서 체험 안내">
-          <strong>{editing ? `계약서 체험 ${step + 1}/4 · ${["작업 내용과 Gemini 요약", "작업 일정", "보상과 AS", "저장 전 확인"][step]}` : shown?.finalizedAt ? "계약서 체험 완료" : "마지막 · 양쪽 확인"}</strong>
+          <strong>{editing ? `계약서 검토 흐름 ${step + 1}/4 · ${["작업 내용과 Gemini 요약", "작업 일정", "보상과 AS", "저장 전 확인"][step]}` : shown?.finalizedAt ? "계약서 검토 완료" : "마지막 · 양쪽 확인"}</strong>
           <p>{editing ? [
-            aiDraft ? "Gemini가 정리한 작업 범위·결과물·완료 기준을 확인하고 아래 ‘다음’을 눌러 주세요." : "자유 입력칸에 작업 내용을 적고 ‘Gemini 요약’을 눌러 보세요. 정리된 항목을 확인한 뒤 아래 ‘다음’으로 이동하세요.",
-            "달력에서 시작일과 완료일을 드래그하거나 두 날짜를 눌러 정하세요. 확인한 뒤 아래 ‘다음’을 눌러 주세요.",
-            "보상 지급, 완료 전 AS 횟수와 파일 인계 방법을 확인하고 아래 ‘다음’을 눌러 주세요.",
+            aiDraft ? "Gemini 요약 결과를 검토하고 필요한 부분을 수정한 뒤 ‘다음’을 눌러 주세요." : "협업 내용을 직접 적거나 예시 프롬프트를 체험해 보세요. ‘Gemini 요약’을 누르면 계약서 항목으로 정리됩니다.",
+            "손가락으로 시작일부터 완료일까지 드래그해 보세요. 두 날짜를 눌러 선택할 수도 있어요.",
+            "보상·AS·파일 인계 방법을 간단히 확인한 뒤 ‘다음’을 눌러 주세요.",
             "내용을 읽고 ‘저장하고 양쪽 확인받기’를 눌러 주세요. 저장만으로 계약이 확정되지는 않아요.",
           ][step] : shown?.finalizedAt ? "양쪽 확인이 끝났어요. 오른쪽 위 닫기 버튼을 누르면 다음 튜토리얼로 이어집니다." : "내용을 확인하고 동의 체크 후 ‘이 버전 최종 확인’을 눌러 주세요. 데모에서는 상대방 확인도 자동으로 재현해요."}</p>
         </aside>}
@@ -184,19 +185,20 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         <div className="agreement-parties"><span>의뢰인 <b>{ownerName}</b></span><span>작업자 <b>{studentName}</b></span></div>
         {editing && <div className="agreement-progress" aria-label={`${step+1}/4단계`}>{[0,1,2,3].map(n=><span key={n} className={n<=step?"on":""}/>)}</div>}
         {editing && step===0 && <div className="agreement-fields">
-          {!proposing && <div className="agreement-support" data-demo-tour="agreement-ai"><strong>자유롭게 적고 Gemini로 정리하기</strong><p>할 일, 결과물, 보상 등을 평소 말하듯 적어 주세요. AI가 계약서 항목으로 나눠 줍니다. 빈 내용은 만들어내지 않으며, 적용 후 아래에서 직접 수정할 수 있어요.</p>
-            {guidedAgreement && inputMode === "choose" && <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" className="agreement-ai-button" onClick={()=>{setInputMode("manual");setFreeText("");}}>직접 쓰기</button><button type="button" className="agreement-ai-button" onClick={()=>setInputMode("prompt")}>예시 프롬프트로 쓰기</button></div>}
-            {(!guidedAgreement || inputMode !== "choose") && <textarea aria-label="계약서 자유 입력" maxLength={2000} readOnly={promptTyping} value={freeText} onChange={e=>setFreeText(e.target.value)} placeholder="예: 미용실 시술 안내 포스터를 만들어 주세요. A3 PDF와 SNS 이미지 하나를 받고, 가격을 확인한 뒤 완료할게요. 커트 1회 이용권을 드립니다." className="mt-3 min-h-28 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm" />}
+          {!proposing && <div className="agreement-support" data-demo-tour="agreement-ai"><strong>협업 내용을 Gemini로 요약해 보세요</strong><p>직접 작성하거나 예시 프롬프트를 입력해 체험할 수 있어요. 작업 내용·결과물·완료 기준을 평소 말하듯 적어 주세요.</p>
+            <textarea ref={freeTextInput} aria-label="계약서 자유 입력" maxLength={2000} readOnly={promptTyping} value={freeText} onChange={e=>{setInputMode("manual");setFreeText(e.target.value);}} placeholder="예: 미용실 시술 안내 포스터를 만들어 주세요. A3 PDF와 SNS 이미지 하나를 받고, 가격을 확인한 뒤 완료할게요." className="agreement-free-input" />
+            {guidedAgreement && <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" className="agreement-ai-button" onClick={()=>{setInputMode("manual");setFreeText("");freeTextInput.current?.focus();}}>직접 쓰기</button><button type="button" className="agreement-ai-button" onClick={()=>setInputMode("prompt")}>예시 프롬프트 입력</button></div>}
             {promptTyping && <p role="status" className="mt-2 text-xs text-slate-500">예시 문장을 입력하고 있어요…</p>}
-            <button type="button" className="agreement-ai-button" disabled={aiBusy || promptTyping || !freeText.trim() || (guidedAgreement && inputMode === "choose")} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini 요약"}</button>
+            <button type="button" className="agreement-ai-button" disabled={aiBusy || promptTyping || !freeText.trim()} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini 요약"}</button>
             {aiDraft && <p role="status" className="mt-3 whitespace-pre-wrap"><strong>{aiDraft.source === "DEMO" ? "체험용 요약" : "Gemini 요약"}</strong> · {aiDraft.summary}<br /><small>{aiDraft.source === "DEMO" ? "체험용 예시 답변이에요. 실제 이용 때는 Gemini가 정리해요" : `실제 Gemini 응답 · ${aiDraft.model}`} · 아래 항목에 반영됐어요. 저장 전에 확인해 주세요.</small></p>}
             {aiError && <p role="alert" className="agreement-error mt-2">{aiError}</p>}
           </div>}
+          {guidedAgreement && <div className="agreement-result-heading"><strong>Gemini 요약 결과</strong><small>{aiDraft ? "AI가 정리한 초안입니다. 아래 내용을 직접 수정할 수 있어요." : "요약 전에는 협의 내용을 바탕으로 한 예시가 표시됩니다."}</small></div>}
           <label>작업 범위<textarea aria-label="작업 범위" maxLength={3000} value={terms.scope} onChange={e=>change("scope",e.target.value)} placeholder={salonPoster ? "예: 월계 미용실 A3 포스터와 SNS 이미지 디자인" : salonDemo ? "예: 월계 미용실 벽면 가격표와 시술 안내지 디자인" : "예: 신메뉴 포스터 1장과 SNS 이미지 3장 디자인"} /></label>
           <label>전달할 결과물<textarea aria-label="전달할 결과물" maxLength={3000} value={terms.deliverables} onChange={e=>change("deliverables",e.target.value)} placeholder={salonPoster ? "예: A3 포스터 PDF와 SNS 이미지, 원본 파일" : salonDemo ? "예: A2 가격표·A4 안내지의 인쇄용 PDF와 원본 파일" : "예: 인쇄용 PDF 1개, 이미지 PNG 3개, 원본 파일"} /></label>
           <label>완료 확인 기준<textarea aria-label="완료 확인 기준" maxLength={3000} value={terms.acceptance} onChange={e=>change("acceptance",e.target.value)} placeholder={salonDemo ? "예: 점주가 시술명과 가격을 확인하고 인쇄용 파일을 수령" : "예: 점주가 문구·가격을 확인하고 인쇄 가능한 파일을 수령"} /></label>
         </div>}
-        {editing && step===1 && <AgreementCalendar start={terms.startDate} end={terms.endDate} onChange={(startDate,endDate)=>setTerms(t=>({...t,startDate,endDate}))}/>}
+        {editing && step===1 && <AgreementCalendar start={terms.startDate} end={terms.endDate} guided={guidedAgreement} onChange={(startDate,endDate)=>setTerms(t=>({...t,startDate,endDate}))}/>}
         {editing && step===2 && <div className="agreement-fields">
           <label>보상 지급<small>Tip: 가게 쿠폰으로 지급해 주세요.</small><textarea aria-label="보상 지급" maxLength={3000} value={terms.coupon} onChange={e=>change("coupon",e.target.value)} placeholder={salonPriceboard ? "예: 결과물 확인 후 3일 이내 사례비 7만원" : salonPoster ? "예: 완료 확인 후 3일 이내 커트 1회 이용권" : "예: 완료 확인 후 3일 이내 음료 쿠폰 5장 · 유효기간 3개월"} /></label>
           <label>완료 전 AS 횟수<small>완료 전에 요청할 수 있는 수정 횟수예요.</small><select aria-label="완료 전 AS 횟수" value={terms.revisions} onChange={e=>change("revisions",Number(e.target.value))}>{Array.from({length:11},(_,i)=><option key={i} value={i}>{i}회</option>)}</select></label>
