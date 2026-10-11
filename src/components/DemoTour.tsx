@@ -102,7 +102,7 @@ export default function DemoTour() {
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     update();
-    document.querySelector(step.target)?.scrollIntoView({ block: "center", behavior: "auto" });
+    document.querySelector(step.target)?.scrollIntoView({ block: step.target.includes('"post-review"') ? "start" : "center", behavior: "auto" });
     update();
     return () => { observer.disconnect(); clearInterval(timer); document.removeEventListener("click", onClick, true); window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
   }, [step, path, loading, mode, clicked, tour]);
