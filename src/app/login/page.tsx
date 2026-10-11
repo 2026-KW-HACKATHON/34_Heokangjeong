@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { isKakaoEnabled, useSession } from "@/lib/session";
+import IntroVideo from "@/components/IntroVideo";
 import BrandLogo from "@/components/BrandLogo";
 import { clearDemoBrowserData, startDemoSession } from "@/lib/demoIdentity";
 import { mockRepo, users as demoUsers } from "@/lib/repo/mock";
@@ -28,6 +29,7 @@ function DemoChooser({ children }: { children?: React.ReactNode }) {
       <h1><BrandLogo stacked /></h1>
       <p className="sub mt-4 text-sm">주민에게는 필요한 재능을, 대학생에게는 실제 경험을</p>
     </header>
+    <IntroVideo />
     <section className="mt-10" aria-labelledby="demo-entry-title">
       <p className="text-sm font-semibold text-[var(--primary)]">WOLINK 데모</p>
       <h2 id="demo-entry-title" className="mt-2 text-2xl font-bold">어떤 입장에서 둘러볼까요?</h2>
