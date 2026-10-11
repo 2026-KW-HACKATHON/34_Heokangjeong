@@ -59,7 +59,7 @@ export default function NotionPanel({ edit, doc }: { edit: PortfolioEditedVersio
     {sp.get("notion") === "error" && <ErrorText text="Notion 연결에 실패했어요. 다시 시도해 주세요." />}
     {!notionAvailable ? <DemoNotion edit={edit} doc={doc} />
     : !loaded && !status ? <p role="status" className="sub text-sm">연결을 확인 중이에요.</p>
-    : !status?.configured ? <p className="sub text-sm">서버 설정이 필요해요. docs/NOTION.md의 배포 절차를 확인해 주세요.</p>
+    : !status?.configured ? <p className="sub text-sm">서버 설정이 필요해요. docs/guides/NOTION.md의 배포 절차를 확인해 주세요.</p>
     : !status.connected ? <button disabled={act.busy} className={black} onClick={() => act.run(() => notion.connect(returnTo()))}>Notion 계정 연결</button>
     : preview ? <>
       <div className="rounded-xl border border-[var(--line)] p-4">

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820">
+<rect width="1400" height="820" fill="#F4F7FB"/>
+<text x="55" y="35" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="42" font-weight="700" fill="#263346">함께 해결하고, 경험으로 남기는 연결</text>
+<text x="55" y="96" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="24" font-weight="400" fill="#657A91">두 역할이 만나 하나의 협업을 완성합니다.</text>
+<rect x="55" y="158" width="625" height="165" rx="24" fill="#FFF6DE"/>
+<text x="83" y="178" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#8C6722">주민 · 상인</text>
+<text x="83" y="232" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#263346">도움이 필요한 문제를 공고로 등록</text>
+<text x="83" y="278" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="22" font-weight="400" fill="#796D50">Gemini가 설명을 공고 초안으로 정리해요.</text>
+<rect x="720" y="158" width="625" height="165" rx="24" fill="#E6F2FC"/>
+<text x="748" y="178" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#247CB6">대학생</text>
+<text x="748" y="232" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#263346">전공과 관심에 맞는 공고에 지원</text>
+<text x="748" y="278" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="22" font-weight="400" fill="#57728E">동네에서 실무 경험을 쌓을 기회를 찾아요.</text>
+<polyline points="367,323 367,360 700,360 700,392" stroke="#7DA6C5" stroke-width="4" fill="none"/>
+<polyline points="1032,323 1032,360 700,360" stroke="#7DA6C5" stroke-width="4" fill="none"/>
+<rect x="390" y="394" width="620" height="64" rx="20" fill="#263346"/>
+<text x="442" y="406" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#FFFFFF">지원자 선정 · 채팅으로 협업 시작</text>
+<rect x="55" y="512" width="242" height="181" rx="22" fill="#FFFFFF" stroke="#DCE6F0" stroke-width="2"/>
+<text x="76" y="524" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#247CB6">01</text>
+<text x="76" y="560" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#263346">작업 약속</text>
+<text x="76" y="614" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">범위 · 일정 · 보상</text>
+<text x="76" y="650" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">양쪽 확인</text>
+<polyline points="299,595 309,603 299,611" stroke="#7DA6C5" stroke-width="4" fill="none"/>
+<rect x="317" y="512" width="242" height="181" rx="22" fill="#FFFFFF" stroke="#DCE6F0" stroke-width="2"/>
+<text x="338" y="524" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#247CB6">02</text>
+<text x="338" y="560" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#263346">활동 기록</text>
+<text x="338" y="614" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">작업 과정 · 결정</text>
+<text x="338" y="650" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">증빙 수집</text>
+<polyline points="561,595 571,603 561,611" stroke="#7DA6C5" stroke-width="4" fill="none"/>
+<rect x="579" y="512" width="242" height="181" rx="22" fill="#FFFFFF" stroke="#DCE6F0" stroke-width="2"/>
+<text x="600" y="524" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#247CB6">03</text>
+<text x="600" y="560" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#263346">검토 · 승인</text>
+<text x="600" y="614" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">결과물 제출</text>
+<text x="600" y="650" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">보완 · 평가</text>
+<polyline points="823,595 833,603 823,611" stroke="#7DA6C5" stroke-width="4" fill="none"/>
+<rect x="841" y="512" width="242" height="181" rx="22" fill="#FFFFFF" stroke="#DCE6F0" stroke-width="2"/>
+<text x="862" y="524" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#247CB6">04</text>
+<text x="862" y="560" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#263346">AI 초안</text>
+<text x="862" y="614" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">검증된 기록을</text>
+<text x="862" y="650" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">포트폴리오로</text>
+<polyline points="1085,595 1095,603 1085,611" stroke="#7DA6C5" stroke-width="4" fill="none"/>
+<rect x="1103" y="512" width="242" height="181" rx="22" fill="#FFFFFF" stroke="#DCE6F0" stroke-width="2"/>
+<text x="1124" y="524" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="22" font-weight="700" fill="#247CB6">05</text>
+<text x="1124" y="560" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="700" fill="#263346">편집 · 공개</text>
+<text x="1124" y="614" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">나의 경험을</text>
+<text x="1124" y="650" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="21" font-weight="400" fill="#657A91">커리어 자료로</text>
+<polyline points="700,458 700,489 176,489 176,512" stroke="#7DA6C5" stroke-width="4" fill="none"/>
+<rect x="55" y="726" width="1290" height="58" rx="18" fill="#E6F1EB"/>
+<text x="92" y="739" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#356349">주민과 상인에게는 필요한 도움을, 학생에게는 검증된 경험을.</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="380" viewBox="0 0 1400 380">
+<rect width="1400" height="380" fill="#263346"/>
+<text x="64" y="45" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="25" font-weight="700" fill="#A9CCE8">WOLINK  /  SERVICE DEMO</text>
+<text x="64" y="111" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="45" font-weight="700" fill="#FFFFFF">지역의 연결이 경험이 되는 순간</text>
+<text x="64" y="197" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="27" font-weight="400" fill="#D3DFEB">공고 등록  →  지원 · 채팅  →  AI 약속서  →  포트폴리오</text>
+<rect x="64" y="277" width="315" height="59" rx="18" fill="#FFFFFF"/>
+<text x="95" y="290" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#263346">YouTube에서 보기</text>
+<rect x="1170" y="125" width="140" height="130" rx="34" fill="#FF0033"/>
+<path d="M1222 158 L1222 222 L1266 190 Z" fill="white"/>
+</svg>

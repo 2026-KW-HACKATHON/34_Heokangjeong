@@ -27,4 +27,4 @@
 3. Notion OAuth redirect URL과 공개 증빙 파일 저장소 정책을 배포 도메인에 맞게 설정합니다.
 4. 테스트 계정으로 연결 취소·권한 부족·네트워크 실패·재시도·중복 저장을 확인한 뒤 운영 workspace에서 사용합니다.
 
-세부 환경변수와 복구 절차는 [NOTION.md](NOTION.md)를 참고하세요.
+세부 환경변수와 복구 절차는 [NOTION.md](../guides/NOTION.md)를 참고하세요.

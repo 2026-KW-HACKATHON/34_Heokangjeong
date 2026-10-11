@@ -5,8 +5,8 @@
 HJW cf23154의 워크플로/질문/문서/Repo/SQL을 가져오되 기존 홈·지도·온보딩·세션과 매트 디자인은 유지했다.
 Notion 저장은 prepare → frozen preview → explicit export 방식이다. 서버가 문서·저장 위치·연결 ID를 고정한다.
 0006은 claim RPC, 미완료 작업 unique index, 블록별 checkpoint, UNKNOWN 상태와 인증 테이블 권한 철회를 추가한다.
-네트워크 결과가 불명확하면 재생성하지 않는다. 상세 복구 절차와 실제 배포 조건은 NOTION.md 참고.
-테스트/배포 사실은 INTEGRATION.md를 기준으로 하며, HJW 문서의 기존 실서버 검증 설명을 이번 통합의 검증 결과로 간주하지 않는다.
+네트워크 결과가 불명확하면 재생성하지 않는다. 상세 복구 절차와 실제 배포 조건은 [Notion 가이드](../guides/NOTION.md) 참고.
+테스트/배포 사실은 [통합 검증 기록](../archive/INTEGRATION.md)을 기준으로 하며, HJW 문서의 기존 실서버 검증 설명을 이번 통합의 검증 결과로 간주하지 않는다.
 
 ## 핵심 흐름 (Product Loop)
 ```

@@ -11,7 +11,7 @@
 2. **Authentication → Sign In / Providers → Email** 에서 *Confirm email* 을 끈다 (해커톤용: 가입 즉시 로그인)
 
 ## 2. DB 만들기
-**SQL Editor** 에 [`supabase/migrations/`](../supabase/migrations/) 안의 파일을 번호 순서대로 붙여 넣고 Run.
+**SQL Editor** 에 [`supabase/migrations/`](../../supabase/migrations/) 안의 파일을 번호 순서대로 붙여 넣고 Run.
 DB 구조나 권한을 바꾸면 새 파일(`0006_무엇.sql`)로 남기고, 팀에 "SQL 실행해 주세요" 라고 알린다.
 
 | 파일 | 내용 |
@@ -36,7 +36,7 @@ DB 구조나 권한을 바꾸면 새 파일(`0006_무엇.sql`)로 남기고, 팀
 ## 4. AI 공고 초안 (Gemini, 무료)
 1. https://aistudio.google.com/apikey 에서 API 키 발급 (무료 등급은 입력이 구글 모델 개선에 쓰일 수 있음)
 2. 함수 배포 — 둘 중 편한 쪽
-   - **대시보드:** Edge Functions → Deploy a new function → 이름 `draft-post` → [`supabase/functions/draft-post/index.ts`](../supabase/functions/draft-post/index.ts) 내용 붙여 넣기 → Deploy.
+   - **대시보드:** Edge Functions → Deploy a new function → 이름 `draft-post` → [`supabase/functions/draft-post/index.ts`](../../supabase/functions/draft-post/index.ts) 내용 붙여 넣기 → Deploy.
      Edge Functions → Secrets 에 `GEMINI_API_KEY` 추가.
    - **CLI:**
      ```bash

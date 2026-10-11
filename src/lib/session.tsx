@@ -83,7 +83,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (error) throw new Error(error.message);
       if (!data.session) throw new Error("가입 확인 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요.");
     },
-    // 카카오 로그인. Supabase 대시보드에서 Kakao 공급자를 켜 두어야 쓸 수 있다 (docs/SUPABASE.md 참고)
+    // 카카오 로그인. Supabase 대시보드에서 Kakao 공급자를 켜 두어야 쓸 수 있다 (docs/guides/SUPABASE.md 참고)
     // 켜져 있는지 먼저 확인한다. 바로 이동시키면 Supabase 가 돌려주는 날것의 JSON 오류 화면이 보인다.
     async signInWithKakao() {
       if (!supabase) throw new Error("서버(Supabase)를 연결하면 쓸 수 있어요");

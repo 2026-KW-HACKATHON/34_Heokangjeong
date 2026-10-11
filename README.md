@@ -1,211 +1,166 @@
-# 월계 재능나눔 — 검증된 지역 문제 해결 경험을 포트폴리오로
+<div align="center">
 
-> **우리는 봉사시간을 기록하지 않는다. 문제를 해결한 경험을 기록한다.**
-> 지역에서 경험하고 → 검증받고 → 커리어로 가져간다.
+![WOLINK — 월계와 사람을 잇다](docs/assets/wolink-cover.png)
 
-월계1동 주민·상인이 문제를 공고로 올리면 광운대 학생이 지원·선정되어 해결하고, 그 과정을 **분야별 질문으로 기록**하고,
-**증빙**과 **의뢰인의 항목별 검증**을 거쳐 **직무별 포트폴리오 Case Study** 로 만들어 **Notion 에 저장**합니다.
+**월계1동의 청년과 지역을 연결하는 재능 나눔 플랫폼**
 
-```
-공고 → 지원 → 선정 → 분야별 활동 기록 → 증빙 → 제출(v1) → 보완 요청 → 재제출(v2) → 승인
-→ Client Verification(무엇을 확인했는지 항목별) + 평가 → 포트폴리오 자료 준비도 → Narrative Engine → 학생 편집 → Notion
-```
+전공으로 동네의 문제를 해결하고, 검증된 경험을 나의 포트폴리오로.
 
-차별점
-1. **직무별 구조** — 디자인·마케팅·개발은 서로 다른 질문·포트폴리오 템플릿·준비도 기준을 가진다 (`supabase/functions/_shared/portfolio/domains.ts`).
-2. **Evidence** — Before/After·결과물·테스트 기록·측정 자료를 답변 필드·주장에 연결한다. 학생 주장만으로 만들지 않는다.
-3. **Claim-level Verification** — "학생이 실제로 작업함 ✓ 역할이 맞음 ✓ … 성과 수치는 아직 확인되지 않음 —" 처럼 의뢰인이 확인한 것만 표시.
-4. **Narrative Engine** — 기록을 나열하지 않고 Problem → Decision → Action → Evidence → Result → Reflection 으로 바꾸되, 기록에 없는 숫자·성과·도구는 사실 검사로 걸러낸다.
+[![서비스 체험](https://img.shields.io/badge/WOLINK-서비스_체험-247CB6?style=for-the-badge)](https://wolgye-talent.vercel.app/)
+[![시연영상](https://img.shields.io/badge/YouTube-시연영상-FF0033?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=UfXsSFIvuE8)
+[![개발 가이드](https://img.shields.io/badge/Docs-개발_가이드-27292D?style=for-the-badge)](docs/guides/DEVELOPMENT.md)
 
-지금 상태: Supabase 백엔드(로그인·채팅·AI 공고 초안) 위에 검증형 포트폴리오 파이프라인을 얹은 프로토타입.
-HJW `cf23154`의 프로젝트·포트폴리오·Notion 구현을 현재 디자인에 통합했습니다. 이번 통합에서는 원격 DB·함수를 배포하거나 외부 인증 설정을 조회하지 않았습니다. 기존 배포 상태를 확인한 뒤 `0006_notion_safe_exports.sql`과 수정한 서버 함수를 배포해야 합니다. [Notion 설정·복구](docs/NOTION.md), [통합 검증 기록](docs/INTEGRATION.md).
-> 서버 없이 보려면 `.env.local` 에 `NEXT_PUBLIC_SUPABASE_URL=` / `NEXT_PUBLIC_SUPABASE_KEY=` (빈 값)을 적어 **가짜 데이터(mock) 모드**로 돌리세요. 전체 흐름이 mock 에서도 동작합니다 (AI 대신 템플릿 초안, Notion 비활성).
+**2026 광운대학교 해커톤 · 34팀 허강정**
 
-> 개발 기간에는 DB 권한을 열어 두었습니다(로그인만 하면 기본 표 모두 가능). 발표 전에 `supabase/migrations/0004_strict.sql` 로 잠급니다. 검증형 포트폴리오 표(`0005`)는 이와 관계없이 항상 잠겨 있습니다.
-동네 공고 피드와 지도를 중심으로, 매트한 화이트·차콜 배경과 반투명 메뉴·실버 배지를 사용합니다. 기존 지도 현재 위치·온보딩 필수 입력 검증은 유지합니다.
-홈은 **WOLINK — 재능 나눔**의 연결 경험을 보여 줍니다. 분야를 선택하면 재능·이웃 요청을 잇는 선과 실제 공고 목록이 함께 바뀌며, 요청 카드는 해당 공고 상세로 이동합니다. ‘공고 살펴보기’는 검색을 비우고 해당 분야의 활동 중 공고 목록으로 스크롤·포커스를 이동합니다. 연결 그림은 탐색을 표현하며, 지원·선정 상태를 자동으로 바꾸지 않습니다.
-모션은 CSS·SVG로 구현했고 `prefers-reduced-motion`을 지원합니다. 홈 인터랙션 검증: mock 서버에서 `node e2e/home-motion-scenario.mjs` (설치된 Edge 사용 시 `PLAYWRIGHT_CHANNEL=msedge`).
-데스크톱의 흰색 건물·사람 배경은 스크롤에 따라 연결선이 그려지고 되감깁니다. 모바일에서는 공간을 줄이고 분야 아이콘 위의 흰색 사람이 스크롤 거리에 맞춰 이동하며 팔·다리·무릎이 움직입니다. 역스크롤 시 방향을 바꾸며, 모션 감소 설정에서는 인물과 연결선을 정적으로 표시합니다.
-누구나 원하는 부분부터 채워 넣을 수 있게 구조를 나눠 두었습니다.
+</div>
 
-## 바로 실행
+---
+
+## 월계에서 연결되고, 경험으로 남다
+
+**WOLINK = Wolgye + Link.** 월계1동의 청년과 지역이 서로를 잇고 함께 성장한다는 뜻입니다.
+
+대학생은 전공을 살린 재능기부로 실무 경험을 쌓고, 주민과 상인은 디지털 도움·디자인·홍보 등 생활과 가게 운영에 필요한 도움을 얻습니다. WOLINK는 공고와 매칭을 넘어, 협업 과정과 결과물을 기록하고 의뢰인의 확인을 거쳐 포트폴리오로 남깁니다.
+
+> 봉사시간을 기록하는 데서 한 걸음 더. **문제를 해결한 경험을 기록합니다.**
+
+| 🎓 대학생 | 🏪 주민 · 상인 |
+| :--- | :--- |
+| 전공과 관심에 맞는 지역 공고 찾기 | 가게와 생활의 고민을 공고로 등록하기 |
+| 채팅으로 범위·일정·결과물 협의하기 | 지원자 프로필과 메시지 비교하기 |
+| 실제 작업과 증빙을 기록하기 | 결과물을 검토하고 작업을 확인하기 |
+| 검증된 경험을 AI 포트폴리오로 정리하기 | 지역 청년과 지속적인 관계 만들기 |
+
+## 🎬 시연영상
+
+**공고 등록 → 지원과 채팅 → AI 계약서 요약 → 경험 포트폴리오**를 영상으로 확인하세요.
+
+[![WOLINK 시연영상 보기](docs/assets/video-preview.png)](https://www.youtube.com/watch?v=UfXsSFIvuE8)
+
+▶ **[YouTube에서 시연영상 보기](https://www.youtube.com/watch?v=UfXsSFIvuE8)** · **[앱 직접 체험하기](https://wolgye-talent.vercel.app/)**
+
+## 🔗 서비스 이용 흐름
+
+![상인과 학생이 공고·협업·검증·포트폴리오로 이어지는 WOLINK 이용 흐름](docs/assets/service-flow.png)
+
+1. **지역 문제를 등록해요.** 주민·상인이 필요한 도움을 적으면 Gemini가 공고 초안을 정리합니다.
+2. **원하는 공고에 지원해요.** 학생은 분야·관심·거리를 참고해 공고를 찾고 지원합니다.
+3. **채팅으로 협의해요.** 선정 후 작업 범위·결과물·완료 기준·일정·보상을 약속서에 담고 양쪽이 확인합니다.
+4. **작업을 기록하고 검증받아요.** 과정과 증빙을 남기고 결과물을 제출하면 의뢰인이 보완 요청 또는 승인·평가합니다.
+5. **나의 경험으로 남겨요.** AI가 기록을 포트폴리오 초안으로 구성하고, 학생이 편집해 공개하거나 공유합니다.
+
+## 📱 실제 서비스 화면
+
+<table>
+<tr><th>동네 공고 탐색</th><th>AI 작업 약속서</th><th>포트폴리오 검증 기록</th></tr>
+<tr>
+<td align="center"><img src="docs/assets/screen-home.jpg" width="250" alt="학생 데모 계정의 동네 공고 피드" /></td>
+<td align="center"><img src="docs/assets/screen-agreement.jpg" width="250" alt="협의 내용을 입력하고 Gemini로 요약하는 작업 약속서" /></td>
+<td align="center"><img src="docs/assets/screen-portfolio.jpg" width="250" alt="포트폴리오의 평가와 검증 단계" /></td>
+</tr>
+</table>
+
+*데모 계정으로 촬영한 실제 앱 화면입니다. 작업 약속서와 포트폴리오는 서로 다른 예시 프로젝트입니다.*
+
+## ✨ 주요 기능
+
+| 기능 | WOLINK에서 할 수 있는 일 |
+| :--- | :--- |
+| 공고 피드 · 동네 지도 | 디자인, 사진/영상, 웹/앱 개발, SNS 콘텐츠, 디지털 도움 공고 탐색 |
+| Gemini 공고 생성 | 일상적인 설명을 문제·결과물·완료 기준이 담긴 공고 초안으로 정리 |
+| 지원 · 선정 · 채팅 | 지원자별 대화와 알림, 협업 당사자 연결 |
+| 작업 약속서 | 협의 내용을 AI로 요약하고 일정 선택, 같은 버전을 양쪽이 확인 |
+| 활동 기록 · 증빙 · 검토 | 분야별 질문, 결과물 제출, 보완 요청과 재제출, 의뢰인 확인·평가 |
+| AI 포트폴리오 | 문제·결정·과정·결과·회고를 HTML 포트폴리오로 구성하고 편집 |
+| 나의 작업실 | 프로필과 경험 피드, 분야별 완료 기록, 작업 공개 설정 |
+
+### 가입 없이 체험하기
+
+[서비스](https://wolgye-talent.vercel.app/)의 로그인 화면에서 **학생 또는 주민·상인 데모 계정**을 선택하세요. 안내를 따라 체험하거나 자유롭게 둘러볼 수 있습니다. `나` 화면에서 계정을 전환하며 양쪽의 경험을 확인할 수 있습니다.
+
+데모 기록과 실제 이용 기록은 구분됩니다. 데모 데이터는 같은 브라우저 안에서 공유되며 다른 기기와 자동 동기화되지 않습니다.
+
+## 🛠 기술 구성
+
+| 영역 | 기술 |
+| :--- | :--- |
+| 웹 | Next.js 14 · React 18 · TypeScript · Tailwind CSS |
+| 백엔드 | Supabase Auth · PostgreSQL · Realtime · Edge Functions |
+| AI | Gemini — 공고·약속서 요약·포트폴리오 초안 |
+| 지도 | Leaflet · OpenStreetMap · MapLibre |
+| 모바일 | Capacitor 8 · Android |
+| 검증 | Vitest · PGlite · Playwright · GitHub Actions |
+| 배포 | Vercel — 정적 웹 / Supabase — 서버 기능 |
+
+## 🚀 로컬 실행
+
+Node.js **22 LTS**를 권장합니다. 프로젝트 루트에서 실행하세요.
 
 ```bash
-npm install
-npm run dev      # http://localhost:3000
-npm run build    # 정적 앱 생성
-npm run preview  # 생성된 out/를 localhost:3002에서 확인
+npm ci
+# .env.example을 .env.local로 복사한 뒤 데모 모드 설정
+npm run dev
 ```
 
-Node 18 이상. 지도는 OpenStreetMap(Leaflet) 이라 API 키가 필요 없습니다.
+`.env.local`에서 `NEXT_PUBLIC_DEMO_MODE=true`로 설정하면 데모 모드로 실행됩니다. 실제 인증·DB·AI 연결은 [개발 가이드](docs/guides/DEVELOPMENT.md)와 [Supabase 설정](docs/guides/SUPABASE.md)을 확인하세요.
 
-```bash
-npm run typecheck        # 타입 검사
-npm run lint
-npm test                 # 단위 테스트 + DB 마이그레이션·RLS 테스트(PGlite)
-npm run check:functions  # Edge Function 타입 검사 (Deno, npx 로 자동 설치)
-npm run test:e2e         # mock 모드 E2E (dev 서버 실행 중, 처음 한 번 npx playwright install chromium)
-node e2e/real-scenario.mjs  # 실제 Supabase E2E — 공유 DB 에 테스트 계정·데이터가 생기므로 끝나고 정리 (파일 상단 주석)
+| 명령 | 용도 |
+| :--- | :--- |
+| `npm run dev` | 로컬 개발 · `http://localhost:3000` |
+| `npm run build` | 정적 웹 빌드 · `out/` 생성 |
+| `npm run preview` | 빌드 결과 확인 · `http://localhost:3002` |
+| `npm run typecheck` / `npm run lint` | 타입 · 코드 검사 |
+| `npm test` | 단위 테스트 · DB/RLS 검사 |
+| `npm run android:sync` | 웹 빌드 후 Android 프로젝트에 복사 |
+
+## 📁 폴더 안내
+
+```text
+.
+├── src/                 웹 앱 소스
+│   ├── app/             화면과 라우트
+│   ├── components/      공통 UI · 튜토리얼 · 작업 약속서
+│   ├── lib/             데이터 접근 · 세션 · AI · 협업 규칙
+│   ├── templates/       HTML 포트폴리오 템플릿
+│   └── types/           도메인 타입
+├── public/              브랜드 · 이미지 · 글꼴 · 소개 영상
+├── supabase/            DB 마이그레이션 · Edge Functions
+├── android/             Capacitor Android 프로젝트
+├── tests/               단위 테스트 · DB 검증
+├── e2e/                 브라우저 시나리오 검증
+├── scripts/             미리보기 · 계정/데이터 관리 도구
+├── prototype/           독립 UI 실험과 참고 구현
+├── docs/
+│   ├── assets/          README 이미지 · 서비스 흐름도
+│   ├── guides/          실행 · 배포 · 외부 연동 · 데모 안내
+│   ├── design/          설계와 평가 정책
+│   └── archive/         이전 README · 통합 검증 기록
+└── .github/             PR 양식 · Android 빌드 워크플로
 ```
 
-### 환경변수·AI·Notion
-- 앱: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_KEY` (공개 키). 목록은 [.env.example](.env.example)
-- 서버 비밀 값은 Supabase Edge Function secrets 에만: `GEMINI_API_KEY`(AI), `NOTION_CLIENT_ID`/`NOTION_CLIENT_SECRET`/`NOTION_REDIRECT_URI`/`NOTION_TOKEN_KEY`/`APP_ORIGINS`(Notion)
-- AI 설정: [docs/SUPABASE.md](docs/SUPABASE.md) §4 · Notion OAuth 설정: [docs/NOTION.md](docs/NOTION.md)
+**[전체 문서 목록](docs/README.md)** · [기여 안내](CONTRIBUTING.md) · [외부 리소스 출처](THIRD_PARTY_NOTICES.md)
 
-### 데모 계정·시나리오 (mock 모드)
-새 브라우저에서는 로그인 화면에서 **학생·상인·주민** 중 하나를 골라 가입 없이 시작합니다. 선택한 예시 계정은 해당 브라우저에 저장되며, 이후에도 나 탭에서 다른 계정으로 바꿀 수 있습니다.
-나 탭에서 **대학생 15명과 주민·소상공인 16명**을 자유롭게 전환할 수 있습니다. 홈에는 디자인·사진/영상·웹/앱 개발·SNS 콘텐츠·디지털 도움 분야별 진행 가능한 공고가 6개씩 준비되어 있습니다. 여러 계정에 지원서·양방향 채팅·읽지 않은 알림도 미리 구성되어 있어 역할을 바꾸며 상호작용을 확인할 수 있습니다. "데모 데이터 초기화"로 처음부터 다시 체험할 수 있습니다.
+| 먼저 찾을 문서 | 내용 |
+| :--- | :--- |
+| [개발 가이드](docs/guides/DEVELOPMENT.md) | 환경변수, 실행, 검사, Android 빌드 |
+| [Supabase · Gemini](docs/guides/SUPABASE.md) | DB와 AI 서버 연결 |
+| [Vercel 배포](docs/guides/VERCEL.md) | 운영 브랜치와 배포 설정 |
+| [팀 프로젝트 데모](docs/guides/TEAM_PROJECT_DEMO.md) | 여러 역할의 협업 시나리오 |
+| [서비스 설계](docs/design/ARCHITECTURE.md) | 데이터 접근 구조와 협업 파이프라인 |
+| [Notion 연동](docs/guides/NOTION.md) | 선택 기능인 외부 내보내기 설정과 복구 |
 
-Supabase 환경변수가 있는 PC에서도 PowerShell에서 `$env:NEXT_PUBLIC_DEMO_MODE="true"; npm run dev`로 데모 모드를 고정할 수 있습니다.
-같은 브라우저에서 데모 탭 두 개를 열면 계정은 탭별로 유지되고 공고·지원·채팅·알림 데이터는 공유됩니다. 한 탭은 학생, 다른 탭은 상인으로 선택해 상호작용을 시연할 수 있습니다. 다른 기기나 다른 브라우저 간에는 데모 데이터가 공유되지 않습니다.
-데모 공고 등록에서는 예시가 보이는 제목·문제·내용·결과물·완료 기준·쿠폰을 비워 둔 채 등록해도 예시 문구가 실제 공고 내용으로 저장됩니다. 원하는 칸만 직접 입력하면 입력한 내용이 우선합니다. 실제 Supabase 모드에서는 기존 필수 입력 검증을 유지합니다.
-데모의 `예시 공고 채우기`는 준비된 샘플을 폼에 넣습니다. 실제 AI 생성은 Supabase 연결 모드의 `빠른 AI 공고 생성`에서 사용합니다.
-빠른 다중 지원자 시연: **월계 미용실** 계정으로 전환 → 홈에서 **미용실 가격표와 시술 안내판 새단장** 공고 선택 → 지원자 4명의 프로필·지원 메시지·개별 채팅 비교 → 1명 선정. 나머지 3명은 자동 거절되고 각 계정에 결과 알림이 도착합니다.
-1. 행복분식: 등록 탭에서 메뉴판 개선 공고 (문제·기대 결과물·완료 기준) — 또는 준비된 "분식집 메뉴판 정보 구조 개선" 사용
-2. 김하늘: 공고 상세 → 지원 → 행복분식: 지원자 **선정** → 프로젝트 시작
-3. 김하늘: 프로젝트 → 시작 기록 (짧게 답하면 추천 후속 질문, 하나는 건너뛰기) → Before 이미지 증빙 → 진행 기록·중간 기록 → 마무리 기록 → 결과물 업로드 → **v1 제출**
-4. 행복분식: 검토 → **보완 요청** → 김하늘: 수정해서 **v2 제출** → 행복분식: 확인 항목 체크 + 평가 → **승인**
-5. 김하늘: 포트폴리오 자료 준비도 확인 → 빠진 항목 채우기 → **포트폴리오 초안 만들기** → 기록 → Case Study 변환 확인 → 문장 수정·저장
-6. 포트폴리오 상세 → **Notion 에 저장** (Supabase + Notion 설정 필요)
-저장소의 `.env` 에 팀 Supabase 연결 정보가 있어 바로 실제 DB 로 실행됩니다 (가입 후 사용). 자세한 건 [docs/SUPABASE.md](docs/SUPABASE.md).
+### 구현 범위
 
-## 안드로이드 앱
+Notion 내보내기는 외부 연동 설정이 필요하며 실제 Notion 계정 검증은 별도입니다. 팀 단체 채팅과 모바일 푸시는 아직 제공하지 않습니다. Vercel 웹 배포와 DB 마이그레이션·Edge Function 배포는 별도 단계입니다.
 
-웹 화면을 [Capacitor](https://capacitorjs.com) 로 감싼 안드로이드 앱입니다. 화면 코드는 웹과 같으므로
-**기능·화면 작업은 위의 `npm run dev` 로 브라우저에서 하면 됩니다.** Android Studio 는 앱으로 직접 돌려볼 때만 필요합니다.
+---
 
-- **APK 받기 (설치 없이):** push·PR 마다 GitHub Actions 가 APK 를 빌드합니다.
-  저장소 → Actions → "Android APK" → 실행 하나 → 아래 Artifacts 의 `wolgye-talent-debug-apk` 다운로드 → 압축 풀어 폰에 설치.
-- **직접 빌드:** Android Studio + JDK 21 설치 후
-  ```bash
-  npm run android:sync   # 웹 빌드(out/) → android/ 에 복사
-  npm run android:open   # Android Studio 로 열어서 ▶ 실행
-  ```
-- 앱은 정적 HTML(`output: "export"`) 로 빌드되므로 **서버 기능(API 라우트, 동적 경로 `[id]`, 서버 컴포넌트 데이터 fetch)은 쓰지 않습니다.**
-  상세 화면처럼 id 가 필요하면 `/posts/detail?id=...` 처럼 쿼리로 넘깁니다.
-- 서명 키(`*.jks`, `*.keystore`)는 절대 커밋하지 않습니다.
+<div align="center">
 
-## 화면
+**지역의 작은 문제를, 청년의 다음 경험으로.**
 
-| 경로 | 기능 | 상태 |
-|---|---|---|
-| `/` | ① 맞춤 공고 추천 피드 (학과·관심·기술·거리 점수) | 동작 (규칙 기반) |
-| `/map` | ② 위치 기반 지도 (🔴모집 🟡진행 🟢완료, 거리·도보 시간) | 동작 |
-| `/posts/detail?id=` | 공고 상세(문제·결과물·완료 기준·가게 쿠폰) · 지원자 선정/거절 | 동작 |
-| `/posts/new` | 공고 등록. AI(Gemini) 초안 + 구조화된 공고 정보 | 동작 (지도에서 위치 고르기 TODO) |
-| `/projects`, `/projects/detail?id=` | 내 프로젝트 · 프로젝트 허브(단계·기록·증빙·제출·검증·성과·준비도) | 동작 |
-| `/projects/log?id=&stage=` | 분야별 Guided Activity Logging (한 화면 한 질문, 자동 저장, 건너뛰기/해당 없음, 후속 질문) | 동작 |
-| `/projects/evidence`, `/projects/submit`, `/projects/review`, `/projects/outcome` | 증빙 · 버전 제출 · 점주 검토(보완/승인+Claim 검증+평가) · 성과 | 동작 |
-| `/portfolio/build?id=`, `/portfolio/view?id=&s=` | 준비도 → 생성 → 변환 보기 → 편집 · Case Study 상세 + Notion 저장 | 동작 (Notion 실계정 미검증) |
-| `/chats`, `/chats/room?id=` | 가게 ↔ 학생 채팅 (지원서마다 채팅방, 실시간) | 동작 |
-| `/login`, `/onboarding` | 이메일 로그인 · 프로필(학생/주민·상인) 만들기 | Supabase 연결 시 |
-| `/teams` | ⑤ 팀 프로젝트 목록 | 목록만 (팀 채팅·역할 확정 TODO) |
-| `/activity` | 분야별 작업 기록 · 제일 많이 한 분야 · 평균 별점 | 동작 (`/ranking`은 이 화면으로 이동) |
-| `/portfolio` | ④ 검증된 Case Study 목록 + 활동 카드(승인 시 자동 생성) | 동작 |
-| `/notifications` | ⑥ 알림 목록 | 관심 분야·거리, 지원, 채팅, 프로젝트 진행 이벤트 자동 생성·실시간 표시 (모바일 푸시 TODO) |
-| `/me` | 편집 가능한 사진·About me 프로필, 분야별 작업 기록, 공개 포트폴리오 피드 | 동작 |
+WOLINK · 월계와 사람을 잇다
 
-## 구조 — 어디를 채우면 되나
+[MIT License](LICENSE)
 
-```
-src/
-  types/index.ts        도메인 타입 (User, Post, Application…) + 파이프라인 타입 재수출
-  lib/workflow/engine.ts  프로젝트 워크플로 규칙 (mock 이 사용, 단위 테스트 대상)
-  lib/portfolio, lib/notion.ts, lib/ai/followup.ts  스냅샷 조립 · Notion 호출 · 후속 질문
-  lib/repo/index.ts     데이터 접근 인터페이스(Repo)  ← 백엔드를 붙일 때 여기 구현만 교체
-  lib/repo/mock.ts      가짜 데이터 + 메모리/localStorage 구현 (Supabase 설정이 비었을 때)
-  lib/repo/supabase.ts  Supabase 구현 (.env 에 설정이 있을 때, 기본)
-  lib/session.tsx       로그인(Supabase Auth) / mock 에서는 계정 선택
-  lib/ai/draft.ts       AI 공고 초안 호출 → supabase/functions/draft-post (Gemini)
-  lib/recommend.ts      추천 점수 규칙
-  lib/geo.ts            거리·도보시간, 월계1동 좌표
-  components/           TopBar, BottomTab, PostCard, StatusBadge, MapView(Leaflet)
-  app/                  화면 (Next.js App Router, 모두 클라이언트 컴포넌트)
-android/                Capacitor 안드로이드 프로젝트 (웹 빌드를 감싸는 껍데기)
-supabase/migrations/     0001 기본 스키마, 0002~0004 권한(개발 중 개방·발표 전 잠금), 0005 검증형 포트폴리오(테이블·RLS·상태 전이 DB 함수)
-supabase/functions/      draft-post · portfolio-ai(Gemini) · notion(OAuth·저장)
-  _shared/portfolio/     앱과 서버가 같이 쓰는 순수 로직 (분야 모듈·상태 머신·준비도·스냅샷·Narrative·문서·Notion 블록)
-tests/, e2e/             vitest(+PGlite) 테스트, Playwright E2E
-docs/ARCHITECTURE.md    설계, 로드맵
-docs/SUPABASE.md        Supabase·Gemini 연결 방법
-```
-
-핵심 원칙 하나: **화면은 `repo` 인터페이스만 부른다.** 그래서 나중에 Supabase/REST 를 붙여도 화면 코드를 다시 짜지 않고
-`lib/repo/` 아래에 새 구현을 추가해 `index.ts` 의 한 줄만 바꾸면 됩니다.
-
-## 기여하기
-
-이 저장소는 public 입니다. 원하는 기능을 골라 PR 을 보내 주세요. 처음 손대기 좋은 것들:
-
-- [ ] 공고 등록 시 지도에서 위치 찍기 (`posts/new`, `MapView`)
-- [ ] 팀 역할 지원·확정 흐름 (`Post.teamSlots.filled`)
-- [ ] 알림 생성 규칙: 새 공고가 오면 관심·거리 조건에 맞는 학생에게 (`recommend.ts` 재사용)
-- [ ] 카카오/네이버 지도로 교체 (`components/MapView.tsx` 만 바꾸면 됨)
-
-자세한 방법은 [CONTRIBUTING.md](CONTRIBUTING.md), 설계는 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## 남은 한계
-- Notion OAuth·페이지 생성은 **실제 Notion 계정으로 검증하지 못함** (팀 서버에 Notion secret 없음) (코드·타입 검사·블록 생성 로직만 확인). [docs/NOTION.md](docs/NOTION.md)
-- Gemini 응답이 느림 (후속 질문 15~25초, 가끔 시간 초과). 그래서 후속 질문은 규칙 기반 질문을 먼저 보여 주고 AI 질문이 도착하면 바꿔 끼운다. 포트폴리오 초안은 실제 AI 로 생성·사실 검사까지 확인함.
-- 팀 프로젝트는 역할별 모집·팀장 제출·팀원별 기록/검증/포트폴리오·상호평가까지 지원한다. 팀 단체 채팅은 아직 없음.
-- Capacitor 앱 안에서는 Notion OAuth 후 앱으로 돌아오는 딥링크가 없음 (웹에서 사용).
-
-## 라이선스
-
-MIT
-
-### 공개 포트폴리오 갤러리
-
-- 본인이 직접 공개한 작업만 갤러리에 표시됩니다. 기본값은 비공개입니다.
-- 내 포트폴리오 → 갤러리에 공개 → 대표 사진과 본문 미리보기 → 공개를 선택합니다. 비공개 전환과 공개 내용 갱신도 같은 곳에서 합니다.
-- `나` 화면에서 프로필 사진과 About me를 편집합니다. 공개한 작업만 사진형 피드에 표시되고, 게시물을 누르면 포트폴리오 상세가 열립니다. 대표 사진을 선택하지 않으면 분야별 기본 표지를 사용합니다.
-- 공개본은 제목·요약·본문·선택한 대표 사진을 별도로 저장한 스냅샷입니다. 원본 증빙·의뢰인 평가·프로젝트 기록은 갤러리에 포함하지 않습니다.
-- Supabase 사용 시 기존 마이그레이션 이후 `0015_portfolio_publications.sql`을 적용해야 합니다. 공개본에는 소유자 쓰기 권한을 적용하고, 원본 편집본 조회는 본인에게 제한합니다. 이 마이그레이션은 원격 DB에 자동 적용되지 않습니다.
-- 프로필 사진·소개글·대표 사진을 저장하려면 `0019_portfolio_profile_feed.sql`도 적용해야 합니다. 이미지 업로드는 본인 폴더로 제한되며, 공개용 이미지만 사용합니다.
-- 검증: `npx vitest run tests/portfolio-publication.test.ts`, mock 개발 서버에서 `node e2e/portfolio-gallery.mjs` (설치된 Edge 사용 시 `PLAYWRIGHT_CHANNEL=msedge`).
-
-### 분야별 작업 기록과 쿠폰 보상
-
-- 순위와 등급별 보상 차등을 사용하지 않습니다. 학생의 완료 인증 작업을 공고 분야별로 묶어 건수와 작업명을 보여 주고, 가장 많이 한 분야와 의뢰인 별점 평균을 표시합니다. 평가가 없으면 `평가 전`으로 표시합니다.
-- 신규 공고는 완료 시 제공할 가게 쿠폰을 등록합니다. 학생의 순위나 등급에 따라 쿠폰을 달리 지급하거나 지원을 제한하지 않습니다.
-- Supabase에서는 기존 마이그레이션 뒤 `0018_work_fields_instead_of_rank.sql`을 적용해야 합니다. 기존 순위·금액 컬럼은 과거 데이터 호환을 위해 보존하지만, 순위 기록과 등급별 지원·보상 검사는 중단합니다. 이 마이그레이션은 원격 DB에 자동 적용되지 않습니다.
-- 검증: `npx vitest run tests/work-fields.test.ts tests/workflow.test.ts tests/sql.test.ts`.
-
-### 채팅 작업 약속서
-
-- 채팅 상단에서 작업 범위·결과물·완료 기준 → 날짜 → 쿠폰·수정 횟수·인계 → 검토 순서로 작성합니다. 날짜는 달력 드래그, 두 날짜 클릭 또는 직접 입력으로 선택합니다.
-- 검토 단계에서 저장한 초안을 양쪽이 확인합니다. 수정은 새 버전으로 저장하며 기존 확인을 모두 취소합니다. 같은 버전을 두 당사자가 확인하면 확정되어 수정할 수 없습니다.
-- 완료 확인일부터 AS 1개월, 기존 기능의 버그 접수 3개월을 명시합니다. 현재 지원 종료일 자동 계산이나 별도 AS 요청 시스템은 포함하지 않습니다.
-- Supabase에서는 `0028_chat_agreements.sql` 적용이 필요합니다. 당사자만 읽고 RPC로 저장·확인하며 동시 수정은 버전 검사로 차단합니다. 원격 DB에는 자동 적용되지 않습니다. mock 모드는 브라우저 저장소를 사용합니다.
-- 검증: `npx vitest run tests/agreement.test.ts tests/sql.test.ts`, 개발 서버 실행 후 `node e2e/chat-agreement.mjs`.
-
-### 개별 경험 게시물 편집
-
-- 나 → 경험 피드 → 게시물 수정에서 제목, 한 줄 소개, 대표 사진과 경험 소개·문제 정의·해결 방법·작성할 내용·인사이트를 편집합니다. 기존의 다른 본문 항목은 유지합니다.
-- 본인에게만 편집 버튼을 표시하며 Supabase는 로그인 사용자 검사와 기존 publication RLS로 본인 수정만 허용합니다. 저장하면 공개 게시물에 반영되며 원본 활동 기록·평가는 변경하지 않습니다.
-- mock 샘플도 수정할 수 있고 브라우저 저장소에 유지됩니다. 샘플 표시는 유지하며 실제 수행 기록으로 집계하지 않습니다.
-- 추가 DB 마이그레이션은 필요하지 않습니다(기존 0014·0018 적용 기준). 검증: 개발 서버에서 `node e2e/experience-edit.mjs`.
-
-### 프로필 학과 및 포스트 공개 설정
-
-- 프로필 편집에서 학과·소개글·사진을 저장합니다. 피드 오른쪽 위의 열린 눈은 공개, 감긴 눈은 비공개이며 누르면 전환됩니다.
-- 비공개 포스트는 본인의 나 화면에 남아 다시 공개하거나 수정할 수 있습니다. 다른 사용자의 목록과 직접 링크에서는 숨깁니다.
-- Supabase에는 `0031_portfolio_visibility.sql`을 적용해야 합니다. 비공개 내용은 소유자만 조회하도록 RLS를 적용합니다. 원격 DB에는 자동 적용하지 않습니다.
-- 검증: `node e2e/profile-visibility.mjs`, `npx vitest run tests/sql.test.ts`.
-
-### 직접 작성하는 포트폴리오 피드
-
-- `나` 화면의 `+ 피드 작성`에서 사진을 최대 8장 추가하고 사진을 눌러 대표사진을 정한 뒤 제목과 본문을 올립니다. 대표사진·제목·본문은 필수입니다.
-- HTML 글 프롬프트 선택 영역은 추후 제공을 위해 비워 두었습니다. 직접 쓴 피드는 개인 작업으로 표시하며 검증된 프로젝트 기록으로 집계하지 않습니다.
-- Supabase 사용 시 `0033_manual_portfolio_feeds.sql`을 적용해야 합니다. 직접 작성한 게시물과 사진 목록을 저장하며 소유자만 작성할 수 있습니다. 원격 DB에는 자동 적용하지 않습니다.
-- 검증: `npx vitest run tests/sql.test.ts`, 개발 서버에서 `node e2e/manual-portfolio-feed.mjs`.
-
-### HTML 포트폴리오 페이지 (템플릿)
-
-- 포트폴리오의 기본 형태는 앱 안의 HTML 페이지(`/portfolio/view`)입니다. 디자인은 코드로 만든 템플릿(`src/templates/portfolio`)이, 글은 AI 초안 + 학생 편집이 맡습니다. 고른 템플릿은 편집본 `content.templateId` 에 저장돼 버전으로 쌓입니다.
-- `/portfolio/templates` 에서 옆으로 넘겨 보며 디자인을 고르고 언제든 바꿉니다. 소유자는 페이지에서 '편집'을 눌러 그 자리에서 글을 고칩니다. 의뢰인 평가 원문·검증·증빙·성과·프로젝트 정보는 잠겨 있습니다.
-- Notion 내보내기는 페이지의 '⋯' 메뉴 안 선택 기능입니다 (연동 방식은 그대로).
-- 피드에서 공개한 프로젝트 작업을 누르면 간단한 게시물 화면이 열리고, HTML 포트폴리오가 있으면 "자세한 포트폴리오 보기" 버튼으로 그 사람의 포트폴리오 페이지가 읽기 전용으로 열립니다. Supabase에는 `0036_public_portfolio_page.sql`(공개 중인 작업 한 건만 돌려주는 `get_public_portfolio` 함수)을 적용해야 하며, 원격 DB에는 자동 적용하지 않습니다.
-- 템플릿을 추가하면 `tests/portfolio-templates.test.ts` 가 모든 내용을 담는지 자동으로 검사합니다.
-- 데모 모드: 김하늘(s1)의 피드 5개는 의뢰인 승인·검증까지 끝난 완료 프로젝트입니다(`src/lib/portfolio/demoProjects.ts`). HTML 포트폴리오는 "외국인 손님을 위한 한식당 영문 메뉴판" 1개만 있어 그 게시물에만 버튼이 보입니다. 다른 학생은 예전 샘플 카드 그대로입니다.
+</div>

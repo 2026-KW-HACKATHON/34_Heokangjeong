@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420">
+<rect width="1400" height="420" fill="#EDF5FC"/>
+<rect x="45" y="40" width="1310" height="340" rx="28" fill="#FFFFFF"/>
+<rect x="90" y="86" width="88" height="88" rx="26" fill="#27292D"/>
+<polyline points="108,111 123,150 140,116" stroke="#247CB6" stroke-width="10" fill="none"/>
+<polyline points="140,116 155,150 168,111" stroke="#E9AE27" stroke-width="10" fill="none"/>
+<text x="205" y="80" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="74" font-weight="700" fill="#263346">WOLINK</text>
+<text x="95" y="202" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="48" font-weight="700" fill="#263346">월계와 사람을 잇다</text>
+<text x="95" y="284" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="29" font-weight="400" fill="#57728E">지역의 작은 문제를, 청년의 다음 경험으로.</text>
+<rect x="1040" y="93" width="242" height="62" rx="22" fill="#E9F3FC"/>
+<text x="1068" y="106" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="27" font-weight="700" fill="#247CB6">Wolgye + Link</text>
+<rect x="1040" y="183" width="242" height="62" rx="22" fill="#FFF3CD"/>
+<text x="1071" y="196" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="28" font-weight="700" fill="#795B17">재능 나눔</text>
+<rect x="1040" y="273" width="242" height="62" rx="22" fill="#E8F4ED"/>
+<text x="1071" y="286" dominant-baseline="text-before-edge" font-family="Malgun Gothic, Noto Sans KR, sans-serif" font-size="28" font-weight="700" fill="#356349">검증된 경험</text>
+</svg>
