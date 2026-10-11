@@ -567,3 +567,9 @@ body.guided-demo:has(.pf-web-breakout.is-fullscreen) .bottom-tab-bar { display: 
 body.guided-demo:has(.pf-web-breakout.is-fullscreen) .pf-web-breakout.is-fullscreen { bottom: 62px; height: calc(100dvh - 118px - env(safe-area-inset-top)); }
 
 .pf-web-breakout.is-fullscreen > div { height: 100%; }.pf-web-breakout.is-fullscreen > div > iframe { height: 100% !important; min-height: 0 !important; }
+
+@media (min-width:700px) {
+  body.guided-demo:not(:has(.pf-web-breakout.is-fullscreen)) dialog {
+    width:min(360px,calc(100vw - 40px)); max-height:min(820px,calc(100dvh - 72px));
+  }
+}

@@ -50,6 +50,21 @@ export default function DemoTour() {
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [completedRole, setCompletedRole] = useState<DemoRole>("student");
+  const [frame, setFrame] = useState({left:0, top:0, right:0, bottom:0});
+  useEffect(() => {
+    if (!tour && !completed) return;
+    const update = () => {
+      const shell = document.querySelector<HTMLElement>(".app-shell");
+      if (!shell) return;
+      const box = shell.getBoundingClientRect();
+      const border = parseFloat(getComputedStyle(shell).borderLeftWidth) || 0;
+      const next = {left:Math.max(0,box.left+border), top:Math.max(0,box.top+border), right:Math.min(window.innerWidth,box.right-border), bottom:Math.min(window.innerHeight,box.bottom-border)};
+      setFrame(prev => JSON.stringify(prev) === JSON.stringify(next) ? prev : next);
+    };
+    update(); const timer = window.setInterval(update, 200);
+    window.addEventListener("resize", update); window.addEventListener("scroll", update, true);
+    return () => { clearInterval(timer); window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
+  }, [tour, completed, path]);
   const [tipHeight, setTipHeight] = useState(230);
   const [tipElement, setTipElement] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -150,7 +165,9 @@ export default function DemoTour() {
     return () => dialog.removeEventListener("close", advance);
   }, [step, clicked, advance]);
 
-  if (completed) return <div role="dialog" aria-modal="true" aria-label="튜토리얼 완료" style={{ position: "fixed", inset: 0, zIndex: 1600, display: "grid", placeItems: "center", padding: 20, background: "rgba(14,19,27,.65)" }}>
+  const bounds = frame.right > frame.left && frame.bottom > frame.top ? frame : {left:0,top:0,right:typeof window === "undefined" ? 390 : window.innerWidth,bottom:typeof window === "undefined" ? 844 : window.innerHeight};
+  const frameWidth = bounds.right - bounds.left, frameHeight = bounds.bottom - bounds.top;
+  if (completed) return <div role="dialog" aria-modal="true" aria-label="튜토리얼 완료" style={{ position: "fixed", left:bounds.left, top:bounds.top, width:frameWidth, height:frameHeight, borderRadius:frameWidth < window.innerWidth ? 28 : 0, overflowY:"auto", zIndex: 1600, display: "grid", placeItems: "center", padding: 20, background: "rgba(14,19,27,.65)" }}>
     <div style={{ width: "min(340px, 100%)", padding: 24, borderRadius: 20, background: "white", boxShadow: "0 16px 50px #0004" }}>
       <h2 style={{ fontSize: 20, fontWeight: 800 }}>튜토리얼 완료!</h2>
       <p style={{ marginTop: 12, fontSize: 14, lineHeight: 1.6 }}>{completedRole === "merchant" ? "상인 입장에서 Gemini 공고 작성, 지원자 비교·선정, 채팅과 계약서 확정까지 체험했어요. 이제 자유롭게 둘러보세요." : "학생 입장에서 공고 지원, 채팅, 계약서, 검증된 포트폴리오와 PC 버전까지 살펴봤어요. 이제 자유롭게 둘러보세요."}</p>
@@ -159,18 +176,18 @@ export default function DemoTour() {
   </div>;
   if (!tour || !step || !rect || loading || mode !== "mock" || !matchesStep(step, path)) return null;
   const pad = 6;
-  const left = Math.min(window.innerWidth, Math.max(0, rect.left - pad)), top = Math.min(window.innerHeight, Math.max(0, rect.top - pad));
-  const right = Math.max(left, Math.min(window.innerWidth, rect.right + pad)), bottom = Math.max(top, Math.min(window.innerHeight, rect.bottom + pad));
-  const scrollDirection = rect.top < 0 ? "up" : rect.bottom > window.innerHeight ? "down" : null;
-  const shade: React.CSSProperties = { position: "fixed", background: "rgba(14, 19, 27, .72)", zIndex: 1500 };
-  const tipTop = Math.max(12, Math.min(window.innerHeight - tipHeight - 12, bottom + tipHeight + 24 < window.innerHeight ? bottom + 12 : top - tipHeight - 12));
-  return <div aria-label="데모 안내" role="dialog" aria-live="polite">
+  const left = Math.min(bounds.right, Math.max(bounds.left, rect.left - pad)), top = Math.min(bounds.bottom, Math.max(bounds.top, rect.top - pad));
+  const right = Math.max(left, Math.min(bounds.right, rect.right + pad)), bottom = Math.max(top, Math.min(bounds.bottom, rect.bottom + pad));
+  const scrollDirection = rect.top < bounds.top ? "up" : rect.bottom > bounds.bottom ? "down" : null;
+  const shade: React.CSSProperties = { position: "fixed", background: "rgba(14, 19, 27, .72)", zIndex: 1500, pointerEvents: "auto" };
+  const tipTop = Math.max(bounds.top + 12, Math.min(bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12, bottom + tipHeight + 24 < bounds.bottom ? bottom + 12 : top - tipHeight - 12));
+  return <div aria-label="데모 안내" role="dialog" aria-live="polite" style={{position:"fixed",left:bounds.left,top:bounds.top,width:frameWidth,height:frameHeight,zIndex:1500,pointerEvents:"none",clipPath:`inset(0 round ${frameWidth < window.innerWidth ? 28 : 0}px)`}}>
     <div style={{ ...shade, left: 0, right: 0, top: 0, height: top }} />
     <div style={{ ...shade, left: 0, top, width: left, height: bottom - top }} />
     <div style={{ ...shade, left: right, top, right: 0, height: bottom - top }} />
     <div style={{ ...shade, left: 0, right: 0, top: bottom, bottom: 0 }} />
     <div aria-hidden="true" style={{ position: "fixed", left, top, width: right - left, height: bottom - top, border: "3px solid #52a6ff", borderRadius: 12, boxShadow: "0 0 0 4px rgba(82,166,255,.3)", zIndex: 1501, pointerEvents: "none" }} />
-    <div ref={setTipElement} style={{ position: "fixed", zIndex: 1502, top: tipTop, left: Math.max(12, Math.min(left, window.innerWidth - 322)), width: "min(310px, calc(100vw - 24px))", maxHeight: "calc(100dvh - 24px)", overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
+    <div ref={setTipElement} style={{ position: "fixed", zIndex: 1502, top: tipTop, pointerEvents:"auto", left: Math.max(bounds.left+12, Math.min(left, bounds.right - Math.min(310,frameWidth-24) - 12)), width: Math.min(310,frameWidth-24), maxHeight:frameHeight-24, overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
       <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>{step.title}</h2>
       <p style={{ fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>{step.description}</p>
