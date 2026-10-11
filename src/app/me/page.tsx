@@ -18,6 +18,8 @@ export default function Me() {
   useEffect(() => {
     if (user?.role !== "student") { setItems([]); return; }
     let active = true;
+    setItems([]);
+    setFeedError("");
     const refresh = () => repo.listPublishedPortfolio(user.id, true)
       .then(rows => { if (active) { setItems(rows); setFeedError(""); } })
       .catch(() => { if (active) setFeedError("공개 피드를 불러오지 못했어요."); });
@@ -42,7 +44,7 @@ export default function Me() {
     <TopBar title="나의 작업실" compact />
     <main className="portfolio-me">
       {user?.role === "student" ? <>
-        <div className="portfolio-sheet">
+        <div key={user.id} className="portfolio-sheet">
         <PortfolioProfileHeader key={user.id} student={user} publishedCount={items.length} editable />
         <WorkFieldSummary key={user.id} studentId={user.id} />
         {feedError && <p role="alert" className="card text-sm">{feedError}</p>}

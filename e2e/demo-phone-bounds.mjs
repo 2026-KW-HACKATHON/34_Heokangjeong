@@ -1,0 +1,14 @@
+import {chromium} from 'playwright';import assert from 'node:assert/strict';
+const base=process.env.E2E_BASE_URL||'http://localhost:3002';const b=await chromium.launch({channel:'msedge',headless:true});
+try{for(const viewport of [{width:958,height:884},{width:1440,height:900},{width:800,height:600},{width:390,height:844}]){
+ const p=await b.newPage({viewport});await p.goto(base+'/login/');
+ for(const [role,step,path] of [['merchant',0,'/'],['merchant',1,'/posts/new/'],['merchant',2,'/posts/new/'],['merchant',3,'/posts/new/'],['merchant',4,'/posts/new/'],['merchant',5,'/posts/new/'],['student',0,'/']]){
+ await p.evaluate(({role,step})=>{sessionStorage.setItem('wolgye-demo-enabled','true');sessionStorage.setItem('wolgye-demo-tab-user',role==='merchant'?'r7':'s1');sessionStorage.setItem('wolgye-demo-tour',JSON.stringify({role,step}))},{role,step});await p.goto(base+path);
+ const tip=p.getByRole('dialog',{name:'데모 안내',exact:true}).locator('> div').last();await tip.waitFor();await p.waitForTimeout(350);
+ const frame=await p.locator('.app-shell').boundingBox(),t=await tip.boundingBox();assert(t.x>=frame.x&&t.x+t.width<=frame.x+frame.width+1,JSON.stringify({viewport,role,step,frame,t}));assert(t.y>=Math.max(0,frame.y)&&t.y+t.height<=Math.min(viewport.height,frame.y+frame.height)+1,JSON.stringify({viewport,step,frame,t}));
+ if(viewport.width===958&&step===0&&role==='merchant')await p.screenshot({path:'outputs/phone-contained-home-guide.png'});
+ }
+ await p.evaluate(()=>sessionStorage.setItem('wolgye-demo-tour',JSON.stringify({role:'student',step:4})));await p.goto(base+'/chats/room/?id=a13');await p.locator('[data-demo-tour="agreement"]').click();await p.locator('.agreement-dialog').waitFor();const f=await p.locator('.app-shell').boundingBox(),d=await p.locator('.agreement-dialog').boundingBox();assert(d.x>=f.x&&d.x+d.width<=f.x+f.width+1);assert(d.y>=Math.max(0,f.y)&&d.y+d.height<=Math.min(viewport.height,f.y+f.height)+1);
+ await p.getByRole('button',{name:'계약서 닫기',exact:true}).click();await p.waitForURL(base+'/me/');
+ await p.evaluate(()=>{sessionStorage.setItem('wolgye-demo-tab-user','r7');sessionStorage.setItem('wolgye-demo-tour',JSON.stringify({role:'merchant',step:10}))});await p.goto(base+'/chats/room/?id=a13');await p.getByRole('button',{name:'완료',exact:true}).click();await p.waitForURL(base+'/');const modal=p.getByRole('dialog',{name:'튜토리얼 완료',exact:true});await modal.waitFor();await p.waitForTimeout(350);const mf=await p.locator('.app-shell').boundingBox(),m=await modal.boundingBox();assert(m.x>=mf.x&&m.x+m.width<=mf.x+mf.width+1);assert(m.y>=Math.max(0,mf.y)&&m.y+m.height<=Math.min(viewport.height,mf.y+mf.height)+1);await p.close();console.log('PASS phone bounds',viewport.width,viewport.height);
+}}finally{await b.close()}

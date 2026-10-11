@@ -75,7 +75,7 @@ export default function NewPost() {
         ongoing, warrantyRequestDays: ops.requestDays, warrantyRequestCount: ops.requestCount, warrantyDefectDays: ops.defectDays, clientOwnedBilling: ops.clientBilling,
         applicantScope: scope,
       });
-      if (demo && getDemoTour()?.role === "merchant" && getDemoTour()?.step === 1) {
+      if (demo && getDemoTour()?.role === "merchant" && getDemoTour()?.step === 6) {
         await repo.apply(p.id, "s5", "안녕하세요. 시각디자인을 전공한 윤서연입니다. 시술명과 가격의 우선순위를 정리해 A3 포스터와 SNS 이미지 시안을 제작하겠습니다.");
         await repo.apply(p.id, "s10", "안녕하세요. 경영학부 배수아입니다. 손님이 자주 묻는 시술을 먼저 배치하고 읽기 쉬운 안내 문구를 제안하겠습니다.");
       }
@@ -101,8 +101,8 @@ export default function NewPost() {
       <section className="flex flex-col gap-3 px-4">
         <div className="card flex flex-col gap-3">
           <div><h2 className="font-bold">✨ Gemini가 공고를 정리해 드려요</h2><p className="sub mt-0.5 text-xs">{demo ? "체험용 요청 문장을 미리 넣었어요. 그대로 요약하거나 자유롭게 수정해 보세요." : "어떤 재능이 필요한지 몰라도 괜찮아요. 가게 고민만 편하게 적어 주세요."}</p></div>
-          <textarea aria-label="가게 고민" className={`${inputCls} h-24`} placeholder={demo ? DEMO_EXAMPLE.memo : "예: 메뉴판이 낡아서 손님들이 잘 못 알아봐요. 폰으로 QR 찍어서 메뉴 보게 하고 싶어요. 메뉴 20개 정도"} value={memo} onChange={(e) => setMemo(e.target.value)} />
-          <Field label="마감 기간 선택" hint="언제까지 결과물이 필요하신가요? 실제 작업 기간은 학생이 계약서에서 제안해요."><input aria-label="희망 마감일" type="date" className={inputCls} value={l.deadline} onChange={e => setL({ ...l, deadline: e.target.value })} /></Field>
+          <textarea data-demo-tour="post-memo" aria-label="가게 고민" className={`${inputCls} h-24`} placeholder={demo ? DEMO_EXAMPLE.memo : "예: 메뉴판이 낡아서 손님들이 잘 못 알아봐요. 폰으로 QR 찍어서 메뉴 보게 하고 싶어요. 메뉴 20개 정도"} value={memo} onChange={(e) => setMemo(e.target.value)} />
+          <Field label="마감 기간 선택" hint="언제까지 결과물이 필요하신가요? 실제 작업 기간은 학생이 계약서에서 제안해요."><input data-demo-tour="post-deadline" aria-label="희망 마감일" type="date" className={inputCls} value={l.deadline} onChange={e => setL({ ...l, deadline: e.target.value })} /></Field>
           <button data-demo-tour="post-example" onClick={makeDraft} disabled={drafting} className="btn btn-primary w-full disabled:opacity-50">{drafting ? "초안 만드는 중…" : "Gemini 요약"}</button>
           {draft && (
             <div data-demo-tour="post-drafted" className="rounded-xl bg-[var(--primary-weak)] p-3 text-sm">
@@ -118,7 +118,7 @@ export default function NewPost() {
             </div>
           )}
         </div>
-        <div className="card flex flex-col gap-3">
+        <div data-demo-tour="post-review" className="card flex flex-col gap-3">
           {demo && <p className="sub text-xs">데모에서는 빈칸의 예시 내용이 등록할 때 자동으로 사용돼요. 바꾸고 싶은 항목만 입력해 주세요.</p>}
           <Field label="제목"><input className={inputCls} placeholder={demo ? DEMO_EXAMPLE.title : "어떤 도움이 필요한가요? (예: 메뉴판 디자인)"} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1">{CATS.map((c) => <button key={c} type="button" aria-pressed={f.category === c} onClick={() => setF({ ...f, category: c })} className={`chip ${f.category === c ? "chip-on" : ""}`}>{c}</button>)}</div>

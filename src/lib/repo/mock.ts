@@ -20,7 +20,7 @@ import { getDemoUserId } from "../demoIdentity";
 
 // ── 시드 데이터 (월계1동 근방 좌표) ──────────────────────────────────────────
 export const users: User[] = [
-  { id: "s1", role: "student", name: "김하늘", nickname: "하늘그림", department: "디자인학과", skills: ["포스터", "일러스트", "Figma"], interests: ["디자인", "SNS홍보"], availableHours: "평일 저녁, 주말", maxDistanceM: 1500, location: { lat: 37.6196, lng: 127.0592 }, school: "광운대학교", age: 22, phone: "010-0000-1001" },
+  { id: "s1", role: "student", name: "김하늘", nickname: "하늘그림", avatarUrl: "/profiles/kim-haneul.jpg", department: "디자인학과", skills: ["포스터", "일러스트", "Figma"], interests: ["디자인", "SNS홍보"], availableHours: "평일 저녁, 주말", maxDistanceM: 1500, location: { lat: 37.6196, lng: 127.0592 }, school: "광운대학교", age: 22, phone: "010-0000-1001" },
   { id: "s2", role: "student", name: "박도윤", nickname: "도윤코딩", department: "소프트웨어학부", skills: ["React", "웹페이지", "QR"], interests: ["웹/앱", "디지털도움"], availableHours: "주말", maxDistanceM: 2000, location: { lat: 37.6210, lng: 127.0620 }, school: "광운대학교", age: 24, phone: "010-0000-1002" },
   { id: "s3", role: "student", name: "이서준", nickname: "서준필름", department: "미디어영상학부", skills: ["숏폼", "프리미어", "촬영"], interests: ["영상", "사진"], availableHours: "평일 오후", maxDistanceM: 1200, location: { lat: 37.6230, lng: 127.0580 }, school: "광운대학교", age: 23, phone: "010-0000-1003" },
   { id: "s4", role: "student", name: "최지우", nickname: "지우마케팅", department: "경영학부", skills: ["인스타그램", "카피", "마케팅"], interests: ["SNS홍보", "기타"], availableHours: "평일 저녁", maxDistanceM: 1000, location: { lat: 37.6250, lng: 127.0610 }, school: "광운대학교", age: 21, phone: "010-0000-1004" },

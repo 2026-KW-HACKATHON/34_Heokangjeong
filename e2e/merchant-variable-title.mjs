@@ -5,8 +5,21 @@ const browser=await chromium.launch({channel:'msedge',headless:true});
 try {
  const page=await browser.newPage({viewport:{width:390,height:844}});
  await page.goto(base+'/login/');
- await page.evaluate(()=>{sessionStorage.setItem('wolgye-demo-enabled','true');sessionStorage.setItem('wolgye-demo-tab-user','r7');sessionStorage.setItem('wolgye-demo-tour',JSON.stringify({role:'merchant',step:1}))});
- await page.goto(base+'/posts/new/');
+ await page.evaluate(()=>{sessionStorage.setItem('wolgye-demo-enabled','true');sessionStorage.setItem('wolgye-demo-tab-user','r7');sessionStorage.setItem('wolgye-demo-tour',JSON.stringify({role:'merchant',step:0}))});
+ await page.goto(base+'/');
+ await page.getByRole('heading',{name:'홈에서 공고 쓰기',exact:true}).waitFor();
+ await page.locator('[data-demo-tour="merchant-create"]').click();
+ await page.waitForURL(base+'/posts/new/');
+ await page.getByRole('heading',{name:'가게 요청 내용 쓰기',exact:true}).waitFor();
+ assert((await page.getByLabel('가게 고민').inputValue()).includes('미용실'));
+ await page.getByLabel('가게 고민').fill('미용실 A3 가격 안내 포스터와 SNS 이미지를 만들어 주세요.');
+ await page.getByRole('button',{name:'다음',exact:true}).click();
+ await page.getByRole('heading',{name:'희망 마감일 선택',exact:true}).waitFor();
+ await page.getByLabel('희망 마감일').fill('2026-12-20');
+ await page.getByRole('button',{name:'다음',exact:true}).click();
+ await page.getByRole('heading',{name:'Gemini 공고 요약',exact:true}).waitFor();
+ await page.evaluate(()=>sessionStorage.setItem('wolgye-demo-tour',JSON.stringify({role:'merchant',step:5})));
+ await page.reload();
  // Gemini의 가변 제목과 사용자의 직접 수정을 함께 재현한다.
  await page.getByPlaceholder('월계 미용실 시술 안내 포스터',{exact:true}).fill('새 시술 안내판과 인스타그램 이미지 디자인');
  await page.locator('[data-demo-tour="post-submit"]').click();
