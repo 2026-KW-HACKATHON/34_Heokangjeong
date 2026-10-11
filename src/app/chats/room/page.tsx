@@ -28,7 +28,7 @@ function Room() {
   const [demoReadyForNext, setDemoReadyForNext] = useState(false);
   useEffect(() => {
     if (!demoReplyPending) return;
-    const timer = window.setTimeout(() => setDemoReadyForNext(true), 1200);
+    const timer = window.setTimeout(() => { setDemoReadyForNext(true); window.dispatchEvent(new Event("wolink-demo-chat-ready")); }, 2500);
     return () => window.clearTimeout(timer);
   }, [demoReplyPending]);
   useEffect(() => {
@@ -172,7 +172,7 @@ function Room() {
             <span className="sub animate-pulse text-xs">● ● ●</span>
           </div>
         </div>}
-        {demoReplyPending && <button type="button" disabled={!demoReadyForNext} onClick={() => window.dispatchEvent(new Event("wolink-demo-chat-next"))} className="btn btn-primary self-end px-5 py-2.5 disabled:opacity-40">{demoReadyForNext ? "다음" : "잠시만요…"}</button>}
+        {demoReadyForNext && <button data-demo-tour="student-chat-next" type="button" className="btn btn-primary self-end px-5 py-2.5">다음</button>}
         <div ref={bottom} />
       </section>
       <form onSubmit={send} style={{ bottom: keyboardInset }} className="fixed bottom-0 left-1/2 z-[1001] pb-[env(safe-area-inset-bottom)] flex w-full max-w-[480px] -translate-x-1/2 gap-2 border-t border-[var(--line)] bg-white p-2">

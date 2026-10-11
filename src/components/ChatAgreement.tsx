@@ -68,8 +68,32 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   const [aiDraft,setAiDraft] = useState<AgreementDraft | null>(null);
   const [aiBusy,setAiBusy] = useState(false);
   const [aiError,setAiError] = useState("");
+  const [choiceHint,setChoiceHint] = useState(false);
+  const [reviewedSummary,setReviewedSummary] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const freeTextInput = useRef<HTMLTextAreaElement>(null);
+  const resultHeading = useRef<HTMLDivElement>(null);
+  const actions = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!guidedAgreement || !opened || !editing || step !== 0 || aiDraft) return;
+    const timer = window.setTimeout(() => setChoiceHint(true), 2200);
+    return () => window.clearTimeout(timer);
+  }, [guidedAgreement, opened, editing, step, aiDraft]);
+  useEffect(() => {
+    if (!guidedAgreement || !opened || !editing || step !== 0 || !aiDraft) return;
+    resultHeading.current?.scrollIntoView({block:"center",behavior:"smooth"});
+  }, [guidedAgreement, opened, editing, step, aiDraft]);
+  useEffect(() => {
+    if (!guidedAgreement || !opened || !editing || step !== 0 || !aiDraft || reviewedSummary) return;
+    const node = dialog.current;
+    const onClick = (event: MouseEvent) => {
+      if ((event.target as Element).closest("button,input,textarea,select")) return;
+      setReviewedSummary(true);
+      actions.current?.scrollIntoView({block:"end",behavior:"smooth"});
+    };
+    node?.addEventListener("click",onClick);
+    return () => node?.removeEventListener("click",onClick);
+  }, [guidedAgreement, opened, editing, step, aiDraft, reviewedSummary]);
   useEffect(() => {
     if (!guidedAgreement || inputMode !== "prompt") return;
     setFreeText(""); setPromptTyping(true);
@@ -90,7 +114,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
   useEffect(() => { if(!opened) return; const before=document.body.style.overflow; document.body.style.overflow="hidden"; return () => {document.body.style.overflow=before;}; },[opened]);
   function display(value: WorkAgreement | null) {
     setShown(value); setTerms(value?.terms ?? initialTerms(post, salonDemo)); setEditing(!value); setStep(value ? 3 : 0); setConsent(!!value && salonDemo); setError(""); setProposing(false);
-    setFreeText(""); setInputMode(guidedAgreement && !value ? "choose" : "manual"); setAiDraft(null); setAiError("");
+    setFreeText(""); setInputMode(guidedAgreement && !value ? "choose" : "manual"); setAiDraft(null); setAiError(""); setChoiceHint(false); setReviewedSummary(false);
   }
   async function completeGuidedConfirmation(value: WorkAgreement): Promise<WorkAgreement> {
     if (!guidedAgreement || value.finalizedAt) return value;
@@ -172,11 +196,12 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         {guidedAgreement && <aside className="agreement-tour-tip" role="status" aria-live="polite" aria-label="작업 계약서 체험 안내">
           <strong>{editing ? `계약서 검토 흐름 ${step + 1}/4 · ${["작업 내용과 Gemini 요약", "작업 일정", "보상과 AS", "저장 전 확인"][step]}` : shown?.finalizedAt ? "계약서 검토 완료" : "마지막 · 양쪽 확인"}</strong>
           <p>{editing ? [
-            aiDraft ? "Gemini 요약 결과를 검토하고 필요한 부분을 수정한 뒤 ‘다음’을 눌러 주세요." : "협업 내용을 직접 적거나 예시 프롬프트를 체험해 보세요. ‘Gemini 요약’을 누르면 계약서 항목으로 정리됩니다.",
+            reviewedSummary ? "꼼꼼하게 확인했나요? 아래 ‘다음’을 눌러 일정으로 넘어가세요." : aiDraft ? "Gemini 요약 결과를 읽어 보세요. 화면을 누르면 아래 ‘다음’ 버튼을 안내합니다." : choiceHint ? "직접 쓰기 또는 예시 프롬프트 입력을 골라 보세요. 입력 후 Gemini 요약을 누를 수 있어요." : "채팅으로 협의된 작업 범위를 작성해요. 잠시 후 입력 방법을 선택할 수 있어요.",
             "손가락으로 시작일부터 완료일까지 드래그해 보세요. 두 날짜를 눌러 선택할 수도 있어요.",
             "보상·AS·파일 인계 방법을 간단히 확인한 뒤 ‘다음’을 눌러 주세요.",
             "내용을 읽고 ‘저장하고 양쪽 확인받기’를 눌러 주세요. 저장만으로 계약이 확정되지는 않아요.",
           ][step] : shown?.finalizedAt ? "양쪽 확인이 끝났어요. 오른쪽 위 닫기 버튼을 누르면 다음 튜토리얼로 이어집니다." : "내용을 확인하고 동의 체크 후 ‘이 버전 최종 확인’을 눌러 주세요. 데모에서는 상대방 확인도 자동으로 재현해요."}</p>
+          {editing && step === 2 && <span className="agreement-review-nudge">꼼꼼하게 확인해줘요</span>}
         </aside>}
 
         <p className="agreement-eyebrow">작은 계약, 편안한 협업</p>
@@ -187,13 +212,13 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         {editing && step===0 && <div className="agreement-fields">
           {!proposing && <div className="agreement-support" data-demo-tour="agreement-ai"><strong>협업 내용을 Gemini로 요약해 보세요</strong><p>직접 작성하거나 예시 프롬프트를 입력해 체험할 수 있어요. 작업 내용·결과물·완료 기준을 평소 말하듯 적어 주세요.</p>
             <textarea ref={freeTextInput} aria-label="계약서 자유 입력" maxLength={2000} readOnly={promptTyping} value={freeText} onChange={e=>{setInputMode("manual");setFreeText(e.target.value);}} placeholder="예: 미용실 시술 안내 포스터를 만들어 주세요. A3 PDF와 SNS 이미지 하나를 받고, 가격을 확인한 뒤 완료할게요." className="agreement-free-input" />
-            {guidedAgreement && <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" className="agreement-ai-button" onClick={()=>{setInputMode("manual");setFreeText("");freeTextInput.current?.focus();}}>직접 쓰기</button><button type="button" className="agreement-ai-button" onClick={()=>setInputMode("prompt")}>예시 프롬프트 입력</button></div>}
+            {guidedAgreement && <div className={`agreement-choice mt-3 grid grid-cols-2 gap-2 ${choiceHint && !freeText && !aiDraft ? "agreement-choice-highlight" : ""}`}><button type="button" className="agreement-ai-button" onClick={()=>{setInputMode("manual");setFreeText("");freeTextInput.current?.focus();}}>직접 쓰기</button><button type="button" className="agreement-ai-button" onClick={()=>setInputMode("prompt")}>예시 프롬프트 입력</button></div>}
             {promptTyping && <p role="status" className="mt-2 text-xs text-slate-500">예시 문장을 입력하고 있어요…</p>}
             <button type="button" className="agreement-ai-button" disabled={aiBusy || promptTyping || !freeText.trim()} onClick={summarize}>{aiBusy ? "Gemini가 정리하는 중…" : "Gemini 요약"}</button>
             {aiDraft && <p role="status" className="mt-3 whitespace-pre-wrap"><strong>{aiDraft.source === "DEMO" ? "체험용 요약" : "Gemini 요약"}</strong> · {aiDraft.summary}<br /><small>{aiDraft.source === "DEMO" ? "체험용 예시 답변이에요. 실제 이용 때는 Gemini가 정리해요" : `실제 Gemini 응답 · ${aiDraft.model}`} · 아래 항목에 반영됐어요. 저장 전에 확인해 주세요.</small></p>}
             {aiError && <p role="alert" className="agreement-error mt-2">{aiError}</p>}
           </div>}
-          {guidedAgreement && <div className="agreement-result-heading"><strong>Gemini 요약 결과</strong><small>{aiDraft ? "AI가 정리한 초안입니다. 아래 내용을 직접 수정할 수 있어요." : "요약 전에는 협의 내용을 바탕으로 한 예시가 표시됩니다."}</small></div>}
+          {guidedAgreement && <div ref={resultHeading} className={`agreement-result-heading ${aiDraft && !reviewedSummary ? "agreement-result-highlight" : ""}`}><strong>Gemini 요약 결과</strong><small>{aiDraft ? "AI가 정리한 초안입니다. 아래 내용을 직접 수정할 수 있어요." : "요약 전에는 협의 내용을 바탕으로 한 예시가 표시됩니다."}</small></div>}
           <label>작업 범위<textarea aria-label="작업 범위" maxLength={3000} value={terms.scope} onChange={e=>change("scope",e.target.value)} placeholder={salonPoster ? "예: 월계 미용실 A3 포스터와 SNS 이미지 디자인" : salonDemo ? "예: 월계 미용실 벽면 가격표와 시술 안내지 디자인" : "예: 신메뉴 포스터 1장과 SNS 이미지 3장 디자인"} /></label>
           <label>전달할 결과물<textarea aria-label="전달할 결과물" maxLength={3000} value={terms.deliverables} onChange={e=>change("deliverables",e.target.value)} placeholder={salonPoster ? "예: A3 포스터 PDF와 SNS 이미지, 원본 파일" : salonDemo ? "예: A2 가격표·A4 안내지의 인쇄용 PDF와 원본 파일" : "예: 인쇄용 PDF 1개, 이미지 PNG 3개, 원본 파일"} /></label>
           <label>완료 확인 기준<textarea aria-label="완료 확인 기준" maxLength={3000} value={terms.acceptance} onChange={e=>change("acceptance",e.target.value)} placeholder={salonDemo ? "예: 점주가 시술명과 가격을 확인하고 인쇄용 파일을 수령" : "예: 점주가 문구·가격을 확인하고 인쇄 가능한 파일을 수령"} /></label>
@@ -221,7 +246,7 @@ export default function ChatAgreement({ application, post, actorId, studentName,
         {changed && <p role="status" className="agreement-error">상대방이 수정했어요. 최신본을 불러와 다시 확인해 주세요.</p>}
         {error && <p role="alert" className="agreement-error">{error}</p>}
         {(error || changed) && <button className="agreement-text-button" disabled={busy} onClick={open}>최신본 다시 불러오기</button>}
-        <footer className="agreement-actions">
+        <footer ref={actions} className="agreement-actions">
           {editing ? <><button type="button" disabled={busy || step===0} onClick={()=>setStep(s=>s-1)}>이전</button><button className="agreement-primary" disabled={busy || changed} onClick={step===3 ? save : next}>{busy?"저장 중…":step===3?(proposing?"수정 제안 보내기":"저장하고 양쪽 확인받기"):"다음"}</button></> : shown?.finalizedAt ? (pending
             ? (mineProposal
               ? <><button disabled={busy} onClick={()=>respond(false)}>제안 철회</button><button className="agreement-primary" onClick={()=>dialog.current?.close()}>상대방 답변 대기</button></>

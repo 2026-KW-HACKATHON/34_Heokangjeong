@@ -36,21 +36,21 @@ const steps: Record<DemoRole, Step[]> = {
     { path: "/me/", target: '[data-demo-tour="feed-item"]', title: "검증된 경험과 작업", description: "미용실 계약은 아직 진행 중입니다. 여기서는 의뢰인이 검증을 마친 별도의 한식당 메뉴판 작업을 열어봅니다." },
     { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-experience-content"]', title: "경험 기록 읽기", description: "작업 배경과 역할을 읽어 보세요. 다음을 누르면 단계별 포트폴리오를 엽니다.", action: "next" },
     { path: "/portfolio/experience/?s=s1&kind=project&id=demo-menu-2", target: '[data-demo-tour="portfolio-detail"]', title: "실제 포트폴리오 열기", description: "문제 정의부터 결과와 의뢰인 평가까지 작성된 포트폴리오를 눌러 확인하세요." },
-    { path: "/portfolio/view/?id=demo-menu-2&s=s1", target: '[data-demo-tour="portfolio-frame"]', title: "포트폴리오 단계 열기", description: "실제 작성된 기록이에요. 첫 번째 ‘개요’ 단계를 눌러 읽기를 시작하세요." },
+    { path: "/portfolio/view/?id=demo-menu-2&s=s1", target: '[data-demo-tour="portfolio-frame"]', title: "첫 번째 바 눌러보기", description: "파란 테두리로 표시된 첫 번째 ‘개요’ 바를 눌러 작업 기록을 읽어 보세요." },
     ...[
-      ["개요", "프로젝트 목표와 맡은 역할을 읽고 다음 화살표를 눌러 보세요."],
-      ["문제 정의", "가게와 손님이 겪던 문제와 이를 확인한 배경을 읽어 보세요."],
+      ["개요", "프로젝트 목표와 맡은 역할을 읽고 아래로 스크롤해 ‘다음 단계’를 눌러 보세요."],
+      ["문제 정의", "가게와 손님이 겪던 문제를 읽고 아래로 스크롤해 ‘다음 단계’를 눌러 보세요."],
       ["요구사항 정리", "의뢰인과 협의해 필요한 내용을 어떻게 정리했는지 확인하세요."],
       ["시안 제작과 개선", "초안을 만들고 피드백을 반영한 과정을 읽어 보세요."],
       ["작업 전·후", "작업 전과 후가 어떻게 달라졌는지 살펴보세요."],
       ["전달한 결과물", "점주에게 전달한 결과물을 확인하세요."],
       ["현장 사용", "결과물이 현장에서 어떻게 사용됐는지 읽어 보세요."],
       ["작업 회고", "작업에서 배운 점과 다음에 개선할 부분을 살펴보세요."],
-      ["평가와 검증", "의뢰인 평가와 실제 검증 항목까지 살펴보면 안내가 끝나요."],
+      ["평가와 검증", "마지막 단계의 의뢰인 평가와 검증 내용을 읽은 뒤 ‘읽기 완료’를 눌러 주세요."],
     ].map(([title, description], i) => ({
       path: "/portfolio/view/?id=demo-menu-2&s=s1", target: '[data-demo-tour="portfolio-frame"]',
-      title, description: i === 8 ? description : `${description} 화면의 다음 화살표를 누르면 이어집니다.`,
-      ...(i === 8 ? { action: "next" as const } : {}),
+      title, description,
+      ...(i === 8 ? { action: "next" as const, cta: "읽기 완료" } : {}),
     })),
   ],
 };
@@ -71,6 +71,7 @@ export default function DemoTour() {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [clicked, setClicked] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [chatNextReady, setChatNextReady] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [completedRole, setCompletedRole] = useState<DemoRole>("student");
   const [frame, setFrame] = useState({left:0, top:0, right:0, bottom:0});
@@ -99,6 +100,11 @@ export default function DemoTour() {
   useEffect(() => { setTour(getDemoTour()); }, []);
   useEffect(() => { if (completed && path !== "/") router.replace("/"); }, [completed, path, router]);
   useEffect(() => { document.body.classList.toggle("guided-demo", !!tour || completed); return () => document.body.classList.remove("guided-demo"); }, [tour, completed]);
+  useEffect(() => {
+    const active = tour?.role === "student" && tour.step >= 10 && tour.step <= 19 && path?.startsWith("/portfolio/view");
+    document.body.classList.toggle("guided-portfolio", !!active);
+    return () => document.body.classList.remove("guided-portfolio");
+  }, [tour, path]);
   const finish = useCallback(() => { saveDemoTour(null); setTour(null); setRect(null); setCompleted(false); }, []);
   const [reviewPart, setReviewPart] = useState(0);
   const baseStep = tour && steps[tour.role][tour.step];
@@ -106,7 +112,9 @@ export default function DemoTour() {
     ? { ...baseStep!, target: '[data-demo-tour="student-applied"]', title: "이미 지원한 공고", description: "이 브라우저에서는 이미 지원했어요. 지원 내역을 확인한 뒤 다음 단계에서 채팅창으로 이동하세요.", action: "next" as const }
     : baseStep?.target.includes('"post-review"') && reviewPart > 0
       ? { ...baseStep, target: reviewPart === 1 ? '[data-demo-tour="post-as"]' : '[data-demo-tour="post-urgent"]', title: reviewPart === 1 ? "AS 보증 기간 확인" : "긴급 공고 선택 확인", description: reviewPart === 1 ? "완료 후에도 관리가 필요한 작업이면 AS 보증 기간 작성을 선택해 기간과 횟수를 정해 주세요. 파일을 전달하고 끝나는 작업이면 선택하지 않아도 됩니다. 확인 후 다음을 눌러 주세요." : "급하게 학생을 구해야 할 때만 긴급 공고를 선택하세요. 선택하면 추가수당과 알림 받을 학생을 설정할 수 있어요. 일반 공고는 선택하지 않아도 됩니다. 확인 후 다음을 눌러 등록으로 이동하세요." }
-      : baseStep, [reviewPart, tour?.role, tour?.step, alreadyApplied, clicked, baseStep]);
+    : tour?.role === "student" && tour.step === 5 && chatNextReady
+      ? { ...baseStep!, target: '[data-demo-tour="student-chat-next"]', title: "다음 단계로 이동", description: "메시지를 보냈어요. 사장님의 답장을 기다리는 동안 ‘다음’을 눌러 협의된 계약서 체험으로 이동하세요." }
+      : baseStep, [reviewPart, tour?.role, tour?.step, alreadyApplied, clicked, chatNextReady, baseStep]);
   useEffect(() => {
     if (tour?.role !== "student" || tour.step !== 3 || !path?.startsWith("/posts/detail")) return;
     const update = () => setAlreadyApplied(!!document.querySelector('[data-demo-tour="student-applied"]'));
@@ -121,7 +129,7 @@ export default function DemoTour() {
     const next = tour.step + 1;
     if (next >= steps[tour.role].length) { saveDemoTour(null); setCompletedRole(tour.role); setTour(null); setRect(null); setCompleted(true); return; }
     const updated = { ...tour, step: next };
-    saveDemoTour(updated); setTour(updated); setClicked(false); setRect(null);
+    saveDemoTour(updated); setTour(updated); setClicked(false); setRect(null); setChatNextReady(false);
     const destination = steps[tour.role][next].path;
     const here = window.location.pathname + window.location.search;
     if (destination !== "/posts/detail/" && destination !== "/chats/room/" && here !== destination) window.location.assign(destination);
@@ -131,8 +139,8 @@ export default function DemoTour() {
     if (tour?.role !== "student" || tour.step < 10 || tour.step > 18 || !path?.startsWith("/portfolio/view")) return;
     const stages = ["overview", "problem", "decisions", "process", "beforeAfter", "deliverable", "usage", "reflection", "evaluation"];
     const stageIndex = tour.step - 10;
-    const frame = document.querySelector<HTMLIFrameElement>('[data-demo-tour="portfolio-frame"]');
     const onMessage = (event: MessageEvent) => {
+      const frame = document.querySelector<HTMLIFrameElement>('[data-demo-tour="portfolio-frame"]');
       if (event.source !== frame?.contentWindow || event.data?.type !== "wolink-demo-portfolio-stage") return;
       const expectedAction = stageIndex === 0 ? "open" : "next";
       if (event.data.stage === stages[stageIndex] && event.data.action === expectedAction) advance();
@@ -144,11 +152,15 @@ export default function DemoTour() {
   useEffect(() => {
     if (!step || loading || mode !== "mock" || (step.target.includes('"agreement"') && clicked) || !matchesStep(step, path)) return;
     let current: Element | null = null;
+    const portfolioStep = step.target.includes('"portfolio-frame"');
     const update = () => {
       current = document.querySelector(step.target);
       if (current) {
         const next = current.getBoundingClientRect();
         setRect(previous => previous && previous.left === next.left && previous.top === next.top && previous.width === next.width && previous.height === next.height ? previous : next);
+        if (portfolioStep) (current as HTMLIFrameElement).contentWindow?.postMessage({ type: "wolink-demo-tour-target", step: tour?.step }, "*");
+      } else {
+        setRect(null);
       }
     };
     const observer = new MutationObserver(update);
@@ -159,7 +171,7 @@ export default function DemoTour() {
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     update();
-    document.querySelector(step.target)?.scrollIntoView({ block: step.target.includes('"post-review"') ? "start" : "center", behavior: "auto" });
+    document.querySelector(step.target)?.scrollIntoView({ block: step.target.includes('"post-review"') || portfolioStep ? "start" : "center", behavior: "auto" });
     update();
     return () => { observer.disconnect(); clearInterval(timer); document.removeEventListener("click", onClick, true); window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
   }, [step, path, loading, mode, clicked, tour]);
@@ -172,9 +184,10 @@ export default function DemoTour() {
 
   useEffect(() => {
     if (tour?.role !== "student" || tour.step !== 5) return;
-    window.addEventListener("wolink-demo-chat-next", advance);
-    return () => window.removeEventListener("wolink-demo-chat-next", advance);
-  }, [tour?.role, tour?.step, advance]);
+    const ready = () => { setChatNextReady(true); setClicked(false); setRect(null); };
+    window.addEventListener("wolink-demo-chat-ready", ready);
+    return () => window.removeEventListener("wolink-demo-chat-ready", ready);
+  }, [tour?.role, tour?.step]);
 
   useEffect(() => {
     if (!step?.target.includes('"post-example"') || !clicked) return;
@@ -229,21 +242,23 @@ export default function DemoTour() {
   const scrollDirection = rect.top < bounds.top ? "up" : rect.bottom > bounds.bottom ? "down" : null;
   const shade: React.CSSProperties = { position: "fixed", background: "rgba(14, 19, 27, .72)", zIndex: 1500, pointerEvents: "auto" };
   const tipTop = Math.max(bounds.top + 12, Math.min(bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12, bottom + tipHeight + 24 < bounds.bottom ? bottom + 12 : top - tipHeight - 12));
+  const portfolioStep = step.target.includes('"portfolio-frame"');
   const inlineReview = step.target.includes('"post-review"');
   const tip = (
     <div ref={setTipElement} style={{ scrollMarginTop:80, position: "fixed", zIndex: 1502, top: inlineReview ? bounds.bottom - Math.min(tipHeight,frameHeight-24) - 12 : tipTop, pointerEvents:"auto", left: inlineReview ? bounds.left + (frameWidth - Math.min(310,frameWidth-24)) / 2 : Math.max(bounds.left+12, Math.min(left, bounds.right - Math.min(310,frameWidth-24) - 12)), width: Math.min(310,frameWidth-24), maxHeight:frameHeight-24, overflowY: "auto", padding: 16, borderRadius: 16, background: "white", boxShadow: "0 12px 40px #0004", color: "#1a2029" }}>
-      <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
+      <p style={{ fontSize: 12, color: "#436991", fontWeight: 700 }}>{tour.step + 1} / {steps[tour.role].length} · {portfolioStep ? tour.step === 10 ? "첫 번째 바 누르기" : "기록 읽기" : step.action === "next" ? "설명 확인" : "강조된 곳 누르기"}</p>
       <h2 style={{ fontSize: 17, fontWeight: 800, marginTop: 4 }}>{step.title}</h2>
       <p style={{ fontSize: 13, lineHeight: 1.5, marginTop: 7 }}>{step.description}</p>
-      {scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
+      {!inlineReview && !portfolioStep && scrollDirection && <button type="button" onClick={() => document.querySelector(step.target)?.scrollIntoView({block: scrollDirection === "down" ? "end" : "start", behavior: "smooth"})} style={{width: "100%", marginTop: 12, padding: "10px 8px", borderRadius: 10, background: "#e9f3ff", color: "#285887", fontSize: 13, fontWeight: 700}}>
         {scrollDirection === "down" ? "↓ 아래로 내려 강조된 곳 보기" : "↑ 위로 올려 강조된 곳 보기"}
       </button>}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, alignItems: "center" }}>
         <button type="button" onClick={finish} style={{ fontSize: 12, color: "#68717e" }}>안내 종료</button>
-        {step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? (tour.step + 1 === steps[tour.role].length ? "완료" : "다음")}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>파란 테두리 안을 눌러주세요</span>}
+        {step.action === "next" ? <button type="button" onClick={advance} style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, background: "#202932", color: "white" }}>{step.cta ?? (tour.step + 1 === steps[tour.role].length ? "완료" : "다음")}</button> : <span style={{ fontSize: 12, fontWeight: 700, color: "#436991" }}>{portfolioStep && tour.step > 10 ? "읽고 아래 ‘다음 단계’를 눌러주세요" : "파란 테두리 안을 눌러주세요"}</span>}
       </div>
     </div>
   );
+  if (inlineReview || portfolioStep) return <div aria-label="데모 안내" role="dialog" aria-live="polite" style={{pointerEvents:"none"}}>{tip}</div>;
   return <div aria-label="데모 안내" role="dialog" aria-live="polite" style={{position:"fixed",left:bounds.left,top:bounds.top,width:frameWidth,height:frameHeight,zIndex:1500,pointerEvents:"none",clipPath:`inset(0 round ${frameWidth < window.innerWidth ? 28 : 0}px)`}}>
     <div style={{ ...shade, left: 0, right: 0, top: 0, height: top }} />
     <div style={{ ...shade, left: 0, top, width: left, height: bottom - top }} />
