@@ -7,7 +7,11 @@ import { useSession } from "@/lib/session";
 type Step = { path: string; target: string; title: string; description: string; action?: "next" };
 const steps: Record<DemoRole, Step[]> = {
   merchant: [
+    { path: "/", target: '[data-demo-tour="merchant-create"]', title: "홈에서 공고 쓰기", description: "오른쪽 위 + 버튼을 눌러 우리 가게에 필요한 도움을 요청해 보세요." },
+    { path: "/posts/new/", target: '[data-demo-tour="post-memo"]', title: "가게 요청 내용 쓰기", description: "실제 가게 고민처럼 예시 문장을 미리 넣었어요. 읽어 보거나 직접 수정한 다음 ‘다음’을 눌러 주세요.", action: "next" },
+    { path: "/posts/new/", target: '[data-demo-tour="post-deadline"]', title: "희망 마감일 선택", description: "날짜 입력칸을 눌러 원하는 마감일을 선택해 보세요. 마감일이 정해지지 않았다면 비워 두어도 돼요. 선택 후 ‘다음’을 눌러 주세요.", action: "next" },
     { path: "/posts/new/", target: '[data-demo-tour="post-example"]', title: "Gemini 공고 요약", description: "요청 문장을 미리 넣었어요. Gemini 요약을 눌러 공고 초안으로 정리해 보세요." },
+    { path: "/posts/new/", target: '[data-demo-tour="post-review"]', title: "자동으로 채워진 공고 확인", description: "방금 입력한 요청으로 제목·필요 재능·설명·결과물이 아래 공고에 채워졌어요. 스크롤하며 확인하고 원하는 부분을 고친 뒤 ‘다음’을 눌러 주세요. 아직 등록되지 않았어요.", action: "next" },
     { path: "/posts/new/", target: '[data-demo-tour="post-submit"]', title: "공고 등록", description: "내용을 살펴본 뒤 등록해 보세요. 등록에 성공하면 공고 상세로 이어집니다." },
     { path: "/posts/detail/", target: '[data-demo-tour="post-created"]', title: "공고 등록 완료", description: "방금 올린 공고가 등록됐어요. 제목과 요청 내용을 확인하세요.", action: "next" },
     { path: "/posts/detail/", target: '[data-demo-tour="post-applicants"]', title: "지원자 비교", description: "데모 학생 두 명이 방금 올린 포스터 공고에 지원했어요. 학과와 제안 내용을 비교하세요.", action: "next" },

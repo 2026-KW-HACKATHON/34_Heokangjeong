@@ -33,7 +33,7 @@ export default function Login() {
         <p className="sub mt-2 text-sm">가입 없이 예시 계정으로 기능을 체험할 수 있어요.</p>
         <div className="mt-6 flex flex-col gap-3">
           {examples.map(({label, detail, user}) => <button key={label} type="button" disabled={loading || !user}
-            onClick={async () => { if (!user) return; clearDemoBrowserData(); await mockRepo.resetDemo!(); startDemoSession(user.id); if (user.role === "student") startDemoTour("student"); else if (user.role === "resident" && user.kind === "상인") startDemoTour("merchant"); window.location.assign(user.role === "resident" && user.kind === "상인" ? "/posts/new/" : "/"); }}
+            onClick={async () => { if (!user) return; clearDemoBrowserData(); await mockRepo.resetDemo!(); startDemoSession(user.id); if (user.role === "student") startDemoTour("student"); else if (user.role === "resident" && user.kind === "상인") startDemoTour("merchant"); window.location.assign("/"); }}
             className="card flex w-full items-center justify-between gap-3 text-left transition-colors hover:bg-[var(--primary-weak)] disabled:opacity-50">
             <span><span className="block text-base font-bold">{label}</span><span className="sub mt-1 block text-sm">{detail}</span><span className="sub mt-1 block text-xs">예시 계정 · {user?.name ?? "불러오는 중"}</span></span>
             <span aria-hidden="true" className="text-2xl text-[var(--sub)]">›</span>
@@ -54,7 +54,7 @@ export default function Login() {
     await mockRepo.resetDemo!();
     startDemoSession(role === "student" ? "s1" : "r7");
     startDemoTour(role);
-    window.location.assign(role === "student" ? "/" : "/posts/new/");
+    window.location.assign("/");
   }
   return (
     <section className="flex min-h-screen flex-col justify-center gap-6 px-6">
