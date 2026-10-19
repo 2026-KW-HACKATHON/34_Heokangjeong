@@ -39,6 +39,14 @@
 
 ▶ **[YouTube에서 시연영상 보기](https://www.youtube.com/watch?v=UfXsSFIvuE8)** · **[앱 직접 체험하기](https://wolgye-talent.vercel.app/)**
 
+### 포트폴리오 양식 · 결과물 영상
+
+활동 기록이 포트폴리오 페이지에서 어떻게 보이는지 영상으로 살펴볼 수 있습니다. 문제를 발견한 배경부터 해결 과정, 결과물과 의뢰인 평가까지 한 사례의 흐름을 담았습니다.
+
+[![WOLINK 포트폴리오 양식 영상 보기](docs/assets/portfolio-template-video.jpg)](https://www.youtube.com/watch?v=rxauHCENt94)
+
+▶ **[포트폴리오 양식 영상 보기](https://www.youtube.com/watch?v=rxauHCENt94)**
+
 ## 🔗 서비스 이용 흐름
 
 ![상인과 학생이 공고·협업·검증·포트폴리오로 이어지는 WOLINK 이용 흐름](docs/assets/service-flow.png)
