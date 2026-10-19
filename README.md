@@ -31,6 +31,16 @@
 | 실제 작업과 증빙을 기록하기 | 결과물을 검토하고 작업을 확인하기 |
 | 검증된 경험을 AI 포트폴리오로 정리하기 | 지역 청년과 지속적인 관계 만들기 |
 
+## 🖼 전시 포스터
+
+광운대학교 해커톤 **34팀 허강정**의 WOLINK 전시 포스터입니다. 서비스의 문제 정의, 학생과 상인의 이용 흐름, 주요 화면과 기대 효과를 한 장에 담았습니다.
+
+<div align="center">
+  <a href="docs/assets/wolink-exhibition-poster.png"><img src="docs/assets/wolink-exhibition-poster.png" width="720" alt="2026 광운대학교 해커톤 34팀 허강정 WOLINK 전시 포스터" /></a>
+</div>
+
+[포스터 원본 PDF 보기](docs/assets/wolink-exhibition-poster.pdf) · [포스터 이미지 크게 보기](docs/assets/wolink-exhibition-poster.png)
+
 ## 🎬 시연영상
 
 **공고 등록 → 지원과 채팅 → AI 계약서 요약 → 경험 포트폴리오**를 영상으로 확인하세요.
